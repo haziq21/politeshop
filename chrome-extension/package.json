@@ -1,0 +1,18 @@
+{
+  "name": "politeshop",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "chrome-types": "^0.1.303",
+    "esbuild": "^0.23.1"
+  },
+  "prettier": {
+    "printWidth": 100
+  }
+}
