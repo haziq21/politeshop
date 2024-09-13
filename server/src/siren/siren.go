@@ -17,6 +17,7 @@ func (e *Entity) ClassIs(classes ...string) bool {
 	return slices.Equal(e.Class, classes)
 }
 
+// FindLinkWithRel returns the first link with the given rels, or nil if none is found.
 func (e *Entity) FindLinkWithRel(rels ...string) *Link {
 	for _, link := range e.Links {
 		if slices.Equal(link.Rel, rels) {
@@ -24,6 +25,13 @@ func (e *Entity) FindLinkWithRel(rels ...string) *Link {
 		}
 	}
 	return nil
+}
+
+func (e *Entity) StringProperty(key string) (string, bool) {
+	if value, ok := e.Properties[key].(string); ok {
+		return value, true
+	}
+	return "", false
 }
 
 type Action struct {

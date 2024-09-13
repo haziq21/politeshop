@@ -15,9 +15,15 @@ type ContentGroup struct {
 type ActivityGroup struct {
 	id, name, contentGroupId string
 	transparent              bool
-	activities               []*Activity
+	activities               *[]Activity
 }
 
 type Activity struct {
 	id, name, activityGroupId string
+}
+
+type ContentWrapper struct {
+	ContentGroups  []ContentGroup
+	ActivityGroups []ActivityGroup
+	Activities     []Activity
 }

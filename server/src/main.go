@@ -29,12 +29,11 @@ func main() {
 
 	fmt.Println(modules)
 
-	contentGroups, activityGroups, err := pm.GetModuleContent("468800")
+	cw, err := pm.GetModuleContent("468314")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(contentGroups)
-	fmt.Println(activityGroups)
+	fmt.Println(cw.Activities)
 }
