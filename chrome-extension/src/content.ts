@@ -8,4 +8,10 @@ async function getFullAuth(): Promise<FullAuth> {
   return { ...politemallAuth, brightspaceToken };
 }
 
-getFullAuth().then(console.log);
+getFullAuth().then((a) => {
+  console.log(
+    Object.entries(a)
+      .map(([k, v]) => `export ${k.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase()}="${v}"`)
+      .join("\n")
+  );
+});
