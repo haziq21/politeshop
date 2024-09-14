@@ -34,7 +34,7 @@ func (pm *PolitemallClient) getBrightspaceEntity(href string) (siren.Entity, err
 }
 
 // getActivityIdFromUrl extracts the activity ID from the given activity URI.
-func (pm *PolitemallClient) getActivityIdFromUrl(activityUrl string) (string, error) {
+func getActivityIdFromUrl(activityUrl string) (string, error) {
 	url, err := url.Parse(activityUrl)
 	if err != nil {
 		return "", fmt.Errorf("broken activity URL: %w", err)

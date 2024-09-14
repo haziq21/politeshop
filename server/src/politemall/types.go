@@ -1,29 +1,24 @@
 package politemall
 
 type Semester struct {
-	id, name string
+	Id, Name string
 }
 
 type Module struct {
-	id, name, code, semesterId string
+	Id, Name, Code, SemesterId string
 }
 
-type ContentGroup struct {
-	id, name, moduleId string
+type Unit struct {
+	Id, Title string
+	Lessons   []Lesson
 }
 
-type ActivityGroup struct {
-	id, name, contentGroupId string
-	transparent              bool
-	activities               *[]Activity
+type Lesson struct {
+	Id, Title   string
+	Transparent bool
+	Activities  []Activity
 }
 
 type Activity struct {
-	id, name, activityGroupId string
-}
-
-type ContentWrapper struct {
-	ContentGroups  []ContentGroup
-	ActivityGroups []ActivityGroup
-	Activities     []Activity
+	Id, Title string
 }

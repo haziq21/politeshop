@@ -25,7 +25,7 @@ type PolitemallClient struct {
 
 // NewClient creates a new PolitemallClient with the given *.polite.edu.sg subdomain
 // (nplms / splms / etc.) and authentication, leaving tenantId initially empty.
-func NewClient(politeDomain, d2lSessionVal, d2lSecureSessionVal, brightspaceJwt string) (*PolitemallClient, error) {
+func NewClient(politeDomain, d2lSessionVal, d2lSecureSessionVal, brightspaceToken string) (*PolitemallClient, error) {
 	// The POLITEMall frontend interfaces with both *.polite.edu.sg and *.api.brightspace.com APIs.
 	// *.polite.edu.sg APIs use the d2lSessionVal and d2lSecureSessionVal cookies for authentication,
 	// while *.api.brightspace.com APIs use a JWT bearer token in the Authorization header.
@@ -48,7 +48,7 @@ func NewClient(politeDomain, d2lSessionVal, d2lSecureSessionVal, brightspaceJwt 
 
 	jar.SetCookies(cookieUrl, authCookies)
 
-	token, _, err := jwt.NewParser().ParseUnverified(brightspaceJwt, jwt.MapClaims{})
+	token, _, err := jwt.NewParser().ParseUnverified(brightspaceToken, jwt.MapClaims{})
 	if err != nil {
 		return nil, fmt.Errorf("invalid JWT: %w", err)
 	}
@@ -62,7 +62,7 @@ func NewClient(politeDomain, d2lSessionVal, d2lSecureSessionVal, brightspaceJwt 
 	return &PolitemallClient{
 		httpClient:       &http.Client{Jar: jar},
 		politeDomain:     politeDomain,
-		brightspaceToken: brightspaceJwt,
+		brightspaceToken: brightspaceToken,
 		userId:           sub,
 	}, nil
 }
@@ -77,8 +77,8 @@ func (pm *PolitemallClient) GetSemesters() (semesters []Semester, err error) {
 	// Gather the semester information
 	for _, action := range ent.Actions {
 		semesters = append(semesters, Semester{
-			name: strings.TrimSpace(action.Title),
-			id:   action.Name,
+			Name: strings.TrimSpace(action.Title),
+			Id:   action.Name,
 		})
 
 		// Set pm.tenantId if not already set
@@ -172,7 +172,7 @@ func (pm *PolitemallClient) getModuleFromEnrollmentHref(enrollHref string) (Modu
 
 	orgUrl, err := url.Parse(orgHref)
 	if err != nil {
-		panic(fmt.Errorf("broken organization URL: %w", err))
+		return Module{}, fmt.Errorf("broken organization URL: %w", err)
 	}
 
 	name, ok := orgEntity.StringProperty("name")
@@ -185,150 +185,130 @@ func (pm *PolitemallClient) getModuleFromEnrollmentHref(enrollHref string) (Modu
 	}
 
 	return Module{
-		id:         strings.Trim(orgUrl.Path, "/"),
-		name:       name,
-		code:       code,
-		semesterId: moduleSemesterId,
+		Id:         strings.Trim(orgUrl.Path, "/"),
+		Name:       name,
+		Code:       code,
+		SemesterId: moduleSemesterId,
 	}, nil
 }
 
-func (pm *PolitemallClient) GetModuleContent(moduleId string) (ContentWrapper, error) {
-	entity, err := pm.getBrightspaceEntity("https://" + pm.tenantId + ".sequences.api.brightspace.com/" + moduleId + "?deepEmbedEntities=1&embedDepth=1&filterOnDatesAndDepth=0")
-	if err != nil {
-		return ContentWrapper{}, err
-	}
-
-	var cw ContentWrapper
-
-	for _, contentGroupEntity := range entity.Entities {
-		// Extract the ID of the content group from the self link
-		link := contentGroupEntity.FindLinkWithRel("self", "describes")
-		if link == nil {
-			return ContentWrapper{}, errors.New("missing content group link")
-		}
-		contentGroupId, err := pm.getActivityIdFromUrl(link.Href)
-		if err != nil {
-			return ContentWrapper{}, err
-		}
-
-		name, ok := contentGroupEntity.StringProperty("title")
-		if !ok {
-			return ContentWrapper{}, errors.New("missing title property")
-		}
-
-		cw.ContentGroups = append(cw.ContentGroups, ContentGroup{
-			id:       contentGroupId,
-			name:     name,
-			moduleId: moduleId,
-		})
-
-		groupsAndActivities, err := pm.getActivityGroupContentFromContentGroupEntity(&contentGroupEntity)
-		if err != nil {
-			return ContentWrapper{}, err
-		}
-
-		cw.ActivityGroups = append(cw.ActivityGroups, groupsAndActivities.ActivityGroups...)
-		cw.Activities = append(cw.Activities, groupsAndActivities.Activities...)
-	}
-
-	return cw, nil
-}
-
-func (pm *PolitemallClient) getActivityGroupContentFromContentGroupEntity(contentGroupEnt *siren.Entity) (ContentWrapper, error) {
-	link := contentGroupEnt.FindLinkWithRel("self", "describes")
-	if link == nil {
-		return ContentWrapper{}, errors.New("missing content group link")
-	}
-	contentGroupId, err := pm.getActivityIdFromUrl(link.Href)
-	if err != nil {
-		return ContentWrapper{}, err
-	}
-
-	activityGroups := make([]ActivityGroup, 0, len(contentGroupEnt.Entities)-2)
-	var activities []Activity
-
-	for _, activityGroupEnt := range contentGroupEnt.Entities {
-		// Skip entities that are not activity groups
-		if !activityGroupEnt.ClassIs("release-condition-fix", "sequence", "sequence-description") {
-			continue
-		}
-
-		// Extract the ID of the activity group from the self link
-		link := activityGroupEnt.FindLinkWithRel("self", "describes")
-		if link == nil {
-			return ContentWrapper{}, errors.New("missing activity group link")
-		}
-		activityGroupId, err := pm.getActivityIdFromUrl(link.Href)
-		if err != nil {
-			return ContentWrapper{}, err
-		}
-
-		name, ok := activityGroupEnt.StringProperty("title")
-		if !ok {
-			return ContentWrapper{}, errors.New("missing title property")
-		}
-
-		acts, err := pm.getActivitiesFromGroupEntity(&activityGroupEnt)
-		if err != nil {
-			return ContentWrapper{}, err
-		}
-
-		activities = append(activities, acts...)
-
-		activityGroups = append(activityGroups, ActivityGroup{
-			id:             activityGroupId,
-			name:           name,
-			contentGroupId: contentGroupId,
-			transparent:    false,
-			activities:     &acts,
-		})
-	}
-
-	return ContentWrapper{
-		ActivityGroups: activityGroups,
-		Activities:     activities,
-	}, nil
-}
-
-func (pm *PolitemallClient) getActivitiesFromGroupEntity(activityGroupEnt *siren.Entity) ([]Activity, error) {
-	// Get the ID of the activity group
-	link := activityGroupEnt.FindLinkWithRel("self", "describes")
-	if link == nil {
-		return nil, errors.New("missing activity link")
-	}
-	activityGroupId, err := pm.getActivityIdFromUrl(link.Href)
+func (pm *PolitemallClient) GetModuleContent(moduleId string) ([]Unit, error) {
+	ent, err := pm.getBrightspaceEntity("https://" + pm.tenantId + ".sequences.api.brightspace.com/" + moduleId + "?deepEmbedEntities=1&embedDepth=1&filterOnDatesAndDepth=0")
 	if err != nil {
 		return nil, err
 	}
 
-	activities := make([]Activity, 0, len(activityGroupEnt.Entities)-2)
+	units := make([]Unit, 0, len(ent.Entities))
 
-	// Get the activities in the activity group
-	for _, activityEnt := range activityGroupEnt.Entities {
-		if !activityEnt.ClassIs("release-condition-fix", "sequenced-activity") {
-			continue
-		}
-
-		title, ok := activityEnt.StringProperty("title")
-		if !ok {
-			return nil, errors.New("missing title property")
-		}
-
-		link := activityEnt.FindLinkWithRel("self", "describes")
-		if link == nil {
-			return nil, errors.New("missing activity link")
-		}
-		activityId, err := pm.getActivityIdFromUrl(link.Href)
+	for _, unitEnt := range ent.Entities {
+		unit, err := pm.parseUnit(&unitEnt)
 		if err != nil {
 			return nil, err
 		}
-
-		activities = append(activities, Activity{
-			id:              activityId,
-			name:            title,
-			activityGroupId: activityGroupId,
-		})
+		units = append(units, unit)
 	}
 
-	return activities, nil
+	return units, nil
+}
+
+func (pm *PolitemallClient) parseUnit(ent *siren.Entity) (Unit, error) {
+	// Extract the ID of the unit from the self link
+	link := ent.FindLinkWithRel("self", "describes")
+	if link == nil {
+		return Unit{}, errors.New("missing unit link")
+	}
+	unitId, err := getActivityIdFromUrl(link.Href)
+	if err != nil {
+		return Unit{}, err
+	}
+
+	// Get the title of the unit
+	unitTitle, ok := ent.StringProperty("title")
+	if !ok {
+		return Unit{}, errors.New("missing title property")
+	}
+
+	// Parse the lessons in the unit
+	lessons := make([]Lesson, 0, len(ent.Entities))
+	for _, subEnt := range ent.Entities {
+		if !subEnt.ClassIs("release-condition-fix", "sequence", "sequence-description") {
+			continue
+		}
+
+		lesson, err := pm.parseLesson(&subEnt)
+		if err != nil {
+			return Unit{}, err
+		}
+		lessons = append(lessons, lesson)
+	}
+
+	return Unit{
+		Id:      unitId,
+		Title:   unitTitle,
+		Lessons: lessons,
+	}, nil
+}
+
+// parseLesson parses a Siren entity into a Lesson.
+func (pm *PolitemallClient) parseLesson(ent *siren.Entity) (Lesson, error) {
+	// Extract the ID of the lesson from the self link
+	link := ent.FindLinkWithRel("self", "describes")
+	if link == nil {
+		return Lesson{}, errors.New("missing lesson link")
+	}
+	lessonId, err := getActivityIdFromUrl(link.Href)
+	if err != nil {
+		return Lesson{}, err
+	}
+
+	// Get the title of the lesson
+	lessonTitle, ok := ent.StringProperty("title")
+	if !ok {
+		return Lesson{}, errors.New("missing title property")
+	}
+
+	// Parse the activities in the lesson
+	activities := make([]Activity, 0, len(ent.Entities))
+	for _, subEnt := range ent.Entities {
+		if !subEnt.ClassIs("release-condition-fix", "sequenced-activity") {
+			continue
+		}
+
+		activity, err := pm.parseActivity(&subEnt)
+		if err != nil {
+			return Lesson{}, err
+		}
+		activities = append(activities, activity)
+	}
+
+	return Lesson{
+		Id:          lessonId,
+		Title:       lessonTitle,
+		Transparent: false,
+		Activities:  activities,
+	}, nil
+}
+
+// parseActivity parses a Siren entity into an Activity.
+func (pm *PolitemallClient) parseActivity(ent *siren.Entity) (Activity, error) {
+	// Get the title of the activity
+	title, ok := ent.StringProperty("title")
+	if !ok {
+		return Activity{}, errors.New("missing title property")
+	}
+
+	// Extract the ID of the activity from the self link
+	link := ent.FindLinkWithRel("self", "describes")
+	if link == nil {
+		return Activity{}, errors.New("missing activity link")
+	}
+	activityId, err := getActivityIdFromUrl(link.Href)
+	if err != nil {
+		return Activity{}, err
+	}
+
+	return Activity{
+		Id:    activityId,
+		Title: title,
+	}, nil
 }
