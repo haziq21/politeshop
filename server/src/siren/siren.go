@@ -17,14 +17,14 @@ func (e *Entity) ClassIs(classes ...string) bool {
 	return slices.Equal(e.Class, classes)
 }
 
-// FindLinkWithRel returns the first link with the given rels, or nil if none is found.
-func (e *Entity) FindLinkWithRel(rels ...string) *Link {
+// FindLinkWithRel returns the first link with the given rels.
+func (e *Entity) FindLinkWithRel(rels ...string) (*Link, bool) {
 	for _, link := range e.Links {
 		if slices.Equal(link.Rel, rels) {
-			return &link
+			return &link, true
 		}
 	}
-	return nil
+	return nil, false
 }
 
 func (e *Entity) StringProperty(key string) (string, bool) {

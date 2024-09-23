@@ -1,58 +1,103 @@
 package politemall
 
 import (
+	"politeshop/politestore"
 	"politeshop/siren"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-var dummyActivityEnt = siren.Entity{
-	Properties: map[string]interface{}{"title": "test title"},
+var activityEnt = siren.Entity{
+	Properties: map[string]interface{}{"title": "activity"},
 	Class:      []string{"release-condition-fix", "sequenced-activity"},
-	Links:      []siren.Link{{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/activity/123?q=0"}},
+	Links: []siren.Link{
+		{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/activity/123?q=0"},
+		{Rel: []string{"up"}, Href: "https://brightspace.com/000/activity/456?q=0"},
+	},
 }
 
-var dummyLessonEnt = siren.Entity{
+var activityEntNoTitle = siren.Entity{
+	Class: []string{"release-condition-fix", "sequenced-activity"},
+	Links: []siren.Link{
+		{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/activity/123?q=0"},
+		{Rel: []string{"up"}, Href: "https://brightspace.com/000/activity/456?q=0"},
+	},
+}
+
+var lessonEnt = siren.Entity{
 	Properties: map[string]interface{}{"title": "lesson"},
 	Class:      []string{"release-condition-fix", "sequence", "sequence-description"},
-	Links:      []siren.Link{{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/activity/123?q=0"}},
-	Entities:   []siren.Entity{dummyActivityEnt},
+	Links: []siren.Link{
+		{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/activity/456?q=0"},
+		{Rel: []string{"up"}, Href: "https://brightspace.com/000/activity/789?q=0"},
+	},
+	Entities: []siren.Entity{activityEnt},
+}
+
+var lessonEntNoActivities = siren.Entity{
+	Properties: map[string]interface{}{"title": "lesson"},
+	Class:      []string{"release-condition-fix", "sequence", "sequence-description"},
+	Links: []siren.Link{
+		{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/activity/456?q=0"},
+		{Rel: []string{"up"}, Href: "https://brightspace.com/000/activity/789?q=0"},
+	},
+	Entities: []siren.Entity{},
+}
+
+var lessonEntNoTitle = siren.Entity{
+	Class: []string{"release-condition-fix", "sequence", "sequence-description"},
+	Links: []siren.Link{
+		{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/activity/456?q=0"},
+		{Rel: []string{"up"}, Href: "https://brightspace.com/000/activity/789?q=0"},
+	},
+	Entities: []siren.Entity{activityEnt},
+}
+
+var unitEnt = siren.Entity{
+	Properties: map[string]interface{}{"title": "unit"},
+	Links: []siren.Link{
+		{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/unit/789?q=0"},
+		{Rel: []string{"up"}, Href: "https://brightspace.com/000?q=0"},
+	},
+	Entities: []siren.Entity{lessonEntNoActivities},
+}
+
+var unitEntNoLessons = siren.Entity{
+	Properties: map[string]interface{}{"title": "unit"},
+	Links: []siren.Link{
+		{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/unit/789?q=0"},
+		{Rel: []string{"up"}, Href: "https://brightspace.com/000?q=0"},
+	},
+	Entities: []siren.Entity{},
+}
+
+var unitEntNoTitle = siren.Entity{
+	Links: []siren.Link{
+		{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/unit/789?q=0"},
+		{Rel: []string{"up"}, Href: "https://brightspace.com/000?q=0"},
+	},
+	Entities: []siren.Entity{lessonEntNoActivities},
 }
 
 func TestParseUnit(t *testing.T) {
 	pm := PolitemallClient{}
 	tests := []struct {
-		ent     siren.Entity
-		want    Unit
-		wantErr bool
+		ent  siren.Entity
+		want *politestore.Unit
 	}{
-		{siren.Entity{
-			Properties: map[string]interface{}{"title": "test title"},
-			Links:      []siren.Link{{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/unit/123?q=0"}},
-		}, Unit{Id: "123", Title: "test title", Lessons: []Lesson{}}, false},
-		{siren.Entity{
-			Properties: map[string]interface{}{"title": "test title"},
-			Links:      []siren.Link{{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/unit/123?q=0"}},
-			Entities:   []siren.Entity{dummyLessonEnt},
-		}, Unit{Id: "123", Title: "test title", Lessons: []Lesson{{Id: "123", Title: "lesson", Activities: []Activity{{Id: "123", Title: "test title"}}}}}, false},
-		{siren.Entity{
-			Links: []siren.Link{{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/unit/123?q=0"}},
-		}, Unit{}, true},
-		{siren.Entity{
-			Properties: map[string]interface{}{"title": "test title"},
-		}, Unit{}, true},
+		{unitEntNoLessons, &politestore.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []politestore.Lesson{}}},
+		{unitEnt, &politestore.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []politestore.Lesson{{ID: "456", UnitID: "789", Title: "lesson", Activities: []politestore.Activity{}}}}},
+		{unitEntNoTitle, nil},
 	}
 
 	for _, tt := range tests {
 		got, err := pm.parseUnit(&tt.ent)
 
-		if err != nil && !tt.wantErr {
-			t.Errorf("unexpected err: %v", err)
-		} else if err == nil && tt.wantErr {
-			t.Errorf("expected err, got nil")
-		} else if !cmp.Equal(got, tt.want) {
+		if !cmp.Equal(got, tt.want) {
 			t.Errorf("got %+v, want %+v", got, tt.want)
+		} else if got == nil && err == nil {
+			t.Error("missing error")
 		}
 	}
 }
@@ -60,32 +105,21 @@ func TestParseUnit(t *testing.T) {
 func TestParseLesson(t *testing.T) {
 	pm := PolitemallClient{}
 	tests := []struct {
-		ent     siren.Entity
-		want    Lesson
-		wantErr bool
+		ent  siren.Entity
+		want *politestore.Lesson
 	}{
-		{siren.Entity{
-			Properties: map[string]interface{}{"title": "test title"},
-			Links:      []siren.Link{{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/lesson/123?q=0"}},
-		}, Lesson{Id: "123", Title: "test title", Activities: []Activity{}}, false},
-		{dummyLessonEnt, Lesson{Id: "123", Title: "lesson", Activities: []Activity{{Id: "123", Title: "test title"}}}, false},
-		{siren.Entity{
-			Links: []siren.Link{{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/lesson/123?q=0"}},
-		}, Lesson{}, true},
-		{siren.Entity{
-			Properties: map[string]interface{}{"title": "test title"},
-		}, Lesson{}, true},
+		{lessonEntNoActivities, &politestore.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []politestore.Activity{}}},
+		{lessonEnt, &politestore.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []politestore.Activity{{ID: "123", LessonID: "456", Title: "activity"}}}},
+		{lessonEntNoTitle, nil},
 	}
 
 	for _, tt := range tests {
 		got, err := pm.parseLesson(&tt.ent)
 
-		if err != nil && !tt.wantErr {
-			t.Errorf("unexpected err: %v", err)
-		} else if err == nil && tt.wantErr {
-			t.Errorf("expected err, got nil")
-		} else if !cmp.Equal(got, tt.want) {
+		if !cmp.Equal(got, tt.want) {
 			t.Errorf("got %+v, want %+v", got, tt.want)
+		} else if got == nil && err == nil {
+			t.Error("missing error")
 		}
 	}
 }
@@ -93,28 +127,20 @@ func TestParseLesson(t *testing.T) {
 func TestParseActivity(t *testing.T) {
 	pm := PolitemallClient{}
 	tests := []struct {
-		ent     siren.Entity
-		want    Activity
-		wantErr bool
+		ent  siren.Entity
+		want *politestore.Activity
 	}{
-		{dummyActivityEnt, Activity{Id: "123", Title: "test title"}, false},
-		{siren.Entity{
-			Links: []siren.Link{{Rel: []string{"self", "describes"}, Href: "https://brightspace.com/000/activity/123?q=0"}},
-		}, Activity{}, true},
-		{siren.Entity{
-			Properties: map[string]interface{}{"title": "test title"},
-		}, Activity{}, true},
+		{activityEnt, &politestore.Activity{ID: "123", LessonID: "456", Title: "activity"}},
+		{activityEntNoTitle, nil},
 	}
 
 	for _, tt := range tests {
 		got, err := pm.parseActivity(&tt.ent)
 
-		if err != nil && !tt.wantErr {
-			t.Errorf("unexpected err: %v", err)
-		} else if err == nil && tt.wantErr {
-			t.Errorf("expected err, got nil")
-		} else if got != tt.want {
+		if !cmp.Equal(got, tt.want) {
 			t.Errorf("got %+v, want %+v", got, tt.want)
+		} else if got == nil && err == nil {
+			t.Error("missing error")
 		}
 	}
 }

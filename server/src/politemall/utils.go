@@ -2,6 +2,7 @@ package politemall
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -33,13 +34,17 @@ func (pm *PolitemallClient) getBrightspaceEntity(href string) (siren.Entity, err
 	return entity, nil
 }
 
-// getActivityIdFromUrl extracts the activity ID from the given activity URI.
-func getActivityIdFromUrl(activityUrl string) (string, error) {
-	url, err := url.Parse(activityUrl)
+// lastPathComponent returns the last path component of a URL.
+func lastPathComponent(u string) (string, error) {
+	parsedURL, err := url.Parse(u)
 	if err != nil {
 		return "", fmt.Errorf("broken activity URL: %w", err)
 	}
 
-	// The URL should look like https://abc123.sequences.api.brightspace.com/468314/activity/8130117?filterOnDatesAndDepth=0
-	return strings.Split(strings.Trim(url.Path, "/"), "/")[2], nil
+	components := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
+	if len(components) == 0 {
+		return "", errors.New("URL has no path components")
+	}
+
+	return components[len(components)-1], nil
 }
