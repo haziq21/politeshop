@@ -35,6 +35,24 @@ func (ps *PolitestoreClient) RunMigrations() error {
 	return nil
 }
 
+func (ps *PolitestoreClient) UpsertUser(user User) error {
+	_, err := ps.NamedExec(`
+		INSERT INTO users (id, name, school)
+		VALUES (:id, :name, :school)
+		ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, school = EXCLUDED.school`,
+		user)
+	return err
+}
+
+func (ps *PolitestoreClient) UpsertSchool(sch School) error {
+	_, err := ps.NamedExec(`
+		INSERT INTO schools (id, name)
+		VALUES (:id, :name)
+		ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name`,
+		sch)
+	return err
+}
+
 func (ps *PolitestoreClient) UpsertSemesters(sems []Semester) error {
 	_, err := ps.NamedExec(`
 		INSERT INTO semesters (id, name)

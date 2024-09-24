@@ -19,3 +19,7 @@ export async function getPolitemallAuth(): Promise<PolitemallAuth> {
 export function getBrightspaceToken(): string {
   return JSON.parse(localStorage.getItem("D2L.Fetch.Tokens")!)["*:*:*"].access_token;
 }
+
+export function getPoliteDomain(): string {
+  return window.location.hostname.split(".")[0];
+}

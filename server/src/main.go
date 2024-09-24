@@ -3,15 +3,17 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
+	"net/http"
 	"politeshop/politemall"
 	"politeshop/politestore"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	_ "github.com/lib/pq"
 )
 
 func test() error {
-	// Database setup
 	ps, err := politestore.Connect()
 	if err != nil {
 		return err
@@ -20,7 +22,7 @@ func test() error {
 		return err
 	}
 
-	pm, err := politemall.NewClient("nplms", os.Getenv("D2L_SESSION_VAL"), os.Getenv("D2L_SECURE_SESSION_VAL"), os.Getenv("BRIGHTSPACE_TOKEN"))
+	pm, err := politemall.NewClient("nplms", politemall.AuthSecretsFromEnv())
 	if err != nil {
 		return err
 	}
@@ -45,6 +47,20 @@ func test() error {
 		return err
 	}
 
+	user, sch, err := pm.GetUserAndSchool()
+	if err != nil {
+		return err
+	}
+	fmt.Println(sch)
+	fmt.Println(user)
+
+	if err := ps.UpsertSchool(sch); err != nil {
+		return err
+	}
+	if err := ps.UpsertUser(user); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -53,15 +69,35 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// r := chi.NewRouter()
-	// r.Use(middleware.Logger)
-	// r.Use(middleware.Recoverer)
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(cors.AllowAll().Handler)
 
-	// r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-	// 	w.Write([]byte("pong"))
-	// })
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		auth, ok := politemall.AuthSecretsFromHeader(&r.Header)
+		if !ok {
+			fmt.Fprintf(w, "Missing auth!")
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
 
-	// http.ListenAndServe(":8080", r)
+		politeDomain := r.Header.Get("X-Polite-Domain")
+		pm, err := politemall.NewClient(politeDomain, auth)
+		if err != nil {
+			panic(err)
+		}
+
+		user, school, err := pm.GetUserAndSchool()
+		if err != nil {
+			panic(err)
+		}
+
+		log.Printf("%+v", user)
+		log.Printf("%+v", school)
+	})
+
+	http.ListenAndServe(":8080", r)
 
 	// pm, err := politemall.NewClient("nplms", os.Getenv("D2L_SESSION_VAL"), os.Getenv("D2L_SECURE_SESSION_VAL"), os.Getenv("BRIGHTSPACE_TOKEN"))
 	// if err != nil {

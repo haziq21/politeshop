@@ -1,15 +1,19 @@
-package db
+package politestore
 
-type Module struct {
-	ID, Name, Code, Semester string
+type User struct {
+	ID, Name, School string
+}
+
+type School struct {
+	ID, Name string
 }
 
 type Semester struct {
 	ID, Name string
 }
 
-type User struct {
-	ID, Name string
+type Module struct {
+	ID, Name, Code, Semester string
 }
 
 type Unit struct {

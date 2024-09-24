@@ -2,6 +2,7 @@ package politemall
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -20,14 +21,13 @@ type PolitemallClient struct {
 	httpClient       *http.Client
 	brightspaceToken string
 	userID           string
-	// Populated by GetSemesters().
-	tenantID     string
-	politeDomain string
+	tenantID         string
+	politeDomain     string
 }
 
-// NewClient creates a new PolitemallClient with the given *.polite.edu.sg subdomain
-// (nplms / splms / etc.) and authentication, leaving tenantID initially empty.
-func NewClient(politeDomain, d2lSessionVal, d2lSecureSessionVal, brightspaceToken string) (*PolitemallClient, error) {
+// NewClient creates a new PolitemallClient with the given
+// *.polite.edu.sg subdomain (nplms / splms / etc.) and authentication.
+func NewClient(politeDomain string, auth AuthSecrets) (*PolitemallClient, error) {
 	// The POLITEMall frontend interfaces with both *.polite.edu.sg and *.api.brightspace.com APIs.
 	// *.polite.edu.sg APIs use the d2lSessionVal and d2lSecureSessionVal cookies for authentication,
 	// while *.api.brightspace.com APIs use a JWT bearer token in the Authorization header.
@@ -43,14 +43,14 @@ func NewClient(politeDomain, d2lSessionVal, d2lSecureSessionVal, brightspaceToke
 		return nil, fmt.Errorf("invalid subdomain: %w", err)
 	}
 
-	authCookies, err := http.ParseCookie("d2lSessionVal=" + d2lSessionVal + "; d2lSecureSessionVal=" + d2lSecureSessionVal)
+	authCookies, err := http.ParseCookie("d2lSessionVal=" + auth.D2lSessionVal + "; d2lSecureSessionVal=" + auth.D2lSecureSessionVal)
 	if err != nil {
 		return nil, fmt.Errorf("invalid cookie format: %w", err)
 	}
 
 	jar.SetCookies(cookieUrl, authCookies)
 
-	token, _, err := jwt.NewParser().ParseUnverified(brightspaceToken, jwt.MapClaims{})
+	token, _, err := jwt.NewParser().ParseUnverified(auth.BrightspaceToken, jwt.MapClaims{})
 	if err != nil {
 		return nil, fmt.Errorf("invalid JWT: %w", err)
 	}
@@ -58,18 +58,100 @@ func NewClient(politeDomain, d2lSessionVal, d2lSecureSessionVal, brightspaceToke
 	// Extract the user ID from the JWT
 	sub, err := token.Claims.GetSubject()
 	if err != nil {
-		return nil, fmt.Errorf("missing sub in Brightspace JWT: %w", err)
+		return nil, fmt.Errorf("unexpected Brightspace JWT: %w", err)
+	} else if sub == "" {
+		return nil, errors.New("missing sub on Brightspace JWT")
+	}
+
+	// Extract the Brightspace tenant ID from the JWT
+	rawTenantID, ok := token.Claims.(jwt.MapClaims)["tenantid"]
+	if !ok {
+		return nil, errors.New("missing tenantid in Brightspace JWT")
+	}
+	tenantID, ok := rawTenantID.(string)
+	if !ok {
+		return nil, fmt.Errorf("tenantid claim is a %T", rawTenantID)
 	}
 
 	return &PolitemallClient{
 		httpClient:       &http.Client{Jar: jar},
 		politeDomain:     politeDomain,
-		brightspaceToken: brightspaceToken,
+		brightspaceToken: auth.BrightspaceToken,
 		userID:           sub,
+		tenantID:         tenantID,
 	}, nil
 }
 
-// GetSemesters returns the semesters that the user has access to. This also populates tenantID.
+func (pm *PolitemallClient) GetUserAndSchool() (politestore.User, politestore.School, error) {
+	userEnt, err := pm.getBrightspaceEntity("https://" + pm.tenantID + ".enrollments.api.brightspace.com/users/" + pm.userID)
+	if err != nil {
+		return politestore.User{}, politestore.School{}, err
+	}
+	orgLink, ok := userEnt.FindLinkWithRel("https://api.brightspace.com/rels/organization")
+	if !ok {
+		return politestore.User{}, politestore.School{}, errors.New("missing organization link in user entity")
+	}
+
+	orgEnt, err := pm.getBrightspaceEntity(orgLink.Href)
+	if err != nil {
+		return politestore.User{}, politestore.School{}, err
+	}
+	school, err := pm.parseSchool(orgEnt)
+	if err != nil {
+		return politestore.User{}, politestore.School{}, err
+	}
+
+	user, err := pm.getUserWithoutSchool()
+	if err != nil {
+		return politestore.User{}, politestore.School{}, err
+	}
+	user.School = school.ID
+
+	return user, school, nil
+}
+
+func (pm *PolitemallClient) getUserWithoutSchool() (politestore.User, error) {
+	resp, err := pm.httpClient.Get("https://" + pm.politeDomain + ".polite.edu.sg/d2l/api/lp/1.0/users/whoami")
+	if err != nil {
+		return politestore.User{}, fmt.Errorf("request failed: %w", err)
+	} else if resp.StatusCode != http.StatusOK {
+		return politestore.User{}, fmt.Errorf("request failed with status %s", resp.Status)
+	}
+
+	defer resp.Body.Close()
+	var whoAmI struct{ Identifier, FirstName string }
+	if err := json.NewDecoder(resp.Body).Decode(&whoAmI); err != nil {
+		return politestore.User{}, fmt.Errorf("failed to decode JSON: %w", err)
+	}
+
+	return politestore.User{
+		ID:   whoAmI.Identifier,
+		Name: whoAmI.FirstName,
+	}, nil
+}
+
+func (pm *PolitemallClient) parseSchool(ent siren.Entity) (politestore.School, error) {
+	schoolName, ok := ent.StringProperty("name")
+	if !ok {
+		return politestore.School{}, errors.New("missing school name in organization entity")
+	}
+
+	link, ok := ent.FindLinkWithRel("self")
+	if !ok {
+		return politestore.School{}, errors.New("missing self link in school entity")
+	}
+	schoolID, err := lastPathComponent(link.Href)
+	if err != nil {
+		return politestore.School{}, fmt.Errorf("cannot extract school ID from self link: %w", err)
+	}
+
+	return politestore.School{
+		ID:   schoolID,
+		Name: schoolName,
+	}, nil
+}
+
+// GetSemesters returns the semesters that the user has access to.
 func (pm *PolitemallClient) GetSemesters() (semesters []politestore.Semester, err error) {
 	ent, err := pm.getBrightspaceEntity("https://" + pm.politeDomain + ".polite.edu.sg/d2l/api/le/manageCourses/courses-searches/" + pm.userID + "/BySemester?desc=1")
 	if err != nil {
@@ -82,20 +164,6 @@ func (pm *PolitemallClient) GetSemesters() (semesters []politestore.Semester, er
 			Name: strings.TrimSpace(action.Title), // Sometimes they have leading spaces...
 			ID:   action.Name,
 		})
-
-		// Set tenantID if not already set
-		if pm.tenantID != "" {
-			continue
-		}
-
-		href, err := url.Parse(action.Href)
-		if err != nil {
-			return nil, err
-		}
-
-		// The host should look something like abc123.enrollments.api.brightspace.com
-		pm.tenantID = strings.Split(href.Host, ".")[0]
-
 	}
 
 	return semesters, nil
@@ -103,9 +171,6 @@ func (pm *PolitemallClient) GetSemesters() (semesters []politestore.Semester, er
 
 // GetModules returns the modules that the user has access to.
 func (pm *PolitemallClient) GetModules() ([]politestore.Module, error) {
-	if pm.tenantID == "" {
-		return nil, errors.New("tenantID not set")
-	}
 	ent, err := pm.getBrightspaceEntity("https://" + pm.tenantID + ".enrollments.api.brightspace.com/users/" + pm.userID)
 	if err != nil {
 		return nil, err
