@@ -1,0 +1,11 @@
+package templates
+
+import "politeshop/politestore"
+
+templ Home(mods *[]politestore.Module) {
+	<ul>
+		for _, mod := range *mods {
+			<li>{ mod.Name }</li>
+		}
+	</ul>
+}

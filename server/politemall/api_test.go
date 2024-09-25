@@ -1,8 +1,8 @@
 package politemall
 
 import (
-	"politeshop/politestore"
 	"politeshop/siren"
+	"politeshop/store"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -84,10 +84,10 @@ func TestParseUnit(t *testing.T) {
 	pm := PolitemallClient{}
 	tests := []struct {
 		ent  siren.Entity
-		want *politestore.Unit
+		want *store.Unit
 	}{
-		{unitEntNoLessons, &politestore.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []politestore.Lesson{}}},
-		{unitEnt, &politestore.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []politestore.Lesson{{ID: "456", UnitID: "789", Title: "lesson", Activities: []politestore.Activity{}}}}},
+		{unitEntNoLessons, &store.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []store.Lesson{}}},
+		{unitEnt, &store.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []store.Lesson{{ID: "456", UnitID: "789", Title: "lesson", Activities: []store.Activity{}}}}},
 		{unitEntNoTitle, nil},
 	}
 
@@ -106,10 +106,10 @@ func TestParseLesson(t *testing.T) {
 	pm := PolitemallClient{}
 	tests := []struct {
 		ent  siren.Entity
-		want *politestore.Lesson
+		want *store.Lesson
 	}{
-		{lessonEntNoActivities, &politestore.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []politestore.Activity{}}},
-		{lessonEnt, &politestore.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []politestore.Activity{{ID: "123", LessonID: "456", Title: "activity"}}}},
+		{lessonEntNoActivities, &store.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []store.Activity{}}},
+		{lessonEnt, &store.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []store.Activity{{ID: "123", LessonID: "456", Title: "activity"}}}},
 		{lessonEntNoTitle, nil},
 	}
 
@@ -128,9 +128,9 @@ func TestParseActivity(t *testing.T) {
 	pm := PolitemallClient{}
 	tests := []struct {
 		ent  siren.Entity
-		want *politestore.Activity
+		want *store.Activity
 	}{
-		{activityEnt, &politestore.Activity{ID: "123", LessonID: "456", Title: "activity"}},
+		{activityEnt, &store.Activity{ID: "123", LessonID: "456", Title: "activity"}},
 		{activityEntNoTitle, nil},
 	}
 

@@ -23,21 +23,6 @@ func AuthSecretsFromEnv() AuthSecrets {
 	}
 }
 
-func AuthSecretsFromHeader(header *http.Header) (AuthSecrets, bool) {
-	d2lSessionVal := header.Get("X-D2l-Session-Val")
-	d2lSecureSessionVal := header.Get("X-D2l-Secure-Session-Val")
-	brightspaceToken := header.Get("X-Brightspace-Token")
-
-	if d2lSessionVal == "" || d2lSecureSessionVal == "" || brightspaceToken == "" {
-		return AuthSecrets{}, false
-	}
-	return AuthSecrets{
-		D2lSessionVal:       d2lSessionVal,
-		D2lSecureSessionVal: d2lSecureSessionVal,
-		BrightspaceToken:    brightspaceToken,
-	}, true
-}
-
 // getBrightspaceEntity fetches a Siren entity from the Brightspace API.
 func (pm *PolitemallClient) getBrightspaceEntity(href string) (siren.Entity, error) {
 	req, err := http.NewRequest("GET", href, nil)

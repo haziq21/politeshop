@@ -1,12 +1,11 @@
 package main
 
 import (
-	"context"
 	"net/http"
 	"politeshop/politemall"
-	"strings"
 )
 
+// UserAuth is a middleware that adds a PolitemallClient to the request context.
 func UserAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		politeDomain, err := firstSubdomain(r.Header.Get("Origin"))
@@ -15,17 +14,10 @@ func UserAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		secrets, ok := politemall.AuthSecretsFromHeader(&r.Header)
+		secrets, ok := authSecretsFromHeader(&r.Header)
 		if !ok {
 			http.Error(w, "Missing authorization", http.StatusForbidden)
 			return
-		}
-
-		token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-
-		// Set the authorization header if it's not already there
-		if !found {
-
 		}
 
 		pm, err := politemall.NewClient(politeDomain, secrets)
@@ -34,10 +26,38 @@ func UserAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		// TODO: Verify sub in secrets.BrightspaceToken
+		// token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+		// var verifiedUserID string
 
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "pm", pm)))
+		// // Generate the POLITEShop JWT and include it in the response
+		// if !found {
+		// 	// TODO: Verify the sub
+		// 	// TODO: Generate the token
+		// 	// TODO: Include the token in the response
+		// }
+
+		// Reject requests that might be using tampered or stolen Brightspace tokens
+		// if pm.UserID != verifiedUserID {
+		// 	http.Error(w, "Unauthorized", http.StatusForbidden)
+		// 	return
+		// }
+
+		next.ServeHTTP(w, r.WithContext(ctxWithPm(r.Context(), pm)))
 	})
 }
 
-// PolitemallClient.VerifyUserID(correctUserID string) error
+// authSecretsFromHeader extracts the politemall.AuthSecrets from a http.Header.
+func authSecretsFromHeader(header *http.Header) (politemall.AuthSecrets, bool) {
+	d2lSessionVal := header.Get("X-D2l-Session-Val")
+	d2lSecureSessionVal := header.Get("X-D2l-Secure-Session-Val")
+	brightspaceToken := header.Get("X-Brightspace-Token")
+
+	if d2lSessionVal == "" || d2lSecureSessionVal == "" || brightspaceToken == "" {
+		return politemall.AuthSecrets{}, false
+	}
+	return politemall.AuthSecrets{
+		D2lSessionVal:       d2lSessionVal,
+		D2lSecureSessionVal: d2lSecureSessionVal,
+		BrightspaceToken:    brightspaceToken,
+	}, true
+}

@@ -1,4 +1,4 @@
-package politestore
+package store
 
 type User struct {
 	ID, Name, School string
