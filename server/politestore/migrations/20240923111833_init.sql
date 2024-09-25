@@ -1,5 +1,4 @@
 -- +goose Up
--- +goose StatementBegin
 CREATE TABLE schools (
     id   text PRIMARY KEY,
     name text NOT NULL
@@ -28,13 +27,10 @@ CREATE TABLE user_modules (
     module_id text REFERENCES modules ON UPDATE CASCADE ON DELETE CASCADE,
     PRIMARY KEY (user_id, module_id)
 );
--- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
 DROP TABLE user_modules;
 DROP TABLE modules;
 DROP TABLE semesters;
 DROP TABLE users;
 DROP TABLE schools;
--- +goose StatementEnd

@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"politeshop/politemall"
 	"politeshop/politestore"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -65,8 +67,12 @@ func test() error {
 }
 
 func main() {
-	if err := test(); err != nil {
-		log.Fatal(err)
+	ps, err := politestore.Connect()
+	if err != nil {
+		panic(err)
+	}
+	if err := ps.RunMigrations(); err != nil {
+		panic(err)
 	}
 
 	r := chi.NewRouter()
@@ -82,7 +88,12 @@ func main() {
 			return
 		}
 
-		politeDomain := r.Header.Get("X-Polite-Domain")
+		u, err := url.Parse(r.Header.Get("Origin"))
+		if err != nil {
+			panic(err)
+		}
+		politeDomain := strings.Split(u.Hostname(), ".")[0]
+
 		pm, err := politemall.NewClient(politeDomain, auth)
 		if err != nil {
 			panic(err)
@@ -98,34 +109,4 @@ func main() {
 	})
 
 	http.ListenAndServe(":8080", r)
-
-	// pm, err := politemall.NewClient("nplms", os.Getenv("D2L_SESSION_VAL"), os.Getenv("D2L_SECURE_SESSION_VAL"), os.Getenv("BRIGHTSPACE_TOKEN"))
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-
-	// _, err = pm.GetSemesters()
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-
-	// // fmt.Println("Semesters:", semesters)
-
-	// // modules, err := pm.GetModules()
-	// // if err != nil {
-	// // 	fmt.Println(err)
-	// // 	return
-	// // }
-
-	// // fmt.Println(modules)
-
-	// units, err := pm.GetModuleUnits("468283")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-
-	// fmt.Printf("%+v", units)
 }

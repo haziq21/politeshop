@@ -1,5 +1,5 @@
 import type { FullAuth, PolitemallAuth } from "./types";
-import { getBrightspaceToken, getPoliteDomain } from "./utils";
+import { getBrightspaceToken } from "./utils";
 
 async function getFullAuth(): Promise<FullAuth> {
   const politemallAuth: PolitemallAuth = await chrome.runtime.sendMessage("get-politemall-auth");
@@ -23,7 +23,6 @@ async function main() {
 
   const res = await fetch(POLITESHOP_SERVER, {
     headers: {
-      "X-Polite-Domain": getPoliteDomain(),
       "X-D2l-Session-Val": auth.d2lSessionVal,
       "X-D2l-Secure-Session-Val": auth.d2lSecureSessionVal,
       "X-Brightspace-Token": auth.brightspaceToken,
