@@ -1,9 +1,6 @@
 {
   "name": "politeshop",
   "module": "index.ts",
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
@@ -14,5 +11,8 @@
   },
   "prettier": {
     "printWidth": 100
+  },
+  "scripts": {
+    "build": "esbuild src/content.ts src/worker.ts --bundle --minify --outdir=build && cp -r static build && cp manifest.json build"
   }
 }

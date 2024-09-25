@@ -14,7 +14,7 @@
     "content_scripts": [
         {
             "js": [
-                "build/content.js"
+                "content.js"
             ],
             "matches": [
                 "https://*.polite.edu.sg/*"
@@ -22,7 +22,17 @@
         }
     ],
     "background": {
-        "service_worker": "build/worker.js",
+        "service_worker": "worker.js",
         "type": "module"
-    }
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "static/*"
+            ],
+            "matches": [
+                "https://*.polite.edu.sg/*"
+            ]
+        }
+    ]
 }

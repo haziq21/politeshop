@@ -17,11 +17,12 @@ function envrcFromAuth(auth: FullAuth): string {
 const POLITESHOP_SERVER = "http://localhost:8080";
 
 async function main() {
-  const auth = await getFullAuth();
+  console.log("Content script started");
 
+  const auth = await getFullAuth();
   console.log(envrcFromAuth(auth));
 
-  const res = await fetch(POLITESHOP_SERVER, {
+  const res = await fetch(POLITESHOP_SERVER + window.location.pathname, {
     headers: {
       "X-D2l-Session-Val": auth.d2lSessionVal,
       "X-D2l-Secure-Session-Val": auth.d2lSecureSessionVal,
@@ -30,6 +31,12 @@ async function main() {
   });
 
   console.log(res);
+
+  // Replace the page with the response body
+  const body = await res.text();
+  document.open();
+  document.write(body);
+  document.close();
 }
 
 main();
