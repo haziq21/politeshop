@@ -9,7 +9,8 @@
     "printWidth": 120
   },
   "scripts": {
-    "dev": "npx tsx watch.ts"
+    "watch-ext": "cd chrome-extension && npx tsx watch.ts",
+    "watch-server": "cd server && npx tsx watch-static.ts"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

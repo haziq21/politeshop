@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"politeshop/politemall"
-	"politeshop/store"
+	"politeshop/services"
 )
 
 type ctxKey int
@@ -21,6 +21,6 @@ func ctxWithPm(ctx context.Context, pm *politemall.PolitemallClient) context.Con
 	return context.WithValue(ctx, PmCtxKey, pm)
 }
 
-func scFromCtx(ctx context.Context) *store.StoreClient {
-	return ctx.Value(ctxKey(ScCtxKey)).(*store.StoreClient)
+func scFromCtx(ctx context.Context) *services.ServiceClient {
+	return ctx.Value(ctxKey(ScCtxKey)).(*services.ServiceClient)
 }

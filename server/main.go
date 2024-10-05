@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"politeshop/store"
+	"net/url"
+	"os"
+	"politeshop/services"
 	"politeshop/templates"
 
 	"github.com/go-chi/chi/v5"
@@ -11,59 +14,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// func test() error {
-// 	ps, err := politestore.Connect()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if err := ps.RunMigrations(); err != nil {
-// 		return err
-// 	}
-
-// 	pm, err := politemall.NewClient("nplms", politemall.AuthSecretsFromEnv())
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	sems, err := pm.GetSemesters()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	fmt.Println(sems)
-
-// 	if err := ps.UpsertSemesters(sems); err != nil {
-// 		return err
-// 	}
-
-// 	mods, err := pm.GetModules()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	fmt.Println(mods)
-
-// 	if err := ps.UpsertModules(mods); err != nil {
-// 		return err
-// 	}
-
-// 	user, sch, err := pm.GetUserAndSchool()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	fmt.Println(sch)
-// 	fmt.Println(user)
-
-// 	if err := ps.UpsertSchool(sch); err != nil {
-// 		return err
-// 	}
-// 	if err := ps.UpsertUser(user); err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
 func main() {
-	sc, err := store.Connect()
+	sc, err := services.NewClient()
 	if err != nil {
 		panic(err)
 	}
@@ -71,6 +23,7 @@ func main() {
 		panic(err)
 	}
 
+	// Router setup and middleware
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(cors.Handler(cors.Options{
@@ -78,26 +31,23 @@ func main() {
 		AllowedHeaders:   []string{"X-D2l-Session-Val", "X-D2l-Secure-Session-Val", "X-Brightspace-Token"},
 		AllowCredentials: true,
 	}))
-	r.Use(UserAuth)
 	r.Use(middleware.WithValue(ScCtxKey, sc))
 	r.Use(middleware.Recoverer)
 
-	r.Get("/d2l/home", getHomepage)
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	r.Get("/login", getLogin)
 
-	http.ListenAndServe(":8080", r)
+	r.Route("/d2l", func(r chi.Router) {
+		r.Use(UserAuth)
+		r.Get("/home", getHomepage)
+	})
+
+	http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), r)
 }
 
 func getHomepage(w http.ResponseWriter, r *http.Request) {
 	pm := pmFromCtx(r.Context())
 	sc := scFromCtx(r.Context())
-
-	// mods, err := pm.GetModules()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// if err := ps.UpsertModules(mods); err != nil {
-	// 	panic(err)
-	// }
 
 	user, sch, err := pm.GetUserAndSchool()
 	if err != nil {
@@ -118,8 +68,11 @@ func getHomepage(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	mods, err := sc.GetUserModules(pm.UserID)
+	mods, err := pm.GetModules()
 	if err != nil {
+		panic(err)
+	}
+	if err := sc.UpsertUserModules(user.ID, mods); err != nil {
 		panic(err)
 	}
 
@@ -134,4 +87,21 @@ func getHomepage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templates.Home(&mods).Render(r.Context(), w)
+}
+
+func getLogin(w http.ResponseWriter, r *http.Request) {
+	var redirect string
+	var err error
+	if q := r.URL.Query()["redirect"]; len(q) == 1 {
+		redirect, err = url.QueryUnescape(q[0])
+		if err != nil {
+			http.Error(w, "Malformed redirect URL", http.StatusBadRequest)
+			return
+		}
+	} else {
+		http.Error(w, "Query should have one 'redirect' key", http.StatusBadRequest)
+		return
+	}
+
+	templates.Login(redirect).Render(r.Context(), w)
 }

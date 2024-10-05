@@ -8,35 +8,25 @@ async function getFullAuth(): Promise<FullAuth> {
   return { ...politemallAuth, brightspaceToken };
 }
 
-function envrcFromAuth(auth: FullAuth): string {
-  return Object.entries(auth)
-    .map(([k, v]) => `export ${k.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase()}="${v}"`)
-    .join("\n");
-}
-
 const POLITESHOP_SERVER = "http://localhost:8080";
 
 async function main() {
   const auth = await getFullAuth();
-  console.log(envrcFromAuth(auth));
 
-  const baseHTML = (await fetch(chrome.runtime.getURL("static/base.html")).then((res) => res.text()))
-    .replace("{{htmxUrl}}", chrome.runtime.getURL("static/htmx.min.js"))
-    .replace("{{alpineUrl}}", chrome.runtime.getURL("static/alpine.min.js"))
-    .replace("{{iframeUrl}}", POLITESHOP_SERVER + window.location.pathname);
+  const baseHTML = (await fetch(chrome.runtime.getURL("static/base.html")).then((res) => res.text())).replace(
+    "{{iframeUrl}}",
+    `${POLITESHOP_SERVER}/login?redirect=${encodeURIComponent(window.location.pathname)}`
+  );
 
   document.open();
   document.write(baseHTML);
   document.close();
 
-  document.body.addEventListener("htmx:configRequest", ((evt: HTMXConfigRequestEvent) => {
-    evt.detail.headers = {
-      "X-D2l-Session-Val": auth.d2lSessionVal,
-      "X-D2l-Secure-Session-Val": auth.d2lSecureSessionVal,
-      "X-Brightspace-Token": auth.brightspaceToken,
-      ...evt.detail.headers,
-    };
-  }) as EventListener);
+  const politeDomain = window.location.hostname.split(".")[0];
+
+  // Send the POLITEMall credentials to the iframe
+  const iframe = document.getElementById("politeshop") as HTMLIFrameElement;
+  iframe.onload = () => iframe.contentWindow!.postMessage({ ...auth, politeDomain }, POLITESHOP_SERVER);
 }
 
 main();

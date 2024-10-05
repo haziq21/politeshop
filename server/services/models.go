@@ -1,4 +1,4 @@
-package store
+package services
 
 type User struct {
 	ID, Name, School string

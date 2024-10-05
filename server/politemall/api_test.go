@@ -1,8 +1,8 @@
 package politemall
 
 import (
+	"politeshop/services"
 	"politeshop/siren"
-	"politeshop/store"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -84,10 +84,10 @@ func TestParseUnit(t *testing.T) {
 	pm := PolitemallClient{}
 	tests := []struct {
 		ent  siren.Entity
-		want *store.Unit
+		want *services.Unit
 	}{
-		{unitEntNoLessons, &store.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []store.Lesson{}}},
-		{unitEnt, &store.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []store.Lesson{{ID: "456", UnitID: "789", Title: "lesson", Activities: []store.Activity{}}}}},
+		{unitEntNoLessons, &services.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []services.Lesson{}}},
+		{unitEnt, &services.Unit{ID: "789", ModuleID: "000", Title: "unit", Lessons: []services.Lesson{{ID: "456", UnitID: "789", Title: "lesson", Activities: []services.Activity{}}}}},
 		{unitEntNoTitle, nil},
 	}
 
@@ -106,10 +106,10 @@ func TestParseLesson(t *testing.T) {
 	pm := PolitemallClient{}
 	tests := []struct {
 		ent  siren.Entity
-		want *store.Lesson
+		want *services.Lesson
 	}{
-		{lessonEntNoActivities, &store.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []store.Activity{}}},
-		{lessonEnt, &store.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []store.Activity{{ID: "123", LessonID: "456", Title: "activity"}}}},
+		{lessonEntNoActivities, &services.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []services.Activity{}}},
+		{lessonEnt, &services.Lesson{ID: "456", UnitID: "789", Title: "lesson", Activities: []services.Activity{{ID: "123", LessonID: "456", Title: "activity"}}}},
 		{lessonEntNoTitle, nil},
 	}
 
@@ -128,9 +128,9 @@ func TestParseActivity(t *testing.T) {
 	pm := PolitemallClient{}
 	tests := []struct {
 		ent  siren.Entity
-		want *store.Activity
+		want *services.Activity
 	}{
-		{activityEnt, &store.Activity{ID: "123", LessonID: "456", Title: "activity"}},
+		{activityEnt, &services.Activity{ID: "123", LessonID: "456", Title: "activity"}},
 		{activityEntNoTitle, nil},
 	}
 

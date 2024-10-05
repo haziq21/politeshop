@@ -1,30 +1,15 @@
-package store
+package services
 
 import (
 	"embed"
-	"os"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pressly/goose/v3"
 )
-
-type StoreClient struct {
-	*sqlx.DB
-}
-
-func Connect() (*StoreClient, error) {
-	conn, err := sqlx.Connect("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		return nil, err
-	}
-
-	return &StoreClient{DB: conn}, nil
-}
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-func (sc *StoreClient) RunMigrations() error {
+func (sc *ServiceClient) RunMigrations() error {
 	goose.SetBaseFS(embedMigrations)
 	if err := goose.SetDialect("postgres"); err != nil {
 		return err
@@ -35,7 +20,7 @@ func (sc *StoreClient) RunMigrations() error {
 	return nil
 }
 
-func (sc *StoreClient) UpsertUser(user User) error {
+func (sc *ServiceClient) UpsertUser(user User) error {
 	_, err := sc.NamedExec(`
 		INSERT INTO users (id, name, school)
 		VALUES (:id, :name, :school)
@@ -44,7 +29,7 @@ func (sc *StoreClient) UpsertUser(user User) error {
 	return err
 }
 
-func (sc *StoreClient) UpsertSchool(sch School) error {
+func (sc *ServiceClient) UpsertSchool(sch School) error {
 	_, err := sc.NamedExec(`
 		INSERT INTO schools (id, name)
 		VALUES (:id, :name)
@@ -53,7 +38,7 @@ func (sc *StoreClient) UpsertSchool(sch School) error {
 	return err
 }
 
-func (sc *StoreClient) UpsertSemesters(sems []Semester) error {
+func (sc *ServiceClient) UpsertSemesters(sems []Semester) error {
 	_, err := sc.NamedExec(`
 		INSERT INTO semesters (id, name)
 		VALUES (:id, :name)
@@ -63,7 +48,7 @@ func (sc *StoreClient) UpsertSemesters(sems []Semester) error {
 	return err
 }
 
-func (sc *StoreClient) UpsertUserModules(userID string, mods []Module) error {
+func (sc *ServiceClient) UpsertUserModules(userID string, mods []Module) error {
 	tx := sc.MustBegin()
 	tx.NamedExec(`
 		INSERT INTO modules (id, name, code, semester)
@@ -85,7 +70,7 @@ func (sc *StoreClient) UpsertUserModules(userID string, mods []Module) error {
 	return tx.Commit()
 }
 
-func (sc *StoreClient) GetUserModules(userID string) ([]Module, error) {
+func (sc *ServiceClient) GetUserModules(userID string) ([]Module, error) {
 	var mods []Module
 	err := sc.Select(
 		&mods,

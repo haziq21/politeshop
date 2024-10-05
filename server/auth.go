@@ -8,18 +8,13 @@ import (
 // UserAuth is a middleware that adds a PolitemallClient to the request context.
 func UserAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		politeDomain, err := firstSubdomain(r.Header.Get("Origin"))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
 		secrets, ok := authSecretsFromHeader(&r.Header)
 		if !ok {
 			http.Error(w, "Missing authorization", http.StatusForbidden)
 			return
 		}
 
+		politeDomain := r.Header.Get("X-Polite-Domain")
 		pm, err := politemall.NewClient(politeDomain, secrets)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

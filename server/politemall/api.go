@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"politeshop/services"
 	"politeshop/siren"
-	"politeshop/store"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -82,77 +82,77 @@ func NewClient(politeDomain string, auth AuthSecrets) (*PolitemallClient, error)
 	}, nil
 }
 
-func (pm *PolitemallClient) GetUserAndSchool() (store.User, store.School, error) {
+func (pm *PolitemallClient) GetUserAndSchool() (services.User, services.School, error) {
 	userEnt, err := pm.getBrightspaceEntity("https://" + pm.tenantID + ".enrollments.api.brightspace.com/users/" + pm.UserID)
 	if err != nil {
-		return store.User{}, store.School{}, err
+		return services.User{}, services.School{}, err
 	}
 	orgLink, ok := userEnt.FindLinkWithRel("https://api.brightspace.com/rels/organization")
 	if !ok {
-		return store.User{}, store.School{}, errors.New("missing organization link in user entity")
+		return services.User{}, services.School{}, errors.New("missing organization link in user entity")
 	}
 
 	orgEnt, err := pm.getBrightspaceEntity(orgLink.Href)
 	if err != nil {
-		return store.User{}, store.School{}, err
+		return services.User{}, services.School{}, err
 	}
 	school, err := pm.parseSchool(orgEnt)
 	if err != nil {
-		return store.User{}, store.School{}, err
+		return services.User{}, services.School{}, err
 	}
 
 	user, err := pm.getUserWithoutSchool()
 	if err != nil {
-		return store.User{}, store.School{}, err
+		return services.User{}, services.School{}, err
 	}
 	user.School = school.ID
 
 	return user, school, nil
 }
 
-func (pm *PolitemallClient) getUserWithoutSchool() (store.User, error) {
+func (pm *PolitemallClient) getUserWithoutSchool() (services.User, error) {
 	resp, err := pm.httpClient.Get("https://" + pm.politeDomain + ".polite.edu.sg/d2l/api/lp/1.0/users/whoami")
 	if err != nil {
-		return store.User{}, fmt.Errorf("request failed: %w", err)
+		return services.User{}, fmt.Errorf("request failed: %w", err)
 	} else if resp.StatusCode != http.StatusOK {
-		return store.User{}, fmt.Errorf("request failed with status %s", resp.Status)
+		return services.User{}, fmt.Errorf("request failed with status %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
 	var whoAmI struct{ Identifier, FirstName string }
 	if err := json.NewDecoder(resp.Body).Decode(&whoAmI); err != nil {
-		return store.User{}, fmt.Errorf("failed to decode JSON: %w", err)
+		return services.User{}, fmt.Errorf("failed to decode JSON: %w", err)
 	}
 
-	return store.User{
+	return services.User{
 		ID:   whoAmI.Identifier,
 		Name: whoAmI.FirstName,
 	}, nil
 }
 
-func (pm *PolitemallClient) parseSchool(ent siren.Entity) (store.School, error) {
+func (pm *PolitemallClient) parseSchool(ent siren.Entity) (services.School, error) {
 	schoolName, ok := ent.StringProperty("name")
 	if !ok {
-		return store.School{}, errors.New("missing school name in organization entity")
+		return services.School{}, errors.New("missing school name in organization entity")
 	}
 
 	link, ok := ent.FindLinkWithRel("self")
 	if !ok {
-		return store.School{}, errors.New("missing self link in school entity")
+		return services.School{}, errors.New("missing self link in school entity")
 	}
 	schoolID, err := lastPathComponent(link.Href)
 	if err != nil {
-		return store.School{}, fmt.Errorf("cannot extract school ID from self link: %w", err)
+		return services.School{}, fmt.Errorf("cannot extract school ID from self link: %w", err)
 	}
 
-	return store.School{
+	return services.School{
 		ID:   schoolID,
 		Name: schoolName,
 	}, nil
 }
 
 // GetSemesters returns the semesters that the user has access to.
-func (pm *PolitemallClient) GetSemesters() (semesters []store.Semester, err error) {
+func (pm *PolitemallClient) GetSemesters() (semesters []services.Semester, err error) {
 	ent, err := pm.getBrightspaceEntity("https://" + pm.politeDomain + ".polite.edu.sg/d2l/api/le/manageCourses/courses-searches/" + pm.UserID + "/BySemester?desc=1")
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (pm *PolitemallClient) GetSemesters() (semesters []store.Semester, err erro
 
 	// Gather the semester information
 	for _, action := range ent.Actions {
-		semesters = append(semesters, store.Semester{
+		semesters = append(semesters, services.Semester{
 			Name: strings.TrimSpace(action.Title), // Sometimes they have leading spaces...
 			ID:   action.Name,
 		})
@@ -170,13 +170,13 @@ func (pm *PolitemallClient) GetSemesters() (semesters []store.Semester, err erro
 }
 
 // GetModules returns the modules that the user has access to.
-func (pm *PolitemallClient) GetModules() ([]store.Module, error) {
+func (pm *PolitemallClient) GetModules() ([]services.Module, error) {
 	ent, err := pm.getBrightspaceEntity("https://" + pm.tenantID + ".enrollments.api.brightspace.com/users/" + pm.UserID)
 	if err != nil {
 		return nil, err
 	}
 
-	modulesChan := make(chan store.Module, len(ent.Entities))
+	modulesChan := make(chan services.Module, len(ent.Entities))
 	eg, _ := errgroup.WithContext(context.Background()) // TODO: Use context
 
 	// Asynchronously fetch each module
@@ -198,7 +198,7 @@ func (pm *PolitemallClient) GetModules() ([]store.Module, error) {
 
 	// Collect all the modules into a slice
 	close(modulesChan)
-	var modules []store.Module
+	var modules []services.Module
 	for module := range modulesChan {
 		modules = append(modules, module)
 	}
@@ -208,53 +208,53 @@ func (pm *PolitemallClient) GetModules() ([]store.Module, error) {
 
 // getModuleFromEnrollmentHref fetches the module information from the
 // given URL (as found in the sub-entities of the enrollments entity).
-func (pm *PolitemallClient) getModuleFromEnrollmentHref(enrollHref string) (store.Module, error) {
+func (pm *PolitemallClient) getModuleFromEnrollmentHref(enrollHref string) (services.Module, error) {
 	// Fetch the enrollment entity
 	enrollmentEnt, err := pm.getBrightspaceEntity(enrollHref)
 	if err != nil {
-		return store.Module{}, err
+		return services.Module{}, err
 	}
 
 	// Find the organization link of the enrollment
 	link, ok := enrollmentEnt.FindLinkWithRel("https://api.brightspace.com/rels/organization")
 	if !ok {
-		return store.Module{}, errors.New("missing organization link in enrollment entity")
+		return services.Module{}, errors.New("missing organization link in enrollment entity")
 	}
 	orgHref := link.Href
 
 	// Fetch the organization entity
 	orgEntity, err := pm.getBrightspaceEntity(orgHref)
 	if err != nil {
-		return store.Module{}, err
+		return services.Module{}, err
 	}
 
 	// Extract the ID of the semester that the module belongs to
 	link, ok = orgEntity.FindLinkWithRel("https://api.brightspace.com/rels/parent-semester")
 	if !ok {
-		return store.Module{}, errors.New("missing parent semester link in organization entity")
+		return services.Module{}, errors.New("missing parent semester link in organization entity")
 	}
 	semesterUrl, err := url.Parse(link.Href)
 	if err != nil {
-		return store.Module{}, fmt.Errorf("broken parent semester URL: %w", err)
+		return services.Module{}, fmt.Errorf("broken parent semester URL: %w", err)
 	}
 	// The URL should look something like https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.organizations.api.brightspace.com/332340?localeId=3
 	moduleSemesterId := strings.Trim(semesterUrl.Path, "/")
 
 	orgUrl, err := url.Parse(orgHref)
 	if err != nil {
-		return store.Module{}, fmt.Errorf("broken organization URL: %w", err)
+		return services.Module{}, fmt.Errorf("broken organization URL: %w", err)
 	}
 
 	name, ok := orgEntity.StringProperty("name")
 	if !ok {
-		return store.Module{}, errors.New("missing name property")
+		return services.Module{}, errors.New("missing name property")
 	}
 	code, ok := orgEntity.StringProperty("code")
 	if !ok {
-		return store.Module{}, errors.New("missing code property")
+		return services.Module{}, errors.New("missing code property")
 	}
 
-	return store.Module{
+	return services.Module{
 		ID:       strings.Trim(orgUrl.Path, "/"),
 		Name:     name,
 		Code:     code,
@@ -263,13 +263,13 @@ func (pm *PolitemallClient) getModuleFromEnrollmentHref(enrollHref string) (stor
 }
 
 // GetModuleUnits fetches the units in a module.
-func (pm *PolitemallClient) GetModuleUnits(moduleId string) (*[]store.Unit, error) {
+func (pm *PolitemallClient) GetModuleUnits(moduleId string) (*[]services.Unit, error) {
 	ent, err := pm.getBrightspaceEntity("https://" + pm.tenantID + ".sequences.api.brightspace.com/" + moduleId + "?deepEmbedEntities=1&embedDepth=1&filterOnDatesAndDepth=0")
 	if err != nil {
 		return nil, err
 	}
 
-	units := make([]store.Unit, 0, len(ent.Entities))
+	units := make([]services.Unit, 0, len(ent.Entities))
 	for _, unitEnt := range ent.Entities {
 		unit, err := pm.parseUnit(&unitEnt)
 		if err != nil {
@@ -282,7 +282,7 @@ func (pm *PolitemallClient) GetModuleUnits(moduleId string) (*[]store.Unit, erro
 }
 
 // parseUnit parses a Siren entity into a Unit.
-func (pm *PolitemallClient) parseUnit(ent *siren.Entity) (*store.Unit, error) {
+func (pm *PolitemallClient) parseUnit(ent *siren.Entity) (*services.Unit, error) {
 	// Extract the ID of the unit from the self link
 	link, ok := ent.FindLinkWithRel("self", "describes")
 	if !ok {
@@ -310,7 +310,7 @@ func (pm *PolitemallClient) parseUnit(ent *siren.Entity) (*store.Unit, error) {
 	}
 
 	// Parse the lessons in the unit
-	lessons := make([]store.Lesson, 0, len(ent.Entities))
+	lessons := make([]services.Lesson, 0, len(ent.Entities))
 	for _, subEnt := range ent.Entities {
 		if !subEnt.ClassIs("release-condition-fix", "sequence", "sequence-description") {
 			continue
@@ -323,7 +323,7 @@ func (pm *PolitemallClient) parseUnit(ent *siren.Entity) (*store.Unit, error) {
 		lessons = append(lessons, *lesson)
 	}
 
-	return &store.Unit{
+	return &services.Unit{
 		ID:       unitID,
 		ModuleID: moduleID,
 		Title:    unitTitle,
@@ -332,7 +332,7 @@ func (pm *PolitemallClient) parseUnit(ent *siren.Entity) (*store.Unit, error) {
 }
 
 // parseLesson parses a Siren entity into a Lesson.
-func (pm *PolitemallClient) parseLesson(ent *siren.Entity) (*store.Lesson, error) {
+func (pm *PolitemallClient) parseLesson(ent *siren.Entity) (*services.Lesson, error) {
 	// Extract the ID of the lesson from the self link
 	link, ok := ent.FindLinkWithRel("self", "describes")
 	if !ok {
@@ -360,7 +360,7 @@ func (pm *PolitemallClient) parseLesson(ent *siren.Entity) (*store.Lesson, error
 	}
 
 	// Parse the activities in the lesson
-	activities := make([]store.Activity, 0, len(ent.Entities))
+	activities := make([]services.Activity, 0, len(ent.Entities))
 	for _, subEnt := range ent.Entities {
 		if !subEnt.ClassIs("release-condition-fix", "sequenced-activity") {
 			continue
@@ -373,7 +373,7 @@ func (pm *PolitemallClient) parseLesson(ent *siren.Entity) (*store.Lesson, error
 		activities = append(activities, *activity)
 	}
 
-	return &store.Lesson{
+	return &services.Lesson{
 		ID:          lessonID,
 		UnitID:      unitID,
 		Title:       lessonTitle,
@@ -383,7 +383,7 @@ func (pm *PolitemallClient) parseLesson(ent *siren.Entity) (*store.Lesson, error
 }
 
 // parseActivity parses a Siren entity into an Activity.
-func (pm *PolitemallClient) parseActivity(ent *siren.Entity) (*store.Activity, error) {
+func (pm *PolitemallClient) parseActivity(ent *siren.Entity) (*services.Activity, error) {
 	// Extract the ID of the activity from the self link
 	link, ok := ent.FindLinkWithRel("self", "describes")
 	if !ok {
@@ -410,7 +410,7 @@ func (pm *PolitemallClient) parseActivity(ent *siren.Entity) (*store.Activity, e
 		return nil, errors.New("missing title property")
 	}
 
-	return &store.Activity{
+	return &services.Activity{
 		ID:       activityID,
 		LessonID: lessonID,
 		Title:    title,
