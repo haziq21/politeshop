@@ -1,5 +1,8 @@
 import type { PolitemallAuth } from "./types";
 
+/**
+ * Returns the D2L cookies on the active page. Needs to be run in a background worker.
+ */
 export async function getPolitemallAuth(): Promise<PolitemallAuth> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const url = tab.url!;

@@ -1,4 +1,4 @@
-import type { FullAuth, PolitemallAuth } from "./types";
+import type { FullAuth, HTMXConfigRequestEvent, PolitemallAuth } from "./types";
 import { getBrightspaceToken } from "./utils";
 
 async function getFullAuth(): Promise<FullAuth> {
@@ -17,26 +17,38 @@ function envrcFromAuth(auth: FullAuth): string {
 const POLITESHOP_SERVER = "http://localhost:8080";
 
 async function main() {
-  console.log("Content script started");
-
   const auth = await getFullAuth();
   console.log(envrcFromAuth(auth));
 
-  const res = await fetch(POLITESHOP_SERVER + window.location.pathname, {
-    headers: {
+  const baseHTML = (await fetch(chrome.runtime.getURL("static/base.html")).then((res) => res.text()))
+    .replace("{{htmxUrl}}", chrome.runtime.getURL("static/htmx.min.js"))
+    .replace("{{alpineUrl}}", chrome.runtime.getURL("static/alpine.min.js"))
+    .replace("{{iframeUrl}}", POLITESHOP_SERVER + window.location.pathname);
+
+  document.open();
+  document.write(baseHTML);
+  document.close();
+
+  document.body.addEventListener("htmx:configRequest", ((evt: HTMXConfigRequestEvent) => {
+    evt.detail.headers = {
       "X-D2l-Session-Val": auth.d2lSessionVal,
       "X-D2l-Secure-Session-Val": auth.d2lSecureSessionVal,
       "X-Brightspace-Token": auth.brightspaceToken,
-    },
-  });
-
-  console.log(res);
-
-  // Replace the page with the response body
-  const body = await res.text();
-  document.open();
-  document.write(body);
-  document.close();
+      ...evt.detail.headers,
+    };
+  }) as EventListener);
 }
 
 main();
+
+// Auto-reload the extension in development
+if (process.env.ENVIRONMENT === "development") {
+  console.log("Connecting to extension reload server...");
+
+  const evtSource = new EventSource("http://localhost:8081");
+  evtSource.onmessage = async () => {
+    console.log("Reloading extension...");
+    await chrome.runtime.sendMessage("reload");
+    window.location.reload();
+  };
+}

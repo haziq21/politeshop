@@ -24,7 +24,7 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
 
-    // Type-checking for the Chrome extension APIs
-    "types": ["chrome-types"]
+    // Type-checking for Node (dev server) and Chrome extension APIs
+    "types": ["node", "chrome-types"]
   }
 }

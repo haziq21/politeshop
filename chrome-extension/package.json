@@ -5,14 +5,21 @@
     "typescript": "^5.0.0"
   },
   "type": "module",
-  "dependencies": {
-    "chrome-types": "^0.1.303",
-    "esbuild": "^0.23.1"
-  },
   "prettier": {
-    "printWidth": 100
+    "printWidth": 120
   },
   "scripts": {
-    "build": "esbuild src/content.ts src/worker.ts --bundle --minify --outdir=build && cp -r static build && cp manifest.json build"
+    "dev": "npx tsx watch.ts"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.7.4",
+    "chrome-types": "^0.1.303",
+    "cors": "^2.8.5",
+    "esbuild": "^0.23.1",
+    "esbuild-plugin-copy": "^2.1.1",
+    "express": "^4.21.0",
+    "tsx": "^4.19.1"
   }
 }
