@@ -6,32 +6,19 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"politeshop/siren"
 	"strings"
 )
 
-type AuthSecrets struct {
-	D2lSessionVal, D2lSecureSessionVal, BrightspaceToken string
-}
-
-func AuthSecretsFromEnv() AuthSecrets {
-	return AuthSecrets{
-		D2lSessionVal:       os.Getenv("D2L_SESSION_VAL"),
-		D2lSecureSessionVal: os.Getenv("D2L_SECURE_SESSION_VAL"),
-		BrightspaceToken:    os.Getenv("BRIGHTSPACE_TOKEN"),
-	}
-}
-
 // getBrightspaceEntity fetches a Siren entity from the Brightspace API.
-func (pm *PolitemallClient) getBrightspaceEntity(href string) (siren.Entity, error) {
+func (pm *Client) getBrightspaceEntity(href string) (siren.Entity, error) {
 	req, err := http.NewRequest("GET", href, nil)
 	if err != nil {
 		return siren.Entity{}, fmt.Errorf("failed to build request: %w", err)
 	}
 
-	req.Header.Add("Authorization", "Bearer "+pm.brightspaceToken)
-	resp, err := pm.httpClient.Do(req)
+	req.Header.Add("Authorization", "Bearer "+pm.brightspaceJWT)
+	resp, err := pm.cli.Do(req)
 	if err != nil {
 		return siren.Entity{}, fmt.Errorf("request failed: %w", err)
 	} else if resp.StatusCode != http.StatusOK {
@@ -51,11 +38,11 @@ func (pm *PolitemallClient) getBrightspaceEntity(href string) (siren.Entity, err
 func lastPathComponent(u string) (string, error) {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
-		return "", fmt.Errorf("broken activity URL: %w", err)
+		return "", fmt.Errorf("broken URL: %w", err)
 	}
 
 	components := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
-	if len(components) == 0 {
+	if len(components) == 1 && components[0] == "" {
 		return "", errors.New("URL has no path components")
 	}
 

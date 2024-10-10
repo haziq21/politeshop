@@ -1,3 +1,8 @@
+/**
+ * This script watches for changes to the extension's source or static files. When a change
+ * is detected, it triggers a rebuild and notifies (via SSE) clients to reload the extension.
+ */
+
 import express from "express";
 import cors from "cors";
 import esbuild from "esbuild";
@@ -10,7 +15,7 @@ reloadNotifier.on("build-success", () => {
   console.log(`Build successful, notifying ${reloadNotifier.listenerCount("build-success") - 1} clients`);
 });
 
-// Server to trigger extension reloads via SSE
+// Server to announce extension reloads via SSE
 const app = express().use(cors());
 
 app.get("/", (req, res) => {
@@ -26,7 +31,6 @@ app.get("/", (req, res) => {
   };
 
   reloadNotifier.on("build-success", sendBuildSuccessMessage);
-
   req.on("close", () => {
     reloadNotifier.removeListener("build-success", sendBuildSuccessMessage);
   });
@@ -51,18 +55,20 @@ const ctx = await esbuild.context({
   outdir: "dist",
   define: {
     "process.env.ENVIRONMENT": '"development"',
+    "process.env.POLITESHOP_SERVER": '"http://localhost:7331"',
   },
   plugins: [reloadNotifierPlugin],
 });
 
 await ctx.watch();
-watchCopy("static", "dist/static");
-watchCopy("manifest.json", "dist/manifest.json");
+copyAndWatch("static", "dist/static");
+copyAndWatch("manifest.json", "dist/manifest.json");
 console.log("Watching for file changes");
 
 // Watch for static assets ourselves because esbuild-plugin-copy
 // depends on the `watch` ESBuild build option, which has been removed
-async function watchCopy(source: string, destination: string) {
+async function copyAndWatch(source: string, destination: string) {
+  // TODO: This could be done more efficiently by only copying the changed files
   const copy = async () => {
     await rm(destination, { recursive: true, force: true });
     await cp(source, destination, { recursive: true });

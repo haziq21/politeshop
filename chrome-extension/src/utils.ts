@@ -1,9 +1,9 @@
-import type { PolitemallAuth } from "./types";
+import type { D2lAuth } from "../../shared-ts/types";
 
 /**
  * Returns the D2L cookies on the active page. Needs to be run in a background worker.
  */
-export async function getPolitemallAuth(): Promise<PolitemallAuth> {
+export async function getPolitemallAuth(): Promise<D2lAuth> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const url = tab.url!;
 
@@ -21,4 +21,8 @@ export async function getPolitemallAuth(): Promise<PolitemallAuth> {
 
 export function getBrightspaceToken(): string {
   return JSON.parse(localStorage.getItem("D2L.Fetch.Tokens")!)["*:*:*"].access_token;
+}
+
+export function getCSRFToken(): string {
+  return localStorage.getItem("XSRF.Token")!;
 }

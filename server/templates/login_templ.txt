@@ -1,2 +1,0 @@
-<head><script src=\"https://unpkg.com/htmx.org@2.0.3\"></script></head><body hx-boost=\"true\"><a href=\"
-\" id=\"redirect\"></a><script src=\"static/login.js\"></script></body>

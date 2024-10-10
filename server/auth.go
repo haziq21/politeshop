@@ -1,58 +1,54 @@
 package main
 
 import (
-	"net/http"
-	"politeshop/politemall"
+	"encoding/base64"
+	"errors"
+	"fmt"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
-// UserAuth is a middleware that adds a PolitemallClient to the request context.
-func UserAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		secrets, ok := authSecretsFromHeader(&r.Header)
-		if !ok {
-			http.Error(w, "Missing authorization", http.StatusForbidden)
-			return
-		}
+// parsePoliteshopJWT parses a POLITEShop JWT and returns the user ID contained within.
+func parsePoliteshopJWT(signingKey, token string) (string, error) {
+	// POLITEShop JWTs use HMAC (which requires a []byte key)
+	keyBytes, err := base64.StdEncoding.DecodeString(signingKey)
+	if err != nil {
+		return "", fmt.Errorf("invalid base64 SIGNING_KEY: %w", err)
+	}
 
-		politeDomain := r.Header.Get("X-Polite-Domain")
-		pm, err := politemall.NewClient(politeDomain, secrets)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	parsedToken, err := jwt.Parse(
+		token,
+		func(*jwt.Token) (interface{}, error) { return keyBytes, nil },
+		jwt.WithValidMethods([]string{"HS256"}),
+	)
+	if err != nil {
+		return "", err
+	}
 
-		// token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-		// var verifiedUserID string
+	sub, err := parsedToken.Claims.GetSubject()
+	if err != nil {
+		return "", err
+	} else if sub == "" {
+		return "", errors.New("missing sub claim")
+	}
 
-		// // Generate the POLITEShop JWT and include it in the response
-		// if !found {
-		// 	// TODO: Verify the sub
-		// 	// TODO: Generate the token
-		// 	// TODO: Include the token in the response
-		// }
-
-		// Reject requests that might be using tampered or stolen Brightspace tokens
-		// if pm.UserID != verifiedUserID {
-		// 	http.Error(w, "Unauthorized", http.StatusForbidden)
-		// 	return
-		// }
-
-		next.ServeHTTP(w, r.WithContext(ctxWithPm(r.Context(), pm)))
-	})
+	return sub, nil
 }
 
-// authSecretsFromHeader extracts the politemall.AuthSecrets from a http.Header.
-func authSecretsFromHeader(header *http.Header) (politemall.AuthSecrets, bool) {
-	d2lSessionVal := header.Get("X-D2l-Session-Val")
-	d2lSecureSessionVal := header.Get("X-D2l-Secure-Session-Val")
-	brightspaceToken := header.Get("X-Brightspace-Token")
-
-	if d2lSessionVal == "" || d2lSecureSessionVal == "" || brightspaceToken == "" {
-		return politemall.AuthSecrets{}, false
+// generatePoliteshopJWT generates a POLITEShop JWT with the given user ID.
+func generatePoliteshopJWT(signingKey, userID string) (string, error) {
+	// HMAC requires a []byte key
+	keyBytes, err := base64.StdEncoding.DecodeString(signingKey)
+	if err != nil {
+		return "", fmt.Errorf("invalid base64 SIGNING_KEY: %w", err)
 	}
-	return politemall.AuthSecrets{
-		D2lSessionVal:       d2lSessionVal,
-		D2lSecureSessionVal: d2lSecureSessionVal,
-		BrightspaceToken:    brightspaceToken,
-	}, true
+
+	token, err := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwt.MapClaims{"sub": userID},
+	).SignedString(keyBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+	return token, nil
 }

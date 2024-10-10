@@ -81,7 +81,7 @@ var unitEntNoTitle = siren.Entity{
 }
 
 func TestParseUnit(t *testing.T) {
-	pm := PolitemallClient{}
+	pm := Client{}
 	tests := []struct {
 		ent  siren.Entity
 		want *services.Unit
@@ -103,7 +103,7 @@ func TestParseUnit(t *testing.T) {
 }
 
 func TestParseLesson(t *testing.T) {
-	pm := PolitemallClient{}
+	pm := Client{}
 	tests := []struct {
 		ent  siren.Entity
 		want *services.Lesson
@@ -125,7 +125,7 @@ func TestParseLesson(t *testing.T) {
 }
 
 func TestParseActivity(t *testing.T) {
-	pm := PolitemallClient{}
+	pm := Client{}
 	tests := []struct {
 		ent  siren.Entity
 		want *services.Activity

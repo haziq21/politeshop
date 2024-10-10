@@ -1,32 +1,44 @@
-import type { FullAuth, HTMXConfigRequestEvent, PolitemallAuth } from "./types";
-import { getBrightspaceToken } from "./utils";
+import type { D2lAuth, PoliteshopAuth } from "../../shared-ts/types";
+import { getBrightspaceToken, getCSRFToken } from "./utils";
 
-async function getFullAuth(): Promise<FullAuth> {
-  const politemallAuth: PolitemallAuth = await chrome.runtime.sendMessage("get-politemall-auth");
-  const brightspaceToken = getBrightspaceToken();
+async function getPoliteshopAuth(): Promise<PoliteshopAuth> {
+  const politemallAuth: D2lAuth = await chrome.runtime.sendMessage("get-politemall-auth");
 
-  return { ...politemallAuth, brightspaceToken };
+  return {
+    ...politemallAuth,
+    brightspaceToken: getBrightspaceToken(),
+    politeDomain: window.location.hostname.split(".")[0],
+    csrfToken: getCSRFToken(),
+  };
 }
 
-const POLITESHOP_SERVER = "http://localhost:8080";
+const POLITESHOP_SERVER = process.env.POLITESHOP_SERVER!;
 
 async function main() {
-  const auth = await getFullAuth();
-
-  const baseHTML = (await fetch(chrome.runtime.getURL("static/base.html")).then((res) => res.text())).replace(
-    "{{iframeUrl}}",
-    `${POLITESHOP_SERVER}/login?redirect=${encodeURIComponent(window.location.pathname)}`
-  );
+  const res = await fetch(chrome.runtime.getURL("static/base.html"));
+  const iframeUrl = POLITESHOP_SERVER + window.location.pathname;
+  const baseHTML = (await res.text()).replace("{{iframeUrl}}", iframeUrl);
 
   document.open();
   document.write(baseHTML);
   document.close();
 
-  const politeDomain = window.location.hostname.split(".")[0];
-
   // Send the POLITEMall credentials to the iframe
   const iframe = document.getElementById("politeshop") as HTMLIFrameElement;
-  iframe.onload = () => iframe.contentWindow!.postMessage({ ...auth, politeDomain }, POLITESHOP_SERVER);
+  const auth = await getPoliteshopAuth();
+  window.onmessage = (event) => {
+    if (event.origin !== POLITESHOP_SERVER) {
+      console.log(`Received message from unexpected origin: ${event.origin}`);
+      return;
+    }
+
+    if (event.data === "get-auth") {
+      console.log("Received request for POLITEShop authentication");
+      iframe.contentWindow!.postMessage(auth, POLITESHOP_SERVER);
+    }
+
+    console.log(`Received message from POLITEShop: ${event.data}`);
+  };
 }
 
 main();

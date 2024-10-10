@@ -6,83 +6,47 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"politeshop/services"
 	"politeshop/siren"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/sync/errgroup"
 )
 
-// PolitemallClient is a client for interacting with the PoliteMall API.
-type PolitemallClient struct {
-	httpClient       *http.Client
-	brightspaceToken string
-	UserID           string
-	tenantID         string
-	politeDomain     string
+// GetNewBrightspaceToken fetches a new Brightspace token from the PoliteMall API.
+func (pm *Client) GetNewBrightspaceToken(csrfToken string) (string, error) {
+	req, err := http.NewRequest(
+		"POST",
+		"https://"+pm.politeDomain+".polite.edu.sg/d2l/lp/auth/oauth2/token",
+		strings.NewReader(url.Values{"scope": {"*:*:*"}}.Encode()),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to build request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X-Csrf-Token", csrfToken)
+	resp, err := pm.cli.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+
+	var jsonResp struct {
+		AccessToken string `json:"access_token"`
+	}
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&jsonResp); err != nil {
+		return "", fmt.Errorf("failed to decode JSON: %w", err)
+	}
+
+	if jsonResp.AccessToken == "" {
+		return "", fmt.Errorf("missing access token in response")
+	}
+	return jsonResp.AccessToken, nil
 }
 
-// NewClient creates a new PolitemallClient with the given
-// *.polite.edu.sg subdomain (nplms / splms / etc.) and authentication.
-func NewClient(politeDomain string, auth AuthSecrets) (*PolitemallClient, error) {
-	// The POLITEMall frontend interfaces with both *.polite.edu.sg and *.api.brightspace.com APIs.
-	// *.polite.edu.sg APIs use the d2lSessionVal and d2lSecureSessionVal cookies for authentication,
-	// while *.api.brightspace.com APIs use a JWT bearer token in the Authorization header.
-
-	// Cookie jar for *.polite.edu.sg authentication
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		panic(err)
-	}
-
-	cookieUrl, err := url.Parse("https://" + politeDomain + ".polite.edu.sg/")
-	if err != nil {
-		return nil, fmt.Errorf("invalid subdomain: %w", err)
-	}
-
-	authCookies, err := http.ParseCookie("d2lSessionVal=" + auth.D2lSessionVal + "; d2lSecureSessionVal=" + auth.D2lSecureSessionVal)
-	if err != nil {
-		return nil, fmt.Errorf("invalid cookie format: %w", err)
-	}
-
-	jar.SetCookies(cookieUrl, authCookies)
-
-	token, _, err := jwt.NewParser().ParseUnverified(auth.BrightspaceToken, jwt.MapClaims{})
-	if err != nil {
-		return nil, fmt.Errorf("invalid JWT: %w", err)
-	}
-
-	// Extract the user ID from the JWT
-	sub, err := token.Claims.GetSubject()
-	if err != nil {
-		return nil, fmt.Errorf("unexpected Brightspace JWT: %w", err)
-	} else if sub == "" {
-		return nil, errors.New("missing sub on Brightspace JWT")
-	}
-
-	// Extract the Brightspace tenant ID from the JWT
-	rawTenantID, ok := token.Claims.(jwt.MapClaims)["tenantid"]
-	if !ok {
-		return nil, errors.New("missing tenantid in Brightspace JWT")
-	}
-	tenantID, ok := rawTenantID.(string)
-	if !ok {
-		return nil, fmt.Errorf("tenantid claim is a %T", rawTenantID)
-	}
-
-	return &PolitemallClient{
-		httpClient:       &http.Client{Jar: jar},
-		politeDomain:     politeDomain,
-		brightspaceToken: auth.BrightspaceToken,
-		UserID:           sub,
-		tenantID:         tenantID,
-	}, nil
-}
-
-func (pm *PolitemallClient) GetUserAndSchool() (services.User, services.School, error) {
+func (pm *Client) GetUserAndSchool() (services.User, services.School, error) {
 	userEnt, err := pm.getBrightspaceEntity("https://" + pm.tenantID + ".enrollments.api.brightspace.com/users/" + pm.UserID)
 	if err != nil {
 		return services.User{}, services.School{}, err
@@ -110,8 +74,8 @@ func (pm *PolitemallClient) GetUserAndSchool() (services.User, services.School, 
 	return user, school, nil
 }
 
-func (pm *PolitemallClient) getUserWithoutSchool() (services.User, error) {
-	resp, err := pm.httpClient.Get("https://" + pm.politeDomain + ".polite.edu.sg/d2l/api/lp/1.0/users/whoami")
+func (pm *Client) getUserWithoutSchool() (services.User, error) {
+	resp, err := pm.cli.Get("https://" + pm.politeDomain + ".polite.edu.sg/d2l/api/lp/1.0/users/whoami")
 	if err != nil {
 		return services.User{}, fmt.Errorf("request failed: %w", err)
 	} else if resp.StatusCode != http.StatusOK {
@@ -130,7 +94,7 @@ func (pm *PolitemallClient) getUserWithoutSchool() (services.User, error) {
 	}, nil
 }
 
-func (pm *PolitemallClient) parseSchool(ent siren.Entity) (services.School, error) {
+func (pm *Client) parseSchool(ent siren.Entity) (services.School, error) {
 	schoolName, ok := ent.StringProperty("name")
 	if !ok {
 		return services.School{}, errors.New("missing school name in organization entity")
@@ -152,7 +116,7 @@ func (pm *PolitemallClient) parseSchool(ent siren.Entity) (services.School, erro
 }
 
 // GetSemesters returns the semesters that the user has access to.
-func (pm *PolitemallClient) GetSemesters() (semesters []services.Semester, err error) {
+func (pm *Client) GetSemesters() (semesters []services.Semester, err error) {
 	ent, err := pm.getBrightspaceEntity("https://" + pm.politeDomain + ".polite.edu.sg/d2l/api/le/manageCourses/courses-searches/" + pm.UserID + "/BySemester?desc=1")
 	if err != nil {
 		return nil, err
@@ -170,7 +134,7 @@ func (pm *PolitemallClient) GetSemesters() (semesters []services.Semester, err e
 }
 
 // GetModules returns the modules that the user has access to.
-func (pm *PolitemallClient) GetModules() ([]services.Module, error) {
+func (pm *Client) GetModules() ([]services.Module, error) {
 	ent, err := pm.getBrightspaceEntity("https://" + pm.tenantID + ".enrollments.api.brightspace.com/users/" + pm.UserID)
 	if err != nil {
 		return nil, err
@@ -199,8 +163,8 @@ func (pm *PolitemallClient) GetModules() ([]services.Module, error) {
 	// Collect all the modules into a slice
 	close(modulesChan)
 	var modules []services.Module
-	for module := range modulesChan {
-		modules = append(modules, module)
+	for m := range modulesChan {
+		modules = append(modules, m)
 	}
 
 	return modules, nil
@@ -208,7 +172,7 @@ func (pm *PolitemallClient) GetModules() ([]services.Module, error) {
 
 // getModuleFromEnrollmentHref fetches the module information from the
 // given URL (as found in the sub-entities of the enrollments entity).
-func (pm *PolitemallClient) getModuleFromEnrollmentHref(enrollHref string) (services.Module, error) {
+func (pm *Client) getModuleFromEnrollmentHref(enrollHref string) (services.Module, error) {
 	// Fetch the enrollment entity
 	enrollmentEnt, err := pm.getBrightspaceEntity(enrollHref)
 	if err != nil {
@@ -263,7 +227,7 @@ func (pm *PolitemallClient) getModuleFromEnrollmentHref(enrollHref string) (serv
 }
 
 // GetModuleUnits fetches the units in a module.
-func (pm *PolitemallClient) GetModuleUnits(moduleId string) (*[]services.Unit, error) {
+func (pm *Client) GetModuleUnits(moduleId string) (*[]services.Unit, error) {
 	ent, err := pm.getBrightspaceEntity("https://" + pm.tenantID + ".sequences.api.brightspace.com/" + moduleId + "?deepEmbedEntities=1&embedDepth=1&filterOnDatesAndDepth=0")
 	if err != nil {
 		return nil, err
@@ -282,7 +246,7 @@ func (pm *PolitemallClient) GetModuleUnits(moduleId string) (*[]services.Unit, e
 }
 
 // parseUnit parses a Siren entity into a Unit.
-func (pm *PolitemallClient) parseUnit(ent *siren.Entity) (*services.Unit, error) {
+func (pm *Client) parseUnit(ent *siren.Entity) (*services.Unit, error) {
 	// Extract the ID of the unit from the self link
 	link, ok := ent.FindLinkWithRel("self", "describes")
 	if !ok {
@@ -332,7 +296,7 @@ func (pm *PolitemallClient) parseUnit(ent *siren.Entity) (*services.Unit, error)
 }
 
 // parseLesson parses a Siren entity into a Lesson.
-func (pm *PolitemallClient) parseLesson(ent *siren.Entity) (*services.Lesson, error) {
+func (pm *Client) parseLesson(ent *siren.Entity) (*services.Lesson, error) {
 	// Extract the ID of the lesson from the self link
 	link, ok := ent.FindLinkWithRel("self", "describes")
 	if !ok {
@@ -383,7 +347,7 @@ func (pm *PolitemallClient) parseLesson(ent *siren.Entity) (*services.Lesson, er
 }
 
 // parseActivity parses a Siren entity into an Activity.
-func (pm *PolitemallClient) parseActivity(ent *siren.Entity) (*services.Activity, error) {
+func (pm *Client) parseActivity(ent *siren.Entity) (*services.Activity, error) {
 	// Extract the ID of the activity from the self link
 	link, ok := ent.FindLinkWithRel("self", "describes")
 	if !ok {

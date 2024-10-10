@@ -1,39 +1,12 @@
-import express from "express";
-import cors from "cors";
 import esbuild from "esbuild";
 import events from "node:events";
-import { watch, cp, rm, glob } from "node:fs/promises";
+import { exec } from "child_process";
 
 // Event emitter to notify clients of successful builds
 const reloadNotifier = new events.EventEmitter();
 reloadNotifier.on("build-success", () => {
-  console.log(`Build successful, notifying ${reloadNotifier.listenerCount("build-success") - 1} clients`);
-});
-
-// Server to trigger extension reloads via SSE
-const app = express().use(cors());
-
-app.get("/", (req, res) => {
-  // Headers for SSE
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
-  });
-
-  const sendBuildSuccessMessage = () => {
-    res.write("data: build-success\n\n");
-  };
-
-  reloadNotifier.on("build-success", sendBuildSuccessMessage);
-
-  req.on("close", () => {
-    reloadNotifier.removeListener("build-success", sendBuildSuccessMessage);
-  });
-});
-
-app.listen(8081, () => {
-  console.log("Reload server listening on http://localhost:8081");
+  console.log(`Build successful, notifying templ proxy`);
+  exec("templ generate --notify-proxy");
 });
 
 const reloadNotifierPlugin: esbuild.Plugin = {
@@ -45,13 +18,8 @@ const reloadNotifierPlugin: esbuild.Plugin = {
   },
 };
 
-const entryPoints: string[] = [];
-for await (const filepath of glob("templates/*.ts")) {
-  entryPoints.push(filepath);
-}
-
 const ctx = await esbuild.context({
-  entryPoints,
+  entryPoints: ["templates/*.ts"],
   bundle: true,
   outdir: "static",
   define: {

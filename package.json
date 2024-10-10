@@ -10,17 +10,22 @@
   },
   "scripts": {
     "watch-ext": "cd chrome-extension && npx tsx watch.ts",
-    "watch-server": "cd server && npx tsx watch-static.ts"
+    "watch-server-scripts": "cd server && npx tsx watch-static.ts",
+    "watch-server-styles": "cd server && unocss templates/*.templ -o static/styles.css --watch",
+    "watch-server": "npm-run-all --parallel watch-server-scripts watch-server-styles"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.7.4",
+    "@unocss/cli": "^0.63.3",
     "chrome-types": "^0.1.303",
     "cors": "^2.8.5",
     "esbuild": "^0.23.1",
     "esbuild-plugin-copy": "^2.1.1",
     "express": "^4.21.0",
-    "tsx": "^4.19.1"
+    "npm-run-all": "^4.1.5",
+    "tsx": "^4.19.1",
+    "unocss": "^0.63.3"
   }
 }
