@@ -1,31 +1,22 @@
 {
   "name": "politeshop",
-  "module": "index.ts",
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
   "type": "module",
-  "prettier": {
-    "printWidth": 120
-  },
+  "version": "0.0.1",
   "scripts": {
-    "watch-ext": "cd chrome-extension && npx tsx watch.ts",
-    "watch-server-scripts": "cd server && npx tsx watch-static.ts",
-    "watch-server-styles": "cd server && unocss templates/*.templ -o static/styles.css --watch",
-    "watch-server": "npm-run-all --parallel watch-server-scripts watch-server-styles"
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
   },
-  "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.7.4",
-    "@unocss/cli": "^0.63.3",
-    "chrome-types": "^0.1.303",
-    "cors": "^2.8.5",
-    "esbuild": "^0.23.1",
-    "esbuild-plugin-copy": "^2.1.1",
-    "express": "^4.21.0",
-    "npm-run-all": "^4.1.5",
-    "tsx": "^4.19.1",
-    "unocss": "^0.63.3"
-  }
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.2.1",
+    "@astrojs/db": "^0.14.6",
+    "@astrojs/svelte": "^7.0.4",
+    "@tailwindcss/vite": "^4.0.6",
+    "astro": "^5.3.0",
+    "svelte": "^5.20.1",
+    "tailwindcss": "^4.0.6",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
