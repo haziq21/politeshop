@@ -1,8 +1,10 @@
-import { BRIGHTSPACE_JWT, D2L_SECURE_SESSION_VAL, D2L_SESSION_VAL, POLITE_DOMAIN } from "astro:env/server";
+import { BRIGHTSPACE_JWT, D2L_SECURE_SESSION_VAL, D2L_SESSION_VAL, POLITE_DOMAIN, SIGNING_KEY } from "astro:env/server";
 import { defineMiddleware } from "astro:middleware";
 import { POLITEMallClient } from "./politemall";
+import * as jose from "jose";
+import { db, school, user } from "./db";
 
-export const onRequest = defineMiddleware((context, next) => {
+export const onRequest = defineMiddleware(async (context, next) => {
   // If the request doesn't contain POLITEMall auth cookies, fallback to env vars (for testing in development)
   const d2lSessionVal = context.cookies.get("d2lSessionVal")?.value || D2L_SESSION_VAL;
   const d2lSecureSessionVal = context.cookies.get("d2lSecureSessionVal")?.value || D2L_SECURE_SESSION_VAL;
@@ -12,8 +14,53 @@ export const onRequest = defineMiddleware((context, next) => {
   // All requests must have these cookies set
   if (!d2lSessionVal || !d2lSecureSessionVal || !brightspaceJWT || !domain)
     return new Response("Unauthorized", { status: 401 });
+  const polite = new POLITEMallClient({ d2lSessionVal, d2lSecureSessionVal, brightspaceJWT, domain });
 
-  context.locals.polite = new POLITEMallClient({ d2lSessionVal, d2lSecureSessionVal, brightspaceJWT, domain });
+  // Signing key for our JWTs
+  const signingKey = new TextEncoder().encode(SIGNING_KEY);
+  let politeshopJWT = context.cookies.get("politeshopJWT")?.value;
+  let trustedUserId: string;
 
+  if (!politeshopJWT) {
+    // Get the user ID from a trusted source
+    const { data: partialUserData, error: partialUserError } = await polite.fetchPartialUser();
+    if (partialUserError) return new Response("Failed to fetch user data", { status: 500 });
+    trustedUserId = partialUserData.id;
+
+    const { data: schoolData, error: schoolError } = await polite.fetchSchool();
+    if (schoolError) return new Response("Failed to fetch school data", { status: 500 });
+    const fullUserData = { ...partialUserData, schoolId: schoolData.id };
+
+    // Update the database with the user and school data if necessary
+    await db
+      .insert(school)
+      .values(schoolData)
+      .onConflictDoUpdate({ target: school.id, set: { name: schoolData.name } });
+    await db
+      .insert(user)
+      .values(fullUserData)
+      .onConflictDoUpdate({ target: user.id, set: { name: fullUserData.name, schoolId: fullUserData.schoolId } });
+
+    // Cache the data in the request context
+    context.locals.politeData = { school: schoolData, user: fullUserData };
+
+    // Produce the politeshopJWT
+    politeshopJWT = await new jose.SignJWT()
+      .setProtectedHeader({ alg: "HS256" })
+      .setSubject(trustedUserId)
+      .sign(signingKey);
+
+    // Set the politeshopJWT cookie so that future requests can use it
+    context.cookies.set("politeshopJWT", politeshopJWT, { sameSite: "none", secure: true });
+  } else {
+    // Get the user ID from the politeshopJWT. This is a trusted source
+    // of the user ID, so we update the POLITEMallClient to use it.
+    const { payload } = await jose.jwtVerify(politeshopJWT, signingKey);
+    if (!payload.sub) return new Response("Invalid JWT", { status: 401 });
+    trustedUserId = payload.sub;
+  }
+
+  polite.userId = trustedUserId;
+  context.locals.polite = polite;
   return next();
 });

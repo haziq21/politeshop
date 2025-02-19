@@ -1,23 +1,21 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { db, school } from "../db";
+import { db, school, user } from "../db";
+import { eq } from "drizzle-orm";
 
 const polite = Astro.locals.polite;
 
-// For testing purposes
-const { data, error } = await polite.fetchSchool();
-if (!error)
+const { name, schoolName } = (
   await db
-    .insert(school)
-    .values(data)
-    .onConflictDoUpdate({ target: school.id, set: { name: data.name } });
-else {
-  console.error(error.msg);
-  console.error(error.data);
-}
+    .select({ name: user.name, schoolName: school.name })
+    .from(user)
+    .innerJoin(school, eq(user.schoolId, school.id))
+    .where(eq(user.id, polite.userId))
+    .limit(1)
+)[0];
 ---
 
 <Layout>
   <h1>POLITEMall</h1>
-  {error ? <p>Oh no, an error occured</p> : <p>{data.name}</p>}
+  Hello {name} from {schoolName}!
 </Layout>

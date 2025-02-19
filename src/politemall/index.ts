@@ -1,6 +1,7 @@
 import type { Result } from "../types";
 import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity } from "./schema";
 import { school } from "../db";
+import * as jose from "jose";
 
 /**
  * Client for interacting with POLITEMall. This client calls both `*.polite.edu.sg`
@@ -56,17 +57,15 @@ export class POLITEMallClient {
     this.domain = config.domain;
 
     // Extract the tenant and user IDs from brightspaceJWT
-    const encodedJWTBody = config.brightspaceJWT.split(".").at(1);
-    if (!encodedJWTBody) throw new Error("Malformed Brightspace JWT");
-    const res = brightspaceJWTBody.safeParse(JSON.parse(Buffer.from(encodedJWTBody, "base64").toString()));
+    const res = brightspaceJWTBody.safeParse(jose.decodeJwt(config.brightspaceJWT));
     if (!res.success) throw new Error("Malformed Brightspace JWT");
 
     this.tenantId = res.data.tenantid;
     this.userId = config.userId || res.data.sub;
   }
 
-  /** Get the user's ID from the POLITEMall API. */
-  async fetchUserId(): Promise<Result<string>> {
+  /** Fetch the user's name and ID from the POLITEMall API. */
+  async fetchPartialUser(): Promise<Result<{ id: string; name: string }>> {
     const res = await fetch(`${this.basePOLITEMallURL}/d2l/api/lp/1.0/users/whoami`, {
       headers: this.apiRequestHeaders,
     });
@@ -83,7 +82,7 @@ export class POLITEMallClient {
         error: { msg: "Unexpected whoami response from POLITEMall API", data: parseRes.error.issues },
       };
 
-    return { data: parseRes.data.Identifier, error: null };
+    return { data: { id: parseRes.data.Identifier, name: parseRes.data.FirstName }, error: null };
   }
 
   /** Get the user's school from the Brightspace API. */
