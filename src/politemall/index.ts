@@ -1,5 +1,5 @@
 import type { Result } from "../types";
-import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity } from "./schemas";
+import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity } from "./schema";
 import { school } from "../db";
 
 /**
@@ -112,7 +112,6 @@ export class POLITEMallClient {
   parseSchool(ent: SirenEntity): Result<typeof school.$inferInsert> {
     // TODO: Maybe use Zod for this
     const name = ent.properties?.name;
-    if (!name) return { data: null, error: { msg: "Missing school name in organization entity" } };
     if (typeof name !== "string")
       return { data: null, error: { msg: `Unexpected type for school name: ${typeof name}`, data: name } };
 
@@ -142,15 +141,12 @@ export class POLITEMallClient {
         error: { msg: `Failed to fetch ${subdomainOrFullUrl} entity ${path} (${res.status})`, data: await res.text() },
       };
 
-    const json = await res.json();
-    const parseRes = sirenEntity.safeParse(json);
-    if (!parseRes.success) {
-      console.log(json);
+    const parseRes = sirenEntity.safeParse(await res.json());
+    if (!parseRes.success)
       return {
         data: null,
         error: { msg: `Unexpected ${subdomainOrFullUrl} entity response`, data: parseRes.error.issues },
       };
-    }
 
     return { data: parseRes.data, error: null };
   }
