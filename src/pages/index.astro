@@ -1,15 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { POLITEMallClient } from "../politemall";
 import { db, school } from "../db";
 
-// TODO: Put this in middleware and extract values from the request
-const polite = new POLITEMallClient({
-  d2lSessionVal: import.meta.env.D2L_SESSION_VAL,
-  d2lSecureSessionVal: import.meta.env.D2L_SECURE_SESSION_VAL,
-  brightspaceJWT: import.meta.env.BRIGHTSPACE_JWT,
-  domain: "nplms",
-});
+const polite = Astro.locals.polite;
 
 // For testing purposes
 const { data, error } = await polite.fetchSchool();
@@ -18,6 +11,10 @@ if (!error)
     .insert(school)
     .values(data)
     .onConflictDoUpdate({ target: school.id, set: { name: data.name } });
+else {
+  console.error(error.msg);
+  console.error(error.data);
+}
 ---
 
 <Layout>
