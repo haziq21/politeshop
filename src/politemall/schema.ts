@@ -27,10 +27,12 @@ export type SirenEntity = {
     type?: string;
   }[];
   entities?: SirenEntity[];
-  links?: { rel: string[]; href: string }[];
+  links?: SirenLink[];
   properties?: Record<string, any>;
   href?: string;
 };
+
+export type SirenLink = { rel: string[]; href: string };
 
 export const sirenEntity: z.ZodType<SirenEntity> = z.lazy(() =>
   z.object({

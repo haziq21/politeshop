@@ -1,7 +1,9 @@
 import type { Result } from "../types";
 import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity } from "./schema";
-import { school } from "../db";
+import { school, semester, module } from "../db";
 import * as jose from "jose";
+import { dataResult, errorResult } from "../helpers";
+import { getLinkWithRel, lastPathComponent } from "./helpers";
 
 /**
  * Client for interacting with POLITEMall. This client calls both `*.polite.edu.sg`
@@ -69,20 +71,13 @@ export class POLITEMallClient {
     const res = await fetch(`${this.basePOLITEMallURL}/d2l/api/lp/1.0/users/whoami`, {
       headers: this.apiRequestHeaders,
     });
-    if (!res.ok)
-      return {
-        data: null,
-        error: { msg: "Failed to fetch whoami", data: await res.text() },
-      };
+    if (!res.ok) return errorResult({ msg: "Failed to fetch whoami", data: await res.text() });
 
     const parseRes = whoamiRes.safeParse(await res.json());
     if (!parseRes.success)
-      return {
-        data: null,
-        error: { msg: "Unexpected whoami response from POLITEMall API", data: parseRes.error.issues },
-      };
+      return errorResult({ msg: "Unexpected whoami response from POLITEMall API", data: parseRes.error.issues });
 
-    return { data: { id: parseRes.data.Identifier, name: parseRes.data.FirstName }, error: null };
+    return dataResult({ id: parseRes.data.Identifier, name: parseRes.data.FirstName });
   }
 
   /** Get the user's school from the Brightspace API. */
@@ -91,37 +86,97 @@ export class POLITEMallClient {
       "enrollments",
       `/users/${this.userId}`
     );
-    if (enrollmentError) return { data: null, error: enrollmentError };
+    if (enrollmentError) return errorResult(enrollmentError);
 
     // Find the link to the organization entity
-    const orgLink = enrollmentData.links?.find((l) => l.rel.includes("https://api.brightspace.com/rels/organization"));
-    if (!orgLink) return { data: null, error: { msg: "Missing organization link in user entity" } };
+    const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", enrollmentData);
+    if (!orgLink) return errorResult({ msg: "Missing organization link in user entity" });
 
     // Fetch the organization entity (this describes the school)
     const { data: orgData, error: orgError } = await this.#fetchBrightspaceEntity(orgLink.href);
-    if (orgError) return { data: null, error: orgError };
+    if (orgError) return errorResult(orgError);
 
     const parseRes = this.parseSchool(orgData);
-    if (parseRes.error) return { data: null, error: parseRes.error };
+    if (parseRes.error) return errorResult(parseRes.error);
 
-    return { data: parseRes.data, error: null };
+    return dataResult(parseRes.data);
   }
 
   /** Parse an organization entity into a school. */
   parseSchool(ent: SirenEntity): Result<typeof school.$inferInsert> {
-    // TODO: Maybe use Zod for this
     const name = ent.properties?.name;
     if (typeof name !== "string")
-      return { data: null, error: { msg: `Unexpected type for school name: ${typeof name}`, data: name } };
+      return errorResult({ msg: `Unexpected type for school name: ${typeof name}`, data: name });
 
     // Find the self link to extract the school ID from
-    const selfLink = ent.links?.find((l) => l.rel.includes("self"));
-    if (!selfLink) return { data: null, error: { msg: "Missing self link in school entity" } };
+    const selfLink = getLinkWithRel("self", ent);
+    if (!selfLink) return errorResult({ msg: "Missing self link in school entity" });
 
-    // This won't be undefined because URL.pathname contains at least one "/"
-    const id = new URL(selfLink.href).pathname.split("/").at(-1)!;
+    const id = lastPathComponent(selfLink.href);
 
-    return { data: { id, name }, error: null };
+    return dataResult({ id, name });
+  }
+
+  async fetchSemesters(): Promise<Result<(typeof semester.$inferInsert)[]>> {
+    const url = `${this.basePOLITEMallURL}/d2l/api/le/manageCourses/courses-searches/${this.userId}/BySemester?desc=1`;
+    const { data, error } = await this.#fetchBrightspaceEntity(url);
+    if (error) return errorResult(error);
+
+    // Semester data is in the entity's actions
+    if (!data.actions) return errorResult({ msg: "Missing actions in semester entity" });
+
+    const semesters: (typeof semester.$inferInsert)[] = [];
+    for (const action of data.actions) {
+      if (!action.name || !action.title) return errorResult({ msg: "Missing name in semester action" });
+      // Trim the name because sometimes it has leading spaces...
+      semesters.push({ id: action.name, name: action.title.trim() });
+    }
+
+    return dataResult(semesters);
+  }
+
+  async fetchModules(): Promise<Result<(typeof module.$inferInsert)[]>> {
+    const { data, error } = await this.#fetchBrightspaceEntity("enrollments", `/users/${this.userId}`);
+    if (error) return errorResult(error);
+    if (!data.entities) return errorResult({ msg: "Missing entities in user enrollments" });
+
+    // Fetch all the modules in parallel
+    // TODO: Maybe use errors to reject the promise early
+    const moduleResults = await Promise.all(
+      data.entities.map(async (ent): Promise<Result<typeof module.$inferInsert>> => {
+        if (!ent.href) return errorResult({ msg: "Missing href in enrollment entity" });
+
+        // This entity only contains links to other entities (one of them containing the data we need)
+        const { data: enrollmentData, error: enrollmentError } = await this.#fetchBrightspaceEntity(ent.href);
+        if (enrollmentError) return errorResult(enrollmentError);
+
+        // The href of this link contains the module's ID
+        const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", enrollmentData);
+        if (!orgLink) return errorResult({ msg: "Missing organization link in enrollment entity" });
+
+        // This entity contains the module's name and code
+        const { data: orgData, error: orgError } = await this.#fetchBrightspaceEntity(orgLink.href);
+        if (orgError) return errorResult(orgError);
+        if (!orgData.properties?.name || !orgData.properties?.code)
+          return errorResult({ msg: "Missing name or code in module entity" });
+
+        // The href of the parent-semester link contains the module's semester ID
+        const semLink = getLinkWithRel("https://api.brightspace.com/rels/parent-semester", orgData);
+        if (!semLink) return errorResult({ msg: "Missing parent semester link in organization entity" });
+
+        return dataResult({
+          name: orgData.properties.name,
+          code: orgData.properties.code,
+          // The URLs should look like https://<tenantId>.organizations.api.brightspace.com/<entityId>?localeId=...
+          id: lastPathComponent(orgLink.href),
+          semesterId: lastPathComponent(semLink.href),
+        });
+      })
+    );
+
+    if (moduleResults.some((res) => res.error))
+      return errorResult({ msg: "Failed to fetch some modules", data: moduleResults });
+    return dataResult(moduleResults.map((res) => res.data!));
   }
 
   /** Fetch a Siren entity from the specified Brightspace API. */
@@ -130,9 +185,7 @@ export class POLITEMallClient {
   #fetchBrightspaceEntity(url: string): Promise<Result<SirenEntity>>;
   async #fetchBrightspaceEntity(subdomainOrFullUrl: string, path?: string): Promise<Result<SirenEntity>> {
     let url = path ? `https://${this.tenantId}.${subdomainOrFullUrl}.api.brightspace.com${path}` : subdomainOrFullUrl;
-    const res = await fetch(url, {
-      headers: this.apiRequestHeaders,
-    });
+    const res = await fetch(url, { headers: this.apiRequestHeaders });
 
     if (!res.ok)
       return {

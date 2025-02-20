@@ -4,18 +4,44 @@ import { db, school, user } from "../db";
 import { eq } from "drizzle-orm";
 
 const polite = Astro.locals.polite;
+const {
+  politeData: { user: cachedUser, school: cachedSchool },
+} = Astro.locals;
 
-const { name, schoolName } = (
-  await db
-    .select({ name: user.name, schoolName: school.name })
-    .from(user)
-    .innerJoin(school, eq(user.schoolId, school.id))
-    .where(eq(user.id, polite.userId))
-    .limit(1)
-)[0];
+const { name, schoolName } =
+  cachedUser && cachedSchool
+    ? { name: cachedUser.name, schoolName: cachedSchool.name }
+    : (
+        await db
+          .select({ name: user.name, schoolName: school.name })
+          .from(user)
+          .innerJoin(school, eq(user.schoolId, school.id))
+          .where(eq(user.id, polite.userId))
+          .limit(1)
+      )[0];
+
+const { data: semesters, error: semestersError } = await polite.fetchSemesters();
+if (semestersError) {
+  console.error(semestersError);
+}
+
+const { data: modules, error: modulesError } = await polite.fetchModules();
+if (modulesError) {
+  console.error(modulesError);
+}
 ---
 
 <Layout>
   <h1>POLITEMall</h1>
-  Hello {name} from {schoolName}!
+  <p>Hello {name} from {schoolName}!</p>
+
+  {
+    semesters ? (
+      <p>Your semesters: {semesters.map((sem) => sem.name).join(", ")}</p>
+    ) : (
+      <p>Oops, something went wrong...</p>
+    )
+  }
+
+  {modules ? <p>Your modules: {modules.map((mod) => mod.name).join(", ")}</p> : <p>Oops, something went wrong...</p>}
 </Layout>
