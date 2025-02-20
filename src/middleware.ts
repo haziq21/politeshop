@@ -16,9 +16,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return new Response("Unauthorized", { status: 401 });
   const polite = new POLITEMallClient({ d2lSessionVal, d2lSecureSessionVal, brightspaceJWT, domain });
 
-  // Signing key for our JWTs
-  const signingKey = new TextEncoder().encode(SIGNING_KEY);
+  context.locals.politeData = { school: undefined, user: undefined };
+
+  const jwtSigningKey = new TextEncoder().encode(SIGNING_KEY);
   let politeshopJWT = context.cookies.get("politeshopJWT")?.value;
+  // We don't trust the user ID from the brightspaceJWT because
+  // it could have been tampered with (and we can't verify it)
   let trustedUserId: string;
 
   if (!politeshopJWT) {
@@ -48,14 +51,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     politeshopJWT = await new jose.SignJWT()
       .setProtectedHeader({ alg: "HS256" })
       .setSubject(trustedUserId)
-      .sign(signingKey);
+      .sign(jwtSigningKey);
 
     // Set the politeshopJWT cookie so that future requests can use it
     context.cookies.set("politeshopJWT", politeshopJWT, { sameSite: "none", secure: true });
   } else {
     // Get the user ID from the politeshopJWT. This is a trusted source
     // of the user ID, so we update the POLITEMallClient to use it.
-    const { payload } = await jose.jwtVerify(politeshopJWT, signingKey);
+    const { payload } = await jose.jwtVerify(politeshopJWT, jwtSigningKey);
     if (!payload.sub) return new Response("Invalid JWT", { status: 401 });
     trustedUserId = payload.sub;
   }
