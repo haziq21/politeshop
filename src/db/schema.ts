@@ -30,8 +30,12 @@ export const module = pgTable("module", {
 export const userModule = pgTable(
   "user_module",
   {
-    userId: varchar().references(() => user.id),
-    moduleId: varchar().references(() => module.id),
+    userId: varchar()
+      .notNull()
+      .references(() => user.id),
+    moduleId: varchar()
+      .notNull()
+      .references(() => module.id),
   },
   (table) => [primaryKey({ columns: [table.userId, table.moduleId] })]
 );
