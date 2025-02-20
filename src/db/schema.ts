@@ -8,7 +8,7 @@ export const school = pgTable("school", {
 export const user = pgTable("user", {
   id: varchar().primaryKey(),
   name: varchar().notNull(),
-  schoolId: varchar()
+  schoolId: varchar("school_id")
     .notNull()
     .references(() => school.id),
 });
@@ -22,7 +22,7 @@ export const module = pgTable("module", {
   id: varchar().primaryKey(),
   name: varchar().notNull(),
   code: varchar().notNull(),
-  semesterId: varchar()
+  semesterId: varchar("semester_id")
     .notNull()
     .references(() => semester.id),
 });
@@ -30,10 +30,10 @@ export const module = pgTable("module", {
 export const userModule = pgTable(
   "user_module",
   {
-    userId: varchar()
+    userId: varchar("user_id")
       .notNull()
       .references(() => user.id),
-    moduleId: varchar()
+    moduleId: varchar("module_id")
       .notNull()
       .references(() => module.id),
   },
