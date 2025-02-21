@@ -1,28 +1,30 @@
 ---
 import Layout from "../layouts/Layout.astro";
 
-console.log("rendering!");
-const politeDataStore = Astro.locals.politeDataStore;
+const ds = Astro.locals.datastore;
+
+console.log("Getting data for /...");
+const fetchStart = Date.now();
 
 // TODO(?): This could be one query
-const { name } = await politeDataStore.user();
-const { name: schoolName } = await politeDataStore.school();
+const { name } = await ds.user();
+const { name: schoolName } = await ds.school();
 
-const semesters = await politeDataStore.semesters();
-const modules = await politeDataStore.modules();
+const semesters = await ds.semesters();
+const modules = await ds.modules();
+
+const chosenModule = modules.at(-1)!;
+const activities = await ds.activities(chosenModule.id);
+const activityFolders = await ds.activityFolders(chosenModule.id);
+
+console.log(`Got data for / in ${Date.now() - fetchStart}ms`);
 ---
 
 <Layout>
-  <h1>POLITEMall</h1>
+  <h1 class="text-2xl font-semibold px-20 pt-10 pb-12">POLITEMall</h1>
   <p>Hello {name} from {schoolName}!</p>
-
-  {
-    semesters ? (
-      <p>Your semesters: {semesters.map((sem) => sem.name).join(", ")}</p>
-    ) : (
-      <p>Oops, something went wrong...</p>
-    )
-  }
-
-  {modules ? <p>Your modules: {modules.map((mod) => mod.name).join(", ")}</p> : <p>Oops, something went wrong...</p>}
+  <p>Your semesters: {semesters.map((sem) => sem.name).join(", ")}</p>
+  <p>Your modules: {modules.map((mod) => mod.name).join(", ")}</p>
+  <p>Folders in {chosenModule.name}: {activityFolders.map((f) => f.name).join(", ")}</p>
+  <p>Activities in {chosenModule.name}: {activities.map((a) => a.name).join(", ")}</p>
 </Layout>

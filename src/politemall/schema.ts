@@ -21,7 +21,7 @@ export type SirenEntity = {
     href: string;
     method: string;
     name: string;
-    fields: { name: string; type: string; value?: any; title?: string }[];
+    fields?: { name: string; type: string; value?: any; title?: string }[];
     class?: string[];
     title?: string;
     type?: string;
@@ -41,7 +41,10 @@ export const sirenEntity: z.ZodType<SirenEntity> = z.lazy(() =>
         href: z.string(),
         method: z.string(),
         name: z.string(),
-        fields: z.object({ name: z.string(), type: z.string(), value: z.any(), title: z.string().optional() }).array(),
+        fields: z
+          .object({ name: z.string(), type: z.string(), value: z.any(), title: z.string().optional() })
+          .array()
+          .optional(),
         class: z.string().array().optional(),
         title: z.string().optional(),
         type: z.string().optional(),

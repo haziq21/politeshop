@@ -1,9 +1,10 @@
 import type { Result } from "../types";
 import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity } from "./schema";
-import { school, semester, module } from "../db";
+import { school, semester, module, activityFolder, activity, htmlActivity, fileActivity } from "../db";
 import * as jose from "jose";
-import { dataResult, errorResult } from "../helpers";
+import { arrEq, dataResult, errorResult } from "../helpers";
 import { getLinkWithRel, lastPathComponent } from "./helpers";
+import { extractTablesRelationalConfig } from "drizzle-orm";
 
 /**
  * Client for interacting with POLITEMall. This client calls both `*.polite.edu.sg`
@@ -177,6 +178,131 @@ export class POLITEMallClient {
     if (moduleResults.some((res) => res.error))
       return errorResult({ msg: "Failed to fetch some modules", data: moduleResults });
     return dataResult(moduleResults.map((res) => res.data!));
+  }
+
+  async fetchModuleContent(moduleId: string): Promise<
+    Result<{
+      activityFolders: (typeof activityFolder.$inferInsert)[];
+      activities: (typeof activity.$inferInsert)[];
+      htmlActivities: (typeof htmlActivity.$inferInsert)[];
+      fileActivities: (typeof fileActivity.$inferInsert)[];
+    }>
+  > {
+    // This entity contains the entire tree of activities and folders in the module
+    const { data, error: entityFetchError } = await this.#fetchBrightspaceEntity(
+      "sequences",
+      `/${moduleId}?deepEmbedEntities=1&embedDepth=1&filterOnDatesAndDepth=0`
+    );
+    if (entityFetchError) return errorResult(entityFetchError);
+
+    const { data: parseData, error: parseError } = this.parseFolderContents(data.entities ?? []);
+    if (parseError) return errorResult(parseError);
+
+    return dataResult({
+      activityFolders: parseData.folders,
+      activities: parseData.activities,
+      htmlActivities: [],
+      fileActivities: [],
+    });
+  }
+
+  /** Recursively parse an array of folder entities. */
+  parseFolderContents(
+    entities: SirenEntity[]
+  ): Result<{ folders: (typeof activityFolder.$inferInsert)[]; activities: (typeof activity.$inferInsert)[] }> {
+    const folders: (typeof activityFolder.$inferInsert)[] = [];
+    const activities: (typeof activity.$inferInsert)[] = [];
+
+    for (const ent of entities) {
+      // Parse activities in the folder
+      if (arrEq(ent.class, ["release-condition-fix", "sequenced-activity"])) {
+        const { data: activity, error } = this.parseActivity(ent);
+        if (error) return errorResult(error);
+        activities.push(activity);
+        continue;
+      }
+
+      // Skip if `ent` isn't a folder entity
+      if (!arrEq(ent.class, ["release-condition-fix", "sequence", "sequence-description"])) continue;
+
+      // Get the title and description (may be undefined) of the folder
+      const title = ent.properties?.title;
+      const description = ent.properties?.description;
+      if (typeof title !== "string")
+        return errorResult({ msg: `Unexpected sequence entity title type: ${typeof title}` });
+      if (typeof description !== "undefined" && typeof description !== "string")
+        return errorResult({
+          msg: `Unexpected sequence entity description type: ${typeof description}`,
+        });
+
+      // The self link contains the folder's ID
+      // (https://<tenantId>.sequences.api.brightspace.com/<moduleId>/activity/<folderId>?filterOnDatesAndDepth=0)
+      const selfLink = getLinkWithRel("self", ent);
+      if (!selfLink) return errorResult({ msg: "Missing self link in sequence entity" });
+
+      // The organization link contains the module's ID
+      // (https://<tenantId>.organizations.api.brightspace.com/<moduleId>)
+      const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", ent);
+      if (!orgLink) return errorResult({ msg: "Missing organization link in sequence entity" });
+
+      // The up link contains the parent folder's ID if there is one
+      // (https://<tenantId>.sequences.api.brightspace.com/<moduleId>/activity/<folderId>?filterOnDatesAndDepth=0)
+      const upLink = getLinkWithRel("up", ent);
+      if (!upLink) return errorResult({ msg: "Missing up link in sequence entity" });
+      const upLinkHref = new URL(upLink.href);
+
+      folders.push({
+        id: lastPathComponent(selfLink.href),
+        name: title,
+        description: description,
+        moduleId: lastPathComponent(orgLink.href),
+        // If the path isn't "/<moduleId>/activity/<folderId>", then the parent is the module
+        parentId: /^\/.+\/activity\/.+$/.test(upLinkHref.pathname) ? lastPathComponent(upLinkHref) : undefined,
+      });
+
+      // Recursively parse child folders
+      const { data: chilData, error } = this.parseFolderContents(ent.entities ?? []);
+      if (error) return errorResult(error);
+      folders.push(...chilData.folders);
+      activities.push(...chilData.activities);
+    }
+
+    return dataResult({ folders, activities });
+  }
+
+  parseActivity(ent: SirenEntity): Result<typeof activity.$inferInsert> {
+    const title = ent.properties?.title;
+    if (typeof title !== "string")
+      return errorResult({ msg: `Unexpected activity title type: ${typeof title}`, data: title });
+
+    // The self link contains the activity's ID
+    const selfLink = getLinkWithRel("self", ent);
+    if (!selfLink) return errorResult({ msg: "Missing self link in activity entity" });
+
+    // The up link contains the folder's ID
+    const upLink = getLinkWithRel("up", ent);
+    if (!upLink) return errorResult({ msg: "Missing up link in activity entity" });
+
+    // This should be undefined here once all the activity types are implemented
+    let type: "file" | "html" = "file";
+
+    // Activities with the class ["activity", "file-activity"] can be embedded files or HTML
+    const fileOrHtmlActivity = ent.entities?.find((e) => arrEq(e.class ?? [], ["activity", "file-activity"]));
+    if (fileOrHtmlActivity) {
+      const fileEnt = fileOrHtmlActivity.entities?.find((e) => arrEq(e.class ?? [], ["file"]));
+      if (!fileEnt) return errorResult({ msg: "Missing file entity in file activity" });
+
+      const fileType = fileEnt.properties?.type;
+      if (fileType === "text/html") type = "html";
+      else type = "file";
+    }
+
+    return dataResult({
+      id: lastPathComponent(selfLink.href),
+      folderId: lastPathComponent(upLink.href),
+      name: title,
+      type,
+    });
   }
 
   /** Fetch a Siren entity from the specified Brightspace API. */
