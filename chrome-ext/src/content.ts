@@ -1,8 +1,10 @@
-import type { D2lAuth, PoliteshopAuth } from "../../shared-ts/types";
+import type { D2lAuth, PoliteshopAuth } from "./types";
 import { getBrightspaceToken, getCSRFToken } from "./utils";
 
 async function getPoliteshopAuth(): Promise<PoliteshopAuth> {
-  const politemallAuth: D2lAuth = await chrome.runtime.sendMessage("get-politemall-auth");
+  const politemallAuth: D2lAuth = await chrome.runtime.sendMessage(
+    "get-politemall-auth",
+  );
 
   return {
     ...politemallAuth,
@@ -14,8 +16,8 @@ async function getPoliteshopAuth(): Promise<PoliteshopAuth> {
 
 const POLITESHOP_SERVER = process.env.POLITESHOP_SERVER!;
 
-async function main() {
-  const res = await fetch(chrome.runtime.getURL("static/base.html"));
+(async () => {
+  const res = await fetch(chrome.runtime.getURL("base.html"));
   const iframeUrl = POLITESHOP_SERVER + window.location.pathname;
   const baseHTML = (await res.text()).replace("{{iframeUrl}}", iframeUrl);
 
@@ -39,18 +41,4 @@ async function main() {
 
     console.log(`Received message from POLITEShop: ${event.data}`);
   };
-}
-
-main();
-
-// Auto-reload the extension in development
-if (process.env.ENVIRONMENT === "development") {
-  console.log("Connecting to extension reload server...");
-
-  const evtSource = new EventSource("http://localhost:8081");
-  evtSource.onmessage = async () => {
-    console.log("Reloading extension...");
-    await chrome.runtime.sendMessage("reload");
-    window.location.reload();
-  };
-}
+})();

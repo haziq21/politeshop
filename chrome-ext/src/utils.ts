@@ -1,4 +1,4 @@
-import type { D2lAuth } from "../../shared-ts/types";
+import type { D2lAuth } from "./types";
 
 /**
  * Returns the D2L cookies on the active page. Needs to be run in a background worker.

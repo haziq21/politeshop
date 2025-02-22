@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "POLITEShop",
+  "description": "Custom POLITEMall interface.",
+  "version": "1.0",
+  "host_permissions": ["https://*.polite.edu.sg/"],
+  "permissions": ["cookies", "tabs", "storage"],
+  "content_scripts": [
+    {
+      "js": ["content.ts"],
+      "matches": ["https://*.polite.edu.sg/*"]
+    }
+  ],
+  "background": {
+    "service_worker": "worker.ts",
+    "type": "module"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["*"],
+      "matches": ["https://*.polite.edu.sg/*"]
+    }
+  ]
+}
