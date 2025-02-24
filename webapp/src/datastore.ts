@@ -1,5 +1,21 @@
 import { eq, getTableColumns, sql } from "drizzle-orm";
-import { db, school, user, semester, module, userModule, activityFolder, activity } from "./db";
+import {
+  db,
+  school,
+  user,
+  semester,
+  module,
+  userModule,
+  activityFolder,
+  activity,
+  type AnyActivity,
+  htmlActivity,
+  webEmbedActivity,
+  docEmbedActivity,
+  videoEmbedActivity,
+  submissionActivity,
+  quizActivity,
+} from "./db";
 
 /** An interface to the POLITEShop database with local caching. */
 export class Datastore {
@@ -11,7 +27,7 @@ export class Datastore {
     /** Map of module IDs to activity folders. */
     activityFolders?: Map<string, typeof import("./db").activityFolder.$inferInsert[]>;
     /** Map of module IDs to activities. */
-    activities?: Map<string, typeof import("./db").activity.$inferInsert[]>;
+    activities?: Map<string, AnyActivity[]>;
   } = {};
 
   constructor(public userId: string) {}
@@ -56,13 +72,12 @@ export class Datastore {
     )[0]);
   }
 
-  /** Insert the school and set it to the user's school. */
-  async insertAndAssociateSchool(s: typeof school.$inferInsert) {
+  /** Insert the school. */
+  async insertSchool(s: typeof school.$inferInsert) {
     await db
       .insert(school)
       .values(s)
-      .onConflictDoUpdate({ target: school.id, set: { name: s.name } });
-    await db.update(user).set({ schoolId: s.id }).where(eq(user.id, this.userId));
+      .onConflictDoUpdate({ target: school.id, set: { name: s.name, bannerImageURL: s.bannerImageURL } });
     this.data.school = s;
   }
 
@@ -101,7 +116,7 @@ export class Datastore {
     if (this.data.modules) return this.data.modules;
 
     return (this.data.modules = await db
-      .select({ id: module.id, name: module.name, code: module.code, semesterId: module.semesterId })
+      .select(getTableColumns(module))
       .from(module)
       .innerJoin(userModule, eq(userModule.moduleId, module.id))
       .where(eq(userModule.userId, this.userId)));
@@ -118,6 +133,7 @@ export class Datastore {
           name: sql.raw(`excluded.${module.name.name}`),
           code: sql.raw(`excluded.${module.code.name}`),
           semesterId: sql.raw(`excluded.${module.semesterId.name}`),
+          imageIconURL: sql.raw(`excluded.${module.imageIconURL.name}`),
         },
       });
     await db
@@ -169,18 +185,34 @@ export class Datastore {
   }
 
   /** Get the activities with the specified `moduleId`. */
-  async activities(moduleId: string): Promise<(typeof activity.$inferInsert)[]> {
+  async activities(moduleId: string): Promise<AnyActivity[]> {
     // We're assuming that if insertActivities() is called first
     // and activities of the specified module are inserted, those
     // inserted activities are the only activities in that module.
     const cachedActivities = this.data.activities?.get(moduleId);
     if (cachedActivities) return cachedActivities;
 
-    const activities = await db
-      .select({ ...getTableColumns(activity) })
-      .from(activity)
-      .innerJoin(activityFolder, eq(activityFolder.id, activity.folderId))
-      .where(eq(activityFolder.moduleId, moduleId));
+    const activities = (
+      await db
+        .select()
+        .from(activity)
+        .innerJoin(activityFolder, eq(activityFolder.id, activity.folderId))
+        .leftJoin(htmlActivity, eq(htmlActivity.id, activity.id))
+        .leftJoin(webEmbedActivity, eq(webEmbedActivity.id, activity.id))
+        .leftJoin(docEmbedActivity, eq(docEmbedActivity.id, activity.id))
+        .leftJoin(videoEmbedActivity, eq(videoEmbedActivity.id, activity.id))
+        .leftJoin(submissionActivity, eq(submissionActivity.id, activity.id))
+        .leftJoin(quizActivity, eq(quizActivity.id, activity.id))
+        .where(eq(activityFolder.moduleId, moduleId))
+    ).map((a) => {
+      if (a.activity.type === "html") return { ...a.activity, ...a.html_activity };
+      if (a.activity.type === "web_embed") return { ...a.activity, ...a.web_embed_activity };
+      if (a.activity.type === "doc_embed") return { ...a.activity, ...a.doc_embed_activity };
+      if (a.activity.type === "video_embed") return { ...a.activity, ...a.video_embed_activity };
+      if (a.activity.type === "submission") return { ...a.activity, ...a.submission_activity };
+      if (a.activity.type === "quiz") return { ...a.activity, ...a.quiz_activity };
+      return a.activity;
+    }) as AnyActivity[];
 
     if (!this.data.activities) this.data.activities = new Map();
     this.data.activities.set(moduleId, activities);
@@ -188,7 +220,7 @@ export class Datastore {
   }
 
   /** Insert the given activities. */
-  async insertActivities(acts: (typeof activity.$inferInsert)[]) {
+  async insertActivities(acts: AnyActivity[]) {
     if (!acts.length) return;
 
     await db
@@ -202,5 +234,68 @@ export class Datastore {
           folderId: sql.raw(`excluded.${activity.folderId.name}`),
         },
       });
+
+    await Promise.all(
+      acts.map(async (a) => {
+        if (a.type === "html")
+          await db
+            .insert(htmlActivity)
+            .values(a)
+            .onConflictDoUpdate({
+              target: htmlActivity.id,
+              set: { content: sql.raw(`excluded.${htmlActivity.content.name}`) },
+            });
+        else if (a.type === "web_embed")
+          await db
+            .insert(webEmbedActivity)
+            .values(a)
+            .onConflictDoUpdate({
+              target: webEmbedActivity.id,
+              set: {
+                embedURL: sql.raw(`excluded.${webEmbedActivity.embedURL.name}`),
+                newTabURL: sql.raw(`excluded.${webEmbedActivity.newTabURL.name}`),
+              },
+            });
+        else if (a.type === "doc_embed")
+          await db
+            .insert(docEmbedActivity)
+            .values(a)
+            .onConflictDoUpdate({
+              target: docEmbedActivity.id,
+              set: {
+                sourceURL: sql.raw(`excluded.${docEmbedActivity.sourceURL.name}`),
+                previewURL: sql.raw(`excluded.${docEmbedActivity.previewURL.name}`),
+                previewURLExpiry: sql.raw(`excluded.${docEmbedActivity.previewURLExpiry.name}`),
+              },
+            });
+        else if (a.type === "video_embed")
+          await db
+            .insert(videoEmbedActivity)
+            .values(a)
+            .onConflictDoUpdate({
+              target: videoEmbedActivity.id,
+              set: {
+                sourceURL: sql.raw(`excluded.${videoEmbedActivity.sourceURL.name}`),
+                sourceURLExpiry: sql.raw(`excluded.${videoEmbedActivity.sourceURLExpiry.name}`),
+              },
+            });
+        else if (a.type === "submission")
+          await db
+            .insert(submissionActivity)
+            .values(a)
+            .onConflictDoUpdate({
+              target: submissionActivity.id,
+              set: { dueDate: sql.raw(`excluded.${submissionActivity.dueDate.name}`) },
+            });
+        else if (a.type === "quiz")
+          await db
+            .insert(quizActivity)
+            .values(a)
+            .onConflictDoUpdate({
+              target: quizActivity.id,
+              set: { dueDate: sql.raw(`excluded.${quizActivity.dueDate.name}`) },
+            });
+      })
+    );
   }
 }

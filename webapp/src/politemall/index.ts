@@ -1,10 +1,23 @@
 import type { Result } from "../types";
-import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity } from "./schema";
-import { school, semester, module, activityFolder, activity, htmlActivity, fileActivity } from "../db";
+import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity, dueDateSchema } from "./schema";
+import {
+  school,
+  semester,
+  module,
+  activityFolder,
+  activity,
+  htmlActivity,
+  type AnyActivity,
+  type DocEmbedActivity,
+  type HTMLActivity,
+  type VideoEmbedActivity,
+  type UnknownActivity,
+  type WebEmbedActivity,
+} from "../db";
 import * as jose from "jose";
 import { arrEq, dataResult, errorResult } from "../helpers";
-import { getLinkWithRel, lastPathComponent } from "./helpers";
-import { extractTablesRelationalConfig } from "drizzle-orm";
+import { getLinkWithClass, getLinkWithRel, getSubEntWithClass, lastPathComponent } from "./helpers";
+import { parse as parseDate, addSeconds } from "date-fns";
 
 /**
  * Client for interacting with POLITEMall. This client calls both `*.polite.edu.sg`
@@ -97,14 +110,14 @@ export class POLITEMallClient {
     const { data: orgData, error: orgError } = await this.#fetchBrightspaceEntity(orgLink.href);
     if (orgError) return errorResult(orgError);
 
-    const parseRes = this.parseSchool(orgData);
+    const parseRes = await this.parseSchool(orgData);
     if (parseRes.error) return errorResult(parseRes.error);
 
     return dataResult(parseRes.data);
   }
 
   /** Parse an organization entity into a school. */
-  parseSchool(ent: SirenEntity): Result<typeof school.$inferInsert> {
+  async parseSchool(ent: SirenEntity): Promise<Result<typeof school.$inferInsert>> {
     const name = ent.properties?.name;
     if (typeof name !== "string")
       return errorResult({ msg: `Unexpected type for school name: ${typeof name}`, data: name });
@@ -112,10 +125,19 @@ export class POLITEMallClient {
     // Find the self link to extract the school ID from
     const selfLink = getLinkWithRel("self", ent);
     if (!selfLink) return errorResult({ msg: "Missing self link in school entity" });
-
     const id = lastPathComponent(selfLink.href);
 
-    return dataResult({ id, name });
+    const bannerImageLinkHref = getSubEntWithClass(["course-image"], ent)?.href;
+    console.log(`Found banner image link href: ${bannerImageLinkHref}`);
+    let bannerImageURL: string | undefined = undefined;
+    if (bannerImageLinkHref) {
+      const { data, error } = await this.#fetchBrightspaceEntity(bannerImageLinkHref);
+      if (error) return errorResult(error);
+      bannerImageURL = getLinkWithClass(["banner", "wide", "max"], data)?.href;
+      console.log(`Found banner image URL: ${bannerImageURL}`);
+    }
+
+    return dataResult({ id, name, bannerImageURL });
   }
 
   async fetchSemesters(): Promise<Result<(typeof semester.$inferInsert)[]>> {
@@ -137,7 +159,7 @@ export class POLITEMallClient {
   }
 
   async fetchModules(): Promise<Result<(typeof module.$inferInsert)[]>> {
-    const { data, error } = await this.#fetchBrightspaceEntity("enrollments", `/users/${this.userId}`);
+    const { data, error } = await this.#fetchBrightspaceEntity("enrollments", `/users/${this.userId}?pageSize=100`);
     if (error) return errorResult(error);
     if (!data.entities) return errorResult({ msg: "Missing entities in user enrollments" });
 
@@ -148,29 +170,44 @@ export class POLITEMallClient {
         if (!ent.href) return errorResult({ msg: "Missing href in enrollment entity" });
 
         // This entity only contains links to other entities (one of them containing the data we need)
-        const { data: enrollmentData, error: enrollmentError } = await this.#fetchBrightspaceEntity(ent.href);
+        const { data: enrollmentEnt, error: enrollmentError } = await this.#fetchBrightspaceEntity(ent.href);
         if (enrollmentError) return errorResult(enrollmentError);
 
         // The href of this link contains the module's ID
-        const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", enrollmentData);
+        const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", enrollmentEnt);
         if (!orgLink) return errorResult({ msg: "Missing organization link in enrollment entity" });
 
         // This entity contains the module's name and code
-        const { data: orgData, error: orgError } = await this.#fetchBrightspaceEntity(orgLink.href);
+        const { data: orgEnt, error: orgError } = await this.#fetchBrightspaceEntity(orgLink.href);
         if (orgError) return errorResult(orgError);
-        if (!orgData.properties?.name || !orgData.properties?.code)
+        if (!orgEnt.properties?.name || !orgEnt.properties?.code)
           return errorResult({ msg: "Missing name or code in module entity" });
 
         // The href of the parent-semester link contains the module's semester ID
-        const semLink = getLinkWithRel("https://api.brightspace.com/rels/parent-semester", orgData);
+        const semLink = getLinkWithRel("https://api.brightspace.com/rels/parent-semester", orgEnt);
         if (!semLink) return errorResult({ msg: "Missing parent semester link in organization entity" });
 
+        // Get the URL of the module's banner image
+        let imageIconURL: string | undefined = undefined;
+        const imageLinkHref = getSubEntWithClass(["course-image"], orgEnt)?.href;
+        console.log(`Found icon image link href: ${imageLinkHref}`);
+
+        if (imageLinkHref) {
+          const { data, error } = await this.#fetchBrightspaceEntity(imageLinkHref);
+          if (error) return errorResult(error);
+          imageIconURL =
+            getLinkWithClass(["tile", "high-density", "min"], data)?.href ||
+            getLinkWithClass(["tile", "mid"], data)?.href;
+          console.log(`Found icon image URL: ${imageIconURL}`);
+        }
+
         return dataResult({
-          name: orgData.properties.name,
-          code: orgData.properties.code,
+          name: orgEnt.properties.name,
+          code: orgEnt.properties.code,
           // The URLs should look like https://<tenantId>.organizations.api.brightspace.com/<entityId>?localeId=...
           id: lastPathComponent(orgLink.href),
           semesterId: lastPathComponent(semLink.href),
+          imageIconURL,
         });
       })
     );
@@ -183,9 +220,7 @@ export class POLITEMallClient {
   async fetchModuleContent(moduleId: string): Promise<
     Result<{
       activityFolders: (typeof activityFolder.$inferInsert)[];
-      activities: (typeof activity.$inferInsert)[];
-      htmlActivities: (typeof htmlActivity.$inferInsert)[];
-      fileActivities: (typeof fileActivity.$inferInsert)[];
+      activities: AnyActivity[];
     }>
   > {
     // This entity contains the entire tree of activities and folders in the module
@@ -195,35 +230,41 @@ export class POLITEMallClient {
     );
     if (entityFetchError) return errorResult(entityFetchError);
 
-    const { data: parseData, error: parseError } = this.parseFolderContents(data.entities ?? []);
+    const { data: parseData, error: parseError } = await this.parseFolderContents(data.entities ?? []);
     if (parseError) return errorResult(parseError);
 
     return dataResult({
       activityFolders: parseData.folders,
       activities: parseData.activities,
-      htmlActivities: [],
-      fileActivities: [],
     });
   }
 
   /** Recursively parse an array of folder entities. */
-  parseFolderContents(
+  async parseFolderContents(
     entities: SirenEntity[]
-  ): Result<{ folders: (typeof activityFolder.$inferInsert)[]; activities: (typeof activity.$inferInsert)[] }> {
+  ): Promise<Result<{ folders: (typeof activityFolder.$inferInsert)[]; activities: AnyActivity[] }>> {
     const folders: (typeof activityFolder.$inferInsert)[] = [];
-    const activities: (typeof activity.$inferInsert)[] = [];
+    const activities: AnyActivity[] = [];
 
     for (const ent of entities) {
       // Parse activities in the folder
-      if (arrEq(ent.class, ["release-condition-fix", "sequenced-activity"])) {
-        const { data: activity, error } = this.parseActivity(ent);
+      if (ent.class.includes("sequenced-activity")) {
+        const { data: activity, error } = await this.parseActivity(ent);
         if (error) return errorResult(error);
         activities.push(activity);
         continue;
       }
 
       // Skip if `ent` isn't a folder entity
-      if (!arrEq(ent.class, ["release-condition-fix", "sequence", "sequence-description"])) continue;
+      if (!arrEq(ent.class, ["release-condition-fix", "sequence", "sequence-description"])) {
+        // These entities contain the same data as in ent.properties.description
+        if (arrEq(ent.class, ["richtext", "description"])) continue;
+        // These entities specify how many completed folders / activities
+        // there are in a unit (POLITEShop treats units as folders too)
+        if (ent.class.includes("completion")) continue;
+
+        return errorResult({ msg: "Unknown entity", data: ent });
+      }
 
       // Get the title and description (may be undefined) of the folder
       const title = ent.properties?.title;
@@ -254,14 +295,14 @@ export class POLITEMallClient {
       folders.push({
         id: lastPathComponent(selfLink.href),
         name: title,
-        description: description,
+        description,
         moduleId: lastPathComponent(orgLink.href),
         // If the path isn't "/<moduleId>/activity/<folderId>", then the parent is the module
         parentId: /^\/.+\/activity\/.+$/.test(upLinkHref.pathname) ? lastPathComponent(upLinkHref) : undefined,
       });
 
       // Recursively parse child folders
-      const { data: chilData, error } = this.parseFolderContents(ent.entities ?? []);
+      const { data: chilData, error } = await this.parseFolderContents(ent.entities ?? []);
       if (error) return errorResult(error);
       folders.push(...chilData.folders);
       activities.push(...chilData.activities);
@@ -270,39 +311,156 @@ export class POLITEMallClient {
     return dataResult({ folders, activities });
   }
 
-  parseActivity(ent: SirenEntity): Result<typeof activity.$inferInsert> {
-    const title = ent.properties?.title;
-    if (typeof title !== "string")
-      return errorResult({ msg: `Unexpected activity title type: ${typeof title}`, data: title });
+  /**
+   * Parse a Siren enitity into a `FullActivity`. Depending on the
+   * activity type, this function may make calls to the Brightspace API.
+   */
+  async parseActivity(ent: SirenEntity): Promise<Result<AnyActivity>> {
+    const name = ent.properties?.title;
+    if (typeof name !== "string")
+      return errorResult({ msg: `Unexpected activity title type: ${typeof name}`, data: name });
 
     // The self link contains the activity's ID
     const selfLink = getLinkWithRel("self", ent);
     if (!selfLink) return errorResult({ msg: "Missing self link in activity entity" });
+    const id = lastPathComponent(selfLink.href);
 
     // The up link contains the folder's ID
     const upLink = getLinkWithRel("up", ent);
     if (!upLink) return errorResult({ msg: "Missing up link in activity entity" });
+    const folderId = lastPathComponent(upLink.href);
 
-    // This should be undefined here once all the activity types are implemented
-    let type: "file" | "html" = "file";
+    // The organization link contains the module's ID
+    const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", ent);
+    if (!orgLink) return errorResult({ msg: "Missing organization link in activity entity" });
+    const moduleId = lastPathComponent(orgLink.href);
+
+    const partialActivity = { id, folderId, name };
+    let subEnt: SirenEntity | undefined;
 
     // Activities with the class ["activity", "file-activity"] can be embedded files or HTML
-    const fileOrHtmlActivity = ent.entities?.find((e) => arrEq(e.class ?? [], ["activity", "file-activity"]));
-    if (fileOrHtmlActivity) {
-      const fileEnt = fileOrHtmlActivity.entities?.find((e) => arrEq(e.class ?? [], ["file"]));
+    if ((subEnt = getSubEntWithClass(["activity", "file-activity"], ent))) {
+      const fileEnt = getSubEntWithClass(["file"], subEnt);
       if (!fileEnt) return errorResult({ msg: "Missing file entity in file activity" });
 
-      const fileType = fileEnt.properties?.type;
-      if (fileType === "text/html") type = "html";
-      else type = "file";
+      // Source URL for the (possibly html) file
+      const fileURL = `${this.basePOLITEMallURL}/d2l/api/le/1.12/${moduleId}/content/topics/${id}/file?stream=true`;
+
+      if (fileEnt.properties?.type === "text/html") {
+        // Fetch the HTML content of the file
+        const res = await fetch(fileURL, { headers: this.apiRequestHeaders });
+        if (!res.ok) return errorResult({ msg: "Failed to fetch html activity", data: await res.text() });
+        return dataResult<HTMLActivity>({ ...partialActivity, type: "html", content: await res.text() });
+      }
+      // Files that aren't html are generally pdf / pptx / docx files
+      else {
+        // .pptx and .docx files have generated PDF versions for previewing
+        const previewURL = getLinkWithClass(["pdf", "d2l-converted-doc"], fileEnt)?.href;
+        // The preview PDFs are hosted on AWS and the links in the file entities have expiry times
+        const previewURLExpiry = previewURL ? this.getURLExpiry(previewURL) : undefined;
+
+        return dataResult<DocEmbedActivity>({
+          ...partialActivity,
+          type: "doc_embed",
+          sourceURL: fileURL,
+          previewURL,
+          previewURLExpiry,
+        });
+      }
     }
 
-    return dataResult({
-      id: lastPathComponent(selfLink.href),
-      folderId: lastPathComponent(upLink.href),
-      name: title,
-      type,
-    });
+    // Activities with the class ["activity", "link-activity", "link-plain"] can be submission or quiz activities
+    else if ((subEnt = getSubEntWithClass(["activity", "link-activity", "link-plain"], ent))) {
+      const link = getLinkWithRel("about", subEnt);
+      if (!link) return errorResult({ msg: "Missing about link in activity entity" });
+
+      const aboutType = new URL(link.href).searchParams.get("type");
+      if (aboutType === "quiz") {
+        // TODO
+        return dataResult({ ...partialActivity, type: "quiz" });
+      } else if (aboutType === "dropbox") {
+        return dataResult({ ...partialActivity, type: "submission" });
+      } else return dataResult({ ...partialActivity, type: "unknown" });
+    }
+
+    // Activities with the class ["activity", "link-activity", "link-content-service"] are probably videos
+    else if ((subEnt = getSubEntWithClass(["activity", "link-activity", "link-content-service"], ent))) {
+      const { data, error } = await this.fetchVideoActivitySource(moduleId, id);
+      if (error) return errorResult(error);
+
+      return dataResult<VideoEmbedActivity>({
+        ...partialActivity,
+        type: "video_embed",
+        sourceURL: data.url,
+        sourceURLExpiry: data.urlExpiry,
+      });
+    }
+
+    // These are the "open in new tab" links
+    else if ((subEnt = getSubEntWithClass(["activity", "link-activity", "link-plain", "open-in-new-tab"], ent))) {
+      const embedURL = getLinkWithRel(["about"], subEnt)?.href;
+      if (!embedURL) return errorResult({ msg: "Missing about link in open-in-new-tab activity" });
+      return dataResult<WebEmbedActivity>({ ...partialActivity, type: "web_embed", embedURL });
+    }
+
+    // This is the same as the previous one
+    else if (
+      (subEnt = getSubEntWithClass(["activity", "link-activity", "link-plain", "external", "open-in-new-tab"], ent))
+    ) {
+      const url = getLinkWithRel(["about"], subEnt)?.href;
+      if (!url) return errorResult({ msg: "Missing about link in external open-in-new-tab activity", data: ent });
+      return dataResult({ ...partialActivity, type: "web_embed", embedURL: url });
+    }
+
+    // Same as above but embedded instead of open-in-new-tab
+    else if ((subEnt = getSubEntWithClass(["activity", "link-activity", "link-plain", "external"], ent))) {
+      const embedURL = getLinkWithRel(["about"], subEnt)?.href;
+      if (!embedURL) return errorResult({ msg: "Missing about link in external link-activity", data: ent });
+
+      return dataResult<WebEmbedActivity>({ ...partialActivity, type: "web_embed", embedURL });
+    }
+
+    // There might be more activity types
+    else {
+      return dataResult<UnknownActivity>({ ...partialActivity, type: "unknown" });
+    }
+  }
+
+  /** Fetch the source URL for the video used by a video (embed) activity. */
+  async fetchVideoActivitySource(
+    moduleId: string,
+    activityId: string
+  ): Promise<Result<{ url: string; urlExpiry: Date | undefined }>> {
+    const { data: contentServiceResource, error } = await this.#fetchBrightspaceEntity(
+      "content-service",
+      `/topics/${moduleId}/${activityId}/media`
+    );
+    if (error) return errorResult(error);
+
+    const videoSrc = contentServiceResource.properties?.src;
+    if (typeof videoSrc !== "string")
+      return errorResult({ msg: `Unexpected video src type: ${typeof videoSrc}`, data: videoSrc });
+
+    return dataResult({ url: videoSrc, urlExpiry: this.getURLExpiry(videoSrc) });
+  }
+
+  /** Return the expiry date/time of an S3 or Brightspace content service resource URL. */
+  getURLExpiry(url: string): Date | undefined {
+    const urlObj = new URL(url);
+
+    if (urlObj.hostname.endsWith("amazonaws.com")) {
+      let expiresIn = urlObj.searchParams.get("X-Amz-Expires");
+      if (!expiresIn) return undefined;
+
+      let startDate = urlObj.searchParams.get("X-Amz-Date");
+      if (!startDate) return undefined;
+
+      return addSeconds(parseDate(startDate, "yyyyMMdd'T'HHmmssX", new Date()), +expiresIn);
+    } else if (urlObj.hostname.endsWith("content-service.brightspace.com")) {
+      let expires = urlObj.searchParams.get("Expires");
+      if (!expires) return undefined;
+      return new Date(+expires * 1000);
+    }
   }
 
   /** Fetch a Siren entity from the specified Brightspace API. */

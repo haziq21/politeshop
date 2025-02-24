@@ -1,41 +1,43 @@
-import { foreignKey, pgEnum, pgTable, primaryKey, varchar, type AnyPgColumn } from "drizzle-orm/pg-core";
-
-export const activityTypeEnum = pgEnum("activity_type", ["html", "file", "submission", "quiz"]);
+import { integer, pgEnum, pgTable, primaryKey, timestamp, text, type AnyPgColumn } from "drizzle-orm/pg-core";
 
 export const school = pgTable("school", {
-  id: varchar().primaryKey(),
-  name: varchar().notNull(),
+  id: text().primaryKey(),
+  name: text().notNull(),
+  bannerImageURL: text("banner_image_url"),
 });
 
 export const user = pgTable("user", {
-  id: varchar().primaryKey(),
-  name: varchar().notNull(),
-  schoolId: varchar("school_id")
+  id: text().primaryKey(),
+  name: text().notNull(),
+  schoolId: text("school_id")
     .notNull()
     .references(() => school.id),
 });
 
 export const semester = pgTable("semester", {
-  id: varchar().primaryKey(),
-  name: varchar().notNull(),
+  id: text().primaryKey(),
+  name: text().notNull(),
 });
 
 export const module = pgTable("module", {
-  id: varchar().primaryKey(),
-  name: varchar().notNull(),
-  code: varchar().notNull(),
-  semesterId: varchar("semester_id")
+  id: text().primaryKey(),
+  name: text().notNull(),
+  niceName: text("nice_name"),
+  code: text().notNull(),
+  niceCode: text("nice_code"),
+  semesterId: text("semester_id")
     .notNull()
     .references(() => semester.id),
+  imageIconURL: text("image_icon_url"),
 });
 
 export const userModule = pgTable(
   "user_module",
   {
-    userId: varchar("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
-    moduleId: varchar("module_id")
+    moduleId: text("module_id")
       .notNull()
       .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
   },
@@ -43,34 +45,80 @@ export const userModule = pgTable(
 );
 
 export const activityFolder = pgTable("activity_folder", {
-  id: varchar().primaryKey(),
-  name: varchar().notNull(),
-  description: varchar(),
-  parentId: varchar("parent_id").references((): AnyPgColumn => activityFolder.id),
-  moduleId: varchar("module_id")
+  id: text().primaryKey(),
+  name: text().notNull(),
+  description: text(),
+  parentId: text("parent_id").references((): AnyPgColumn => activityFolder.id),
+  moduleId: text("module_id")
     .notNull()
     .references(() => module.id),
 });
 
+export const activityTypeEnum = pgEnum("activity_type", [
+  "html",
+  "web_embed",
+  "doc_embed",
+  "video_embed",
+  "submission",
+  "quiz",
+  "unknown",
+]);
+
 export const activity = pgTable("activity", {
-  id: varchar().primaryKey(),
-  name: varchar().notNull(),
+  id: text().primaryKey(),
+  name: text().notNull(),
   type: activityTypeEnum().notNull(),
-  folderId: varchar("folder_id")
+  folderId: text("folder_id")
     .notNull()
     .references(() => activityFolder.id),
 });
 
 export const htmlActivity = pgTable("html_activity", {
-  id: varchar()
+  id: text()
     .primaryKey()
     .references(() => activity.id),
-  content: varchar().notNull(),
+  content: text().notNull(),
 });
 
-export const fileActivity = pgTable("file_activity", {
-  id: varchar()
+export const webEmbedActivity = pgTable("web_embed_activity", {
+  id: text()
     .primaryKey()
     .references(() => activity.id),
-  url: varchar().notNull(),
+  embedURL: text("embed_url").notNull(),
+  newTabURL: text("new_tab_url"),
+});
+
+export const docEmbedActivity = pgTable("doc_embed_activity", {
+  id: text()
+    .primaryKey()
+    .references(() => activity.id),
+  sourceURL: text("source_url").notNull(),
+  previewURL: text("preview_url"),
+  previewURLExpiry: timestamp("preview_url_expiry"),
+});
+
+export const videoEmbedActivity = pgTable("video_embed_activity", {
+  id: text()
+    .primaryKey()
+    .references(() => activity.id),
+  sourceURL: text("source_url").notNull(),
+  sourceURLExpiry: timestamp("source_url_expiry"),
+});
+
+export const submissionActivity = pgTable("submission_activity", {
+  id: text()
+    .primaryKey()
+    .references(() => activity.id),
+  dueDate: timestamp("due_date"),
+  description: text(),
+});
+
+export const quizActivity = pgTable("quiz_activity", {
+  id: text()
+    .primaryKey()
+    .references(() => activity.id),
+  dueDate: timestamp("due_date"),
+  description: text(),
+  attemptsAllowed: integer("attempts_allowed"),
+  attemptsCompleted: integer("attempts_completed"),
 });

@@ -50,7 +50,7 @@ export const server = {
       // Update the database with the fetched data
       const fullUserData = { ...partialUserData, schoolId: schoolData.id };
       // TODO: Parallelize these too?
-      await ds.insertAndAssociateSchool(schoolData);
+      await ds.insertSchool(schoolData);
       await ds.insertUser(fullUserData);
       await ds.insertSemesters(semestersData);
       await ds.insertAndAssociateModules(modulesData);
@@ -61,12 +61,29 @@ export const server = {
       // Fetch all module content in parallel
       await Promise.all(
         modulesData.map(async ({ id }) => {
-          const { data, error } = await polite.fetchModuleContent(id);
-          if (error)
-            throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch module content" });
+          let res;
 
-          await ds.insertActivityFolders(data.activityFolders);
-          await ds.insertActivities(data.activities);
+          try {
+            res = await polite.fetchModuleContent(id);
+          } catch (e) {
+            console.dir(e, { depth: null });
+            throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch module content" });
+          }
+
+          const { data, error } = res;
+
+          if (error) {
+            console.dir(error, { depth: null });
+            throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch module content" });
+          }
+
+          try {
+            await ds.insertActivityFolders(data.activityFolders);
+            await ds.insertActivities(data.activities);
+          } catch (e) {
+            console.dir(e, { depth: null });
+            throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to insert module content" });
+          }
         })
       );
 

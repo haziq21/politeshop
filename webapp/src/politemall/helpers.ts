@@ -1,9 +1,23 @@
 import { arrEq } from "../helpers";
-import type { SirenEntity, SirenLink } from "./schema";
+import type { SirenAction, SirenEntity, SirenLink } from "./schema";
 
 export function getLinkWithRel(rel: string | string[], entity: SirenEntity): SirenLink | undefined {
   if (typeof rel === "string") return entity.links?.find(({ rel: r }) => r.includes(rel));
   return entity.links?.find(({ rel: r }) => arrEq(r, rel));
+}
+
+export function getLinkWithClass(cls: string | string[], entity: SirenEntity): SirenLink | undefined {
+  if (typeof cls === "string") return entity.links?.find(({ class: c }) => c?.includes(cls));
+  return entity.links?.find(({ class: c }) => arrEq(c ?? [], cls));
+}
+
+export function getSubEntWithClass(cls: string | string[], entity: SirenEntity): SirenEntity | undefined {
+  if (typeof cls === "string") return entity.entities?.find(({ class: c }) => c.includes(cls));
+  return entity.entities?.find(({ class: c }) => arrEq(c, cls));
+}
+
+export function getActionWithName(name: string, entity: SirenEntity): SirenAction | undefined {
+  return entity.actions?.find((a) => a.name === name);
 }
 
 export function lastPathComponent(url: string | URL): string {
