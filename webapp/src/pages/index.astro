@@ -6,25 +6,43 @@ const ds = Astro.locals.datastore;
 console.log("Getting data for /...");
 const fetchStart = Date.now();
 
-// TODO(?): This could be one query
-const { name } = await ds.user();
-const { name: schoolName } = await ds.school();
-
-const semesters = await ds.semesters();
+const school = await ds.school();
 const modules = await ds.modules();
 
-const chosenModule = modules.at(-1)!;
-const activities = await ds.activities(chosenModule.id);
-const activityFolders = await ds.activityFolders(chosenModule.id);
-
 console.log(`Got data for / in ${Date.now() - fetchStart}ms`);
+
+console.log(JSON.stringify(modules.map((mod) => ({ code: mod.code, name: mod.name }))));
 ---
 
 <Layout>
-  <h1 class="text-2xl font-semibold px-20 pt-10 pb-12">POLITEMall</h1>
-  <p>Hello {name} from {schoolName}!</p>
-  <p>Your semesters: {semesters.map((sem) => sem.name).join(", ")}</p>
-  <p>Your modules: {modules.map((mod) => mod.name).join(", ")}</p>
-  <p>Folders in {chosenModule.name}: {activityFolders.map((f) => f.name).join(", ")}</p>
-  <p>Activities in {chosenModule.name}: {activities.map((a) => a.name).join(", ")}</p>
+  <img src={school.bannerImageURL} alt="Banner image" class="w-full h-50 mt-15 object-cover" />
+  <h1 class="text-3xl font-semibold mx-35 mt-10">{school.name}</h1>
+
+  {/* TODO */}
+  <a href="#" class="mx-35 font-medium text-xs text-stone-500 hover:text-stone-400">x days until semester break</a>
+
+  <div class="flex flex-col gap-1 mt-10 ml-32 pb-40 w-fit">
+    {
+      modules.map((mod) => (
+        <a
+          href="#"
+          class="group grid grid-rows-[repeat(3,auto)] grid-cols-[auto_1fr] max-w-150 hover:bg-stone-800
+          border border-transparent hover:border-stone-700 pl-3 pr-6 py-3 rounded-lg"
+        >
+          <img
+            src={mod.imageIconURL}
+            alt="Module banner"
+            class="w-15 h-15 mr-3 object-cover rounded-md row-span-full"
+          />
+          <p class="font-bold text-xs text-stone-500 group-hover:text-stone-400 leading-none self-end">{mod.code}</p>
+          <p class="text-lg/7 self-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+            {mod.niceName || mod.name}
+          </p>
+          <p class="font-light text-sm text-stone-400 group-hover:text-stone-300 leading-none self-start">
+            Nothing new here
+          </p>
+        </a>
+      ))
+    }
+  </div>
 </Layout>
