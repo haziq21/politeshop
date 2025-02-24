@@ -15,7 +15,7 @@ console.log(JSON.stringify(modules.map((mod) => ({ code: mod.code, name: mod.nam
 ---
 
 <Layout>
-  <img src={school.bannerImageURL} alt="Banner image" class="w-full h-50 mt-15 object-cover" />
+  <img src={school.bannerImageURL} alt="Banner image" class="w-full h-50 mt-15 object-cover" draggable="false" />
   <h1 class="text-3xl font-semibold mx-35 mt-10">{school.name}</h1>
 
   {/* TODO */}
@@ -31,7 +31,8 @@ console.log(JSON.stringify(modules.map((mod) => ({ code: mod.code, name: mod.nam
         >
           <img
             src={mod.imageIconURL}
-            alt="Module banner"
+            alt="Module image"
+            draggable="false"
             class="w-15 h-15 mr-3 object-cover rounded-md row-span-full"
           />
           <p class="font-bold text-xs text-stone-500 group-hover:text-stone-400 leading-none self-end">{mod.code}</p>
