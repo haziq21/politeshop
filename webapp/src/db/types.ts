@@ -6,7 +6,12 @@ import type {
   webEmbedActivity,
   submissionActivity,
   videoEmbedActivity,
+  module,
+  semester,
 } from "./schema";
+
+export type Semester = typeof semester.$inferInsert;
+export type Module = typeof module.$inferInsert;
 
 export type PartialActivity = typeof activity.$inferInsert;
 

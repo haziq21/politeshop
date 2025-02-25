@@ -5,6 +5,7 @@
   let errorOccurred = $state(false);
 
   onMount(async () => {
+    // TODO: Wait for the cookies to be set
     const { error } = await actions.registerUser();
     if (error) errorOccurred = true;
     else location.href = "/";
