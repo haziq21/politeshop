@@ -15,17 +15,22 @@ import {
   videoEmbedActivity,
   submissionActivity,
   quizActivity,
+  type Semester,
+  type Module,
+  type ActivityFolder,
+  type School,
+  type User,
 } from "./db";
 
 /** An interface to the POLITEShop database with local caching. */
 export class Datastore {
   data: {
-    school?: typeof import("./db").school.$inferInsert;
-    user?: typeof import("./db").user.$inferInsert;
-    semesters?: typeof import("./db").semester.$inferInsert[];
-    modules?: typeof import("./db").module.$inferInsert[];
+    school?: School;
+    user?: User;
+    semesters?: Semester[];
+    modules?: Module[];
     /** Map of module IDs to activity folders. */
-    activityFolders?: Map<string, typeof import("./db").activityFolder.$inferInsert[]>;
+    activityFolders?: Map<string, ActivityFolder[]>;
     /** Map of module IDs to activities. */
     activities?: Map<string, AnyActivity[]>;
   } = {};
@@ -33,7 +38,7 @@ export class Datastore {
   constructor(public userId: string) {}
 
   /** Get the current user. */
-  async user(): Promise<typeof user.$inferInsert> {
+  async user(): Promise<User> {
     if (this.data.user) return this.data.user;
     return (this.data.user = (await db.select().from(user).where(eq(user.id, this.userId)))[0]);
   }
@@ -47,7 +52,7 @@ export class Datastore {
    * Insert the user into the database, returning `true` if the user was actually
    * inserted and `false` if the user was already present in the database.
    */
-  async insertUser(u: typeof user.$inferInsert): Promise<boolean> {
+  async insertUser(u: User): Promise<boolean> {
     const { userInserted } = (
       await db
         .insert(user)
@@ -60,7 +65,7 @@ export class Datastore {
   }
 
   /** Get the user's school. */
-  async school(): Promise<typeof school.$inferInsert> {
+  async school(): Promise<School> {
     if (this.data.school) return this.data.school;
 
     return (this.data.school = (
@@ -73,7 +78,7 @@ export class Datastore {
   }
 
   /** Insert the school. */
-  async insertSchool(s: typeof school.$inferInsert) {
+  async insertSchool(s: School) {
     await db
       .insert(school)
       .values(s)
@@ -82,7 +87,7 @@ export class Datastore {
   }
 
   /** Get semesters the user is in. */
-  async semesters(): Promise<(typeof semester.$inferInsert)[]> {
+  async semesters(): Promise<Semester[]> {
     // We're assuming that if insertSemester() is called first,
     // the inserted semesters are the only semesters the user has.
     if (this.data.semesters) return this.data.semesters;
@@ -99,7 +104,7 @@ export class Datastore {
   }
 
   /** Insert semesters the user is in. */
-  async insertSemesters(s: (typeof semester.$inferInsert)[]) {
+  async insertSemesters(s: Semester[]) {
     await db
       .insert(semester)
       .values(s)
@@ -110,7 +115,7 @@ export class Datastore {
   }
 
   /** Get every module the user has. */
-  async modules(): Promise<(typeof module.$inferInsert)[]> {
+  async modules(): Promise<Module[]> {
     // We're assuming that if insertAndAssociateModules() is called
     // first, the inserted modules are the only modules the user has.
     if (this.data.modules) return this.data.modules;
@@ -123,7 +128,7 @@ export class Datastore {
   }
 
   /** Insert the modules and add them as the user's modules. */
-  async insertAndAssociateModules(mods: (typeof module.$inferInsert)[]) {
+  async insertAndAssociateModules(mods: Module[]) {
     await db
       .insert(module)
       .values(mods)
@@ -146,7 +151,7 @@ export class Datastore {
   }
 
   /** Get the folders from the specified module. */
-  async activityFolders(moduleId: string): Promise<(typeof activityFolder.$inferInsert)[]> {
+  async activityFolders(moduleId: string): Promise<ActivityFolder[]> {
     // We're assuming that if insertActivityFolders() is called first and
     // activity folders with the given moduleId are inserted, those inserted
     // activity folders are the only activity folders in that module.
@@ -161,7 +166,7 @@ export class Datastore {
   }
 
   /** Insert the given activity folders. */
-  async insertActivityFolders(folders: (typeof activityFolder.$inferInsert)[]) {
+  async insertActivityFolders(folders: ActivityFolder[]) {
     if (!folders.length) return;
 
     await db

@@ -1,18 +1,16 @@
 import type { Result } from "../types";
 import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity, dueDateSchema } from "./schema";
-import {
-  school,
-  semester,
-  module,
-  activityFolder,
-  activity,
-  htmlActivity,
-  type AnyActivity,
-  type DocEmbedActivity,
-  type HTMLActivity,
-  type VideoEmbedActivity,
-  type UnknownActivity,
-  type WebEmbedActivity,
+import type {
+  AnyActivity,
+  DocEmbedActivity,
+  HTMLActivity,
+  VideoEmbedActivity,
+  UnknownActivity,
+  WebEmbedActivity,
+  Semester,
+  Module,
+  ActivityFolder,
+  School,
 } from "../db";
 import * as jose from "jose";
 import { arrEq, dataResult, errorResult } from "../helpers";
@@ -95,7 +93,7 @@ export class POLITEMallClient {
   }
 
   /** Get the user's school from the Brightspace API. */
-  async fetchSchool(): Promise<Result<typeof school.$inferInsert>> {
+  async fetchSchool(): Promise<Result<School>> {
     const { data: enrollmentData, error: enrollmentError } = await this.#fetchBrightspaceEntity(
       "enrollments",
       `/users/${this.userId}`
@@ -117,7 +115,7 @@ export class POLITEMallClient {
   }
 
   /** Parse an organization entity into a school. */
-  async parseSchool(ent: SirenEntity): Promise<Result<typeof school.$inferInsert>> {
+  async parseSchool(ent: SirenEntity): Promise<Result<School>> {
     const name = ent.properties?.name;
     if (typeof name !== "string")
       return errorResult({ msg: `Unexpected type for school name: ${typeof name}`, data: name });
@@ -140,7 +138,7 @@ export class POLITEMallClient {
     return dataResult({ id, name, bannerImageURL });
   }
 
-  async fetchSemesters(): Promise<Result<(typeof semester.$inferInsert)[]>> {
+  async fetchSemesters(): Promise<Result<Semester[]>> {
     const url = `${this.basePOLITEMallURL}/d2l/api/le/manageCourses/courses-searches/${this.userId}/BySemester?desc=1`;
     const { data, error } = await this.#fetchBrightspaceEntity(url);
     if (error) return errorResult(error);
@@ -148,7 +146,7 @@ export class POLITEMallClient {
     // Semester data is in the entity's actions
     if (!data.actions) return errorResult({ msg: "Missing actions in semester entity" });
 
-    const semesters: (typeof semester.$inferInsert)[] = [];
+    const semesters: Semester[] = [];
     for (const action of data.actions) {
       if (!action.name || !action.title) return errorResult({ msg: "Missing name in semester action" });
       // Trim the name because sometimes it has leading spaces...
@@ -158,7 +156,7 @@ export class POLITEMallClient {
     return dataResult(semesters);
   }
 
-  async fetchModules(): Promise<Result<(typeof module.$inferInsert)[]>> {
+  async fetchModules(): Promise<Result<Module[]>> {
     const { data, error } = await this.#fetchBrightspaceEntity("enrollments", `/users/${this.userId}?pageSize=100`);
     if (error) return errorResult(error);
     if (!data.entities) return errorResult({ msg: "Missing entities in user enrollments" });
@@ -166,7 +164,7 @@ export class POLITEMallClient {
     // Fetch all the modules in parallel
     // TODO: Maybe use errors to reject the promise early
     const moduleResults = await Promise.all(
-      data.entities.map(async (ent): Promise<Result<typeof module.$inferInsert>> => {
+      data.entities.map(async (ent): Promise<Result<Module>> => {
         if (!ent.href) return errorResult({ msg: "Missing href in enrollment entity" });
 
         // This entity only contains links to other entities (one of them containing the data we need)
@@ -219,7 +217,7 @@ export class POLITEMallClient {
 
   async fetchModuleContent(moduleId: string): Promise<
     Result<{
-      activityFolders: (typeof activityFolder.$inferInsert)[];
+      activityFolders: ActivityFolder[];
       activities: AnyActivity[];
     }>
   > {
@@ -242,8 +240,8 @@ export class POLITEMallClient {
   /** Recursively parse an array of folder entities. */
   async parseFolderContents(
     entities: SirenEntity[]
-  ): Promise<Result<{ folders: (typeof activityFolder.$inferInsert)[]; activities: AnyActivity[] }>> {
-    const folders: (typeof activityFolder.$inferInsert)[] = [];
+  ): Promise<Result<{ folders: ActivityFolder[]; activities: AnyActivity[] }>> {
+    const folders: ActivityFolder[] = [];
     const activities: AnyActivity[] = [];
 
     for (const ent of entities) {
