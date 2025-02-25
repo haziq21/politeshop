@@ -1,6 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import ModuleSelector from "../components/ModuleSelector.svelte";
+import DueDateHeatmap from "../components/DueDateHeatmap.svelte";
 
 const ds = Astro.locals.datastore;
 const school = await ds.school();
@@ -15,7 +16,11 @@ const modules = await ds.modules();
   {/* TODO */}
   <a href="#" class="mx-35 font-medium text-xs text-stone-500 hover:text-stone-400">x days until semester break</a>
 
-  <div class="mt-10 ml-5 pb-40">
+  <div class="flex mt-10 ml-5 pb-40">
     <ModuleSelector semesters={semesters} {modules} client:load />
+
+    <div class="flex-grow flex justify-center">
+      <DueDateHeatmap {modules} client:load />
+    </div>
   </div>
 </Layout>
