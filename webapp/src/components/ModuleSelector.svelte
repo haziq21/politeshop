@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import type { Module, Semester } from "../db";
   import ModuleList from "./ModuleList.svelte";
   import SemesterFilter from "./SemesterFilter.svelte";
@@ -15,7 +14,7 @@
 </script>
 
 <div class="flex gap-4">
-  <div class="mt-3 min-w-23">
+  <div class="mt-3 min-w-23 sticky top-20 h-fit">
     <SemesterFilter options={semestersWithAll} bind:value={filteredSem} />
   </div>
 

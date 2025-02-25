@@ -23,7 +23,7 @@
           class="w-15 h-15 mr-3 object-cover rounded-md row-span-full"
         />
         <p class="font-bold text-xs text-stone-500 group-hover:text-stone-400 leading-none self-end">{mod.code}</p>
-        <p class="font-medium text-lg self-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+        <p class="text-lg self-center whitespace-nowrap overflow-hidden overflow-ellipsis">
           {mod.niceName || mod.name}
         </p>
         <p class="font-light text-sm text-stone-400 group-hover:text-stone-300 leading-none self-start">
