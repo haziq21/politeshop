@@ -25,9 +25,11 @@ export const module = pgTable("module", {
   niceName: text("nice_name"),
   code: text().notNull(),
   niceCode: text("nice_code"),
+  textUpdatedAt: timestamp("text_updated_at").notNull().defaultNow(),
+  niceTextUpdatedAt: timestamp("nice_text_updated_at").notNull().defaultNow(),
   semesterId: text("semester_id")
     .notNull()
-    .references(() => semester.id),
+    .references(() => semester.id, { onDelete: "cascade", onUpdate: "cascade" }),
   imageIconURL: text("image_icon_url"),
 });
 
@@ -48,10 +50,13 @@ export const activityFolder = pgTable("activity_folder", {
   id: text().primaryKey(),
   name: text().notNull(),
   description: text(),
-  parentId: text("parent_id").references((): AnyPgColumn => activityFolder.id),
+  parentId: text("parent_id").references((): AnyPgColumn => activityFolder.id, {
+    onDelete: "cascade",
+    onUpdate: "cascade",
+  }),
   moduleId: text("module_id")
     .notNull()
-    .references(() => module.id),
+    .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
 });
 
 export const activityTypeEnum = pgEnum("activity_type", [
@@ -70,20 +75,20 @@ export const activity = pgTable("activity", {
   type: activityTypeEnum().notNull(),
   folderId: text("folder_id")
     .notNull()
-    .references(() => activityFolder.id),
+    .references(() => activityFolder.id, { onDelete: "cascade", onUpdate: "cascade" }),
 });
 
 export const htmlActivity = pgTable("html_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id),
+    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   content: text().notNull(),
 });
 
 export const webEmbedActivity = pgTable("web_embed_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id),
+    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   embedURL: text("embed_url").notNull(),
   newTabURL: text("new_tab_url"),
 });
@@ -91,7 +96,7 @@ export const webEmbedActivity = pgTable("web_embed_activity", {
 export const docEmbedActivity = pgTable("doc_embed_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id),
+    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   sourceURL: text("source_url").notNull(),
   previewURL: text("preview_url"),
   previewURLExpiry: timestamp("preview_url_expiry"),
@@ -100,7 +105,7 @@ export const docEmbedActivity = pgTable("doc_embed_activity", {
 export const videoEmbedActivity = pgTable("video_embed_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id),
+    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   sourceURL: text("source_url").notNull(),
   sourceURLExpiry: timestamp("source_url_expiry"),
 });
@@ -108,7 +113,7 @@ export const videoEmbedActivity = pgTable("video_embed_activity", {
 export const submissionActivity = pgTable("submission_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id),
+    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   dueDate: timestamp("due_date"),
   description: text(),
 });
@@ -116,7 +121,7 @@ export const submissionActivity = pgTable("submission_activity", {
 export const quizActivity = pgTable("quiz_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id),
+    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   dueDate: timestamp("due_date"),
   description: text(),
   attemptsAllowed: integer("attempts_allowed"),

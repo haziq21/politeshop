@@ -21,6 +21,9 @@ import {
   type School,
   type User,
 } from "./db";
+import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
+
+const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
 
 /** An interface to the POLITEShop database with local caching. */
 export class Datastore {
@@ -108,7 +111,7 @@ export class Datastore {
     await db
       .insert(semester)
       .values(s)
-      .onConflictDoUpdate({ target: semester.id, set: { name: sql.raw(`excluded.${semester.name.name}`) } });
+      .onConflictDoUpdate({ target: semester.id, set: { name: excluded(semester.name) } });
 
     if (!this.data.semesters) this.data.semesters = [];
     this.data.semesters.push(...s);
@@ -135,10 +138,24 @@ export class Datastore {
       .onConflictDoUpdate({
         target: module.id,
         set: {
-          name: sql.raw(`excluded.${module.name.name}`),
-          code: sql.raw(`excluded.${module.code.name}`),
-          semesterId: sql.raw(`excluded.${module.semesterId.name}`),
-          imageIconURL: sql.raw(`excluded.${module.imageIconURL.name}`),
+          name: excluded(module.name),
+          code: excluded(module.code),
+          semesterId: excluded(module.semesterId),
+          imageIconURL: excluded(module.imageIconURL),
+          textUpdatedAt: sql`
+            case
+              when ${module.name} is distinct from ${excluded(module.name)}
+                or ${module.code} is distinct from ${excluded(module.code)}
+                then now()
+              else ${module.textUpdatedAt}
+            end`,
+          niceTextUpdatedAt: sql`
+            case
+              when ${module.niceName} is distinct from ${excluded(module.niceName)}
+                or ${module.niceCode} is distinct from ${excluded(module.niceCode)}
+                then now()
+              else ${module.niceTextUpdatedAt}
+            end`,
         },
       });
     await db
@@ -175,10 +192,10 @@ export class Datastore {
       .onConflictDoUpdate({
         target: activityFolder.id,
         set: {
-          name: sql.raw(`excluded.${activityFolder.name.name}`),
-          description: sql.raw(`excluded.${activityFolder.description.name}`),
-          parentId: sql.raw(`excluded.${activityFolder.parentId.name}`),
-          moduleId: sql.raw(`excluded.${activityFolder.moduleId.name}`),
+          name: excluded(activityFolder.name),
+          description: excluded(activityFolder.description),
+          parentId: excluded(activityFolder.parentId),
+          moduleId: excluded(activityFolder.moduleId),
         },
       });
 
@@ -234,73 +251,40 @@ export class Datastore {
       .onConflictDoUpdate({
         target: activity.id,
         set: {
-          name: sql.raw(`excluded.${activity.name.name}`),
-          type: sql.raw(`excluded.${activity.type.name}`),
-          folderId: sql.raw(`excluded.${activity.folderId.name}`),
+          name: excluded(activity.name),
+          type: excluded(activity.type),
+          folderId: excluded(activity.folderId),
         },
       });
 
+    // Helper function for the tedious inserts below
+    const upsertActivityDetails = <T extends PgTable>(
+      table: T,
+      target: PgColumn,
+      value: T["$inferInsert"],
+      set?: PgUpdateSetSource<T>
+    ) =>
+      db
+        .insert(table)
+        .values(value)
+        .onConflictDoUpdate({ target, set: set || value });
+
     await Promise.all(
-      acts.map(async (a) => {
-        if (a.type === "html")
-          await db
-            .insert(htmlActivity)
-            .values(a)
-            .onConflictDoUpdate({
-              target: htmlActivity.id,
-              set: { content: sql.raw(`excluded.${htmlActivity.content.name}`) },
-            });
-        else if (a.type === "web_embed")
-          await db
-            .insert(webEmbedActivity)
-            .values(a)
-            .onConflictDoUpdate({
-              target: webEmbedActivity.id,
-              set: {
-                embedURL: sql.raw(`excluded.${webEmbedActivity.embedURL.name}`),
-                newTabURL: sql.raw(`excluded.${webEmbedActivity.newTabURL.name}`),
-              },
-            });
-        else if (a.type === "doc_embed")
-          await db
-            .insert(docEmbedActivity)
-            .values(a)
-            .onConflictDoUpdate({
-              target: docEmbedActivity.id,
-              set: {
-                sourceURL: sql.raw(`excluded.${docEmbedActivity.sourceURL.name}`),
-                previewURL: sql.raw(`excluded.${docEmbedActivity.previewURL.name}`),
-                previewURLExpiry: sql.raw(`excluded.${docEmbedActivity.previewURLExpiry.name}`),
-              },
-            });
-        else if (a.type === "video_embed")
-          await db
-            .insert(videoEmbedActivity)
-            .values(a)
-            .onConflictDoUpdate({
-              target: videoEmbedActivity.id,
-              set: {
-                sourceURL: sql.raw(`excluded.${videoEmbedActivity.sourceURL.name}`),
-                sourceURLExpiry: sql.raw(`excluded.${videoEmbedActivity.sourceURLExpiry.name}`),
-              },
-            });
-        else if (a.type === "submission")
-          await db
-            .insert(submissionActivity)
-            .values(a)
-            .onConflictDoUpdate({
-              target: submissionActivity.id,
-              set: { dueDate: sql.raw(`excluded.${submissionActivity.dueDate.name}`) },
-            });
-        else if (a.type === "quiz")
-          await db
-            .insert(quizActivity)
-            .values(a)
-            .onConflictDoUpdate({
-              target: quizActivity.id,
-              set: { dueDate: sql.raw(`excluded.${quizActivity.dueDate.name}`) },
-            });
-      })
+      acts.map((a) =>
+        a.type === "html"
+          ? upsertActivityDetails(htmlActivity, htmlActivity.id, a)
+          : a.type === "web_embed"
+          ? upsertActivityDetails(webEmbedActivity, webEmbedActivity.id, a)
+          : a.type === "doc_embed"
+          ? upsertActivityDetails(docEmbedActivity, docEmbedActivity.id, a)
+          : a.type === "video_embed"
+          ? upsertActivityDetails(videoEmbedActivity, videoEmbedActivity.id, a)
+          : a.type === "submission"
+          ? upsertActivityDetails(submissionActivity, submissionActivity.id, a)
+          : a.type === "quiz"
+          ? upsertActivityDetails(quizActivity, quizActivity.id, a)
+          : undefined
+      )
     );
   }
 }
