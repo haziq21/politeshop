@@ -55,7 +55,7 @@ export class Datastore {
    * Insert the user into the database, returning `true` if the user was actually
    * inserted and `false` if the user was already present in the database.
    */
-  async insertUser(u: User): Promise<boolean> {
+  async upsertUser(u: User): Promise<boolean> {
     const { userInserted } = (
       await db
         .insert(user)
@@ -81,7 +81,7 @@ export class Datastore {
   }
 
   /** Insert the school. */
-  async insertSchool(s: School) {
+  async upsertSchool(s: School) {
     await db
       .insert(school)
       .values(s)
@@ -107,7 +107,7 @@ export class Datastore {
   }
 
   /** Insert semesters the user is in. */
-  async insertSemesters(s: Semester[]) {
+  async upsertSemesters(s: Semester[]) {
     await db
       .insert(semester)
       .values(s)
@@ -131,7 +131,7 @@ export class Datastore {
   }
 
   /** Insert the modules and add them as the user's modules. */
-  async insertAndAssociateModules(mods: Module[]) {
+  async upsertAndAssociateModules(mods: Module[]) {
     await db
       .insert(module)
       .values(mods)
@@ -183,7 +183,7 @@ export class Datastore {
   }
 
   /** Insert the given activity folders. */
-  async insertActivityFolders(folders: ActivityFolder[]) {
+  async upsertActivityFolders(folders: ActivityFolder[]) {
     if (!folders.length) return;
 
     await db
@@ -242,7 +242,7 @@ export class Datastore {
   }
 
   /** Insert the given activities. */
-  async insertActivities(acts: AnyActivity[]) {
+  async upsertActivities(acts: AnyActivity[]) {
     if (!acts.length) return;
 
     await db
