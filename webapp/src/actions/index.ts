@@ -48,6 +48,7 @@ export const server = {
         .sign(jwtSigningKey);
     },
   }),
+  // TODO: Return changed data
   syncData: defineAction({
     handler: async (_, context) => {
       const polite = context.locals.polite;
@@ -63,10 +64,10 @@ export const server = {
       // Update the database with the fetched data
       const fullUserData = { ...partialUserData, schoolId: schoolData.id };
       // TODO: Parallelize these too?
-      await ds.insertSchool(schoolData);
-      await ds.insertUser(fullUserData);
-      await ds.insertSemesters(semestersData);
-      await ds.insertAndAssociateModules(modulesData);
+      await ds.upsertSchool(schoolData);
+      await ds.upsertUser(fullUserData);
+      await ds.upsertSemesters(semestersData);
+      await ds.upsertAndAssociateModules(modulesData);
 
       let fetchStart = Date.now();
       console.log("registerUser(): Fetching module content from POLITEMall...");
@@ -91,8 +92,8 @@ export const server = {
           }
 
           try {
-            await ds.insertActivityFolders(data.activityFolders);
-            await ds.insertActivities(data.activities);
+            await ds.upsertActivityFolders(data.activityFolders);
+            await ds.upsertActivities(data.activities);
           } catch (e) {
             console.dir(e, { depth: null });
             throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to insert module content" });
