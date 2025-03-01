@@ -23,5 +23,5 @@
     // Type-checking for Node (dev server) and Chrome extension APIs
     "types": ["node", "chrome-types"]
   },
-  "include": ["src"]
+  "include": ["src", "../shared/index.ts"]
 }

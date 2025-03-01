@@ -13,5 +13,20 @@ import "../styles/global.css";
   </head>
   <body class="bg-stone-900 text-stone-50 font-inter">
     <slot />
+
+    <script>
+      // TODO: Use MutationObserver when necessary
+      for (const a of document.getElementsByTagName("a")) {
+        if (a.hostname !== location.hostname) continue;
+
+        a.hostname = "nplms.polite.edu.sg";
+        a.port = "";
+
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          location.pathname = a.pathname;
+        });
+      }
+    </script>
   </body>
 </html>

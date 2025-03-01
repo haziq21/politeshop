@@ -1,6 +1,8 @@
 import { ActionError, defineAction } from "astro:actions";
 import type { POLITEMallClient } from "../politemall";
 import type { school, semester, module } from "../db";
+import * as jose from "jose";
+import { SIGNING_KEY } from "astro:env/server";
 
 async function fetchPartialUser(polite: POLITEMallClient): Promise<{ id: string; name: string }> {
   const { data, error } = await polite.fetchPartialUser();
@@ -30,13 +32,26 @@ async function fetchModules(polite: POLITEMallClient): Promise<(typeof module.$i
 }
 
 export const server = {
-  registerUser: defineAction({
-    handler: async (input, context) => {
+  getPOLITEShopJWT: defineAction({
+    handler: async (_, context) => {
+      const polite = context.locals.polite;
+
+      console.log("setPOLITEShopJWT(): Fetching partial user data...");
+      const partialUserData = await fetchPartialUser(polite);
+      console.log(`setPOLITEShopJWT(): Fetched partial user data: ${JSON.stringify(partialUserData)}`);
+
+      // Produce the politeshopJWT and set it as a cookie
+      const jwtSigningKey = new TextEncoder().encode(SIGNING_KEY);
+      return await new jose.SignJWT()
+        .setProtectedHeader({ alg: "HS256" })
+        .setSubject(partialUserData.id)
+        .sign(jwtSigningKey);
+    },
+  }),
+  syncData: defineAction({
+    handler: async (_, context) => {
       const polite = context.locals.polite;
       const ds = context.locals.datastore;
-
-      console.log("registerUser(): Fetching basic data from POLITEMall...");
-      let fetchStart = Date.now();
 
       const [partialUserData, schoolData, semestersData, modulesData] = await Promise.all([
         fetchPartialUser(polite),
@@ -44,8 +59,6 @@ export const server = {
         fetchSemesters(polite),
         fetchModules(polite),
       ]);
-
-      console.log(`registerUser(): Fetched basic data in ${Date.now() - fetchStart}ms`);
 
       // Update the database with the fetched data
       const fullUserData = { ...partialUserData, schoolId: schoolData.id };
@@ -55,7 +68,7 @@ export const server = {
       await ds.insertSemesters(semestersData);
       await ds.insertAndAssociateModules(modulesData);
 
-      fetchStart = Date.now();
+      let fetchStart = Date.now();
       console.log("registerUser(): Fetching module content from POLITEMall...");
 
       // Fetch all module content in parallel

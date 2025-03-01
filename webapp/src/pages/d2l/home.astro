@@ -1,7 +1,7 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import ModuleSelector from "../components/ModuleSelector.svelte";
-import DueDateHeatmap from "../components/DueDateHeatmap.svelte";
+import Layout from "../../layouts/Layout.astro";
+import ModuleSelector from "../../components/ModuleSelector.svelte";
+import DueDateHeatmap from "../../components/DueDateHeatmap.svelte";
 
 const ds = Astro.locals.datastore;
 const school = await ds.school();

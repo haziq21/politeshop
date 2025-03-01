@@ -4,17 +4,24 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "watch-content": "vite build --watch --config vite.content.config.ts",
+    "watch-background": "vite build --watch --config vite.background.config.ts",
+    "sse-server": " tsx dev/server.ts",
+    "dev": "npm-run-all --parallel sse-server watch-content watch-background",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
     "@types/node": "^22.13.5",
     "chrome-types": "^0.1.343",
-    "path": "^0.12.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "npm-run-all": "^4.1.5",
+    "tsx": "^4.19.3",
     "typescript": "~5.7.2",
-    "vite": "^6.1.0",
-    "vite-plugin-chrome-extension": "^0.0.7"
+    "vite": "^6.1.0"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
