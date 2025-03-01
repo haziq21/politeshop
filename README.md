@@ -32,7 +32,7 @@ POLITEShop is a third-party client for [POLITEMall](https://lms.polite.edu.sg/d2
 
 ## How it works
 
-POLITEShop consists of a Chrome extension (`chrome-ext/`) and a webapp (`webapp/`) hosted on [Vercel](https://vercel.com/home). When you visit POLITEMall, the extension (which is yet to be developed)
+POLITEShop consists of a Chrome extension (`chrome-ext/`) and a webapp (`webapp/`) hosted on [Vercel](https://vercel.com/home). When you visit POLITEMall, the extension
 
 1. Replaces the page contents with an `<iframe>` displaying content from the POLITEShop webapp.
 2. Retrieves your POLITEMall credentials: `d2lSessionVal` and `d2lSecureSessionVal` cookies, and `D2L.Fetch.Tokens` JWT from localstorage.
