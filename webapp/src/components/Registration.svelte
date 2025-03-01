@@ -5,10 +5,13 @@
   let errorOccurred = $state(false);
 
   onMount(async () => {
-    // TODO: Wait for the cookies to be set
-    const { error } = await actions.registerUser();
+    const { data, error } = await actions.getPOLITEShopJWT();
+
     if (error) errorOccurred = true;
-    else location.href = "/";
+    else {
+      document.cookie = `politeshopJWT=${data}; SameSite=None; Secure`;
+      window.location.href = "/d2l/home";
+    }
   });
 </script>
 

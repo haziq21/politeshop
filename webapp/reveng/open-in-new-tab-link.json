@@ -1,0 +1,135 @@
+{
+  "class": ["release-condition-fix", "sequenced-activity"],
+  "rel": ["item"],
+  "properties": {
+    "title": "[Video] 5 Reasons Why Graphic Design is important for any Business!",
+    "courseName": "DESIGN PRINCIPLES(2_DP_009588)",
+    "canDownload": true,
+    "canPrint": true,
+    "enableManualCompletionComponent": true
+  },
+  "entities": [
+    {
+      "class": ["icon", "tier1"],
+      "rel": ["icon"],
+      "properties": {
+        "iconSetKey": "tier1:link",
+        "imagePath": "https://s.brightspace.com/lib/bsi/2024.8.194/images/tier1/link.svg"
+      }
+    },
+    {
+      "class": ["icon", "tier2"],
+      "rel": ["icon"],
+      "properties": {
+        "iconSetKey": "tier2:link",
+        "imagePath": "https://s.brightspace.com/lib/bsi/2024.8.194/images/tier2/link.svg"
+      }
+    },
+    {
+      "class": ["activity", "link-activity", "link-plain", "external", "open-in-new-tab"],
+      "rel": ["about", "item"],
+      "properties": {
+        "title": "[Video] 5 Reasons Why Graphic Design is important for any Business!",
+        "canDownload": true,
+        "canPrint": true
+      },
+      "entities": [
+        {
+          "class": ["last-viewed", "date"],
+          "rel": ["item"],
+          "properties": {
+            "date": "2024-04-14T07:39:12.553Z"
+          }
+        },
+        {
+          "class": ["completion", "completed", "required"],
+          "rel": ["item", "https://api.brightspace.com/rels/completion"],
+          "entities": [
+            {
+              "class": ["auto", "completion", "date"],
+              "rel": ["item"],
+              "properties": {
+                "date": "2024-04-14T07:39:12.580Z"
+              }
+            }
+          ],
+          "links": [
+            {
+              "rel": ["alternate"],
+              "href": "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/468314/activity/8130192/completion"
+            }
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "href": "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/468314/activity/8130192/view?hasStateChanged=1&hasBeenViewed=1&filterOnDatesAndDepth=0&previousCompletion=Incomplete",
+          "name": "view-activity",
+          "method": "POST"
+        },
+        {
+          "href": "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/468314/activity/8130192/view?hasStateChanged=1&hasBeenViewed=1&filterOnDatesAndDepth=0&previousCompletion=Incomplete",
+          "name": "view-activity-duration",
+          "method": "PUT"
+        },
+        {
+          "href": "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/468314/activity/8130192/set-last-viewed-content-object",
+          "name": "set-last-viewed-content-object",
+          "method": "POST"
+        }
+      ],
+      "links": [
+        {
+          "rel": ["self"],
+          "href": "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/468314/activity/8130192/link-activity"
+        },
+        {
+          "class": ["adapted-none"],
+          "rel": ["about"],
+          "href": "https://youtu.be/8ewwNZslGZY"
+        },
+        {
+          "class": ["embed"],
+          "rel": ["alternate"],
+          "href": "https://www.youtube.com/embed/8ewwNZslGZY"
+        },
+        {
+          "class": ["view"],
+          "rel": ["alternate"],
+          "href": "https://nplms.polite.edu.sg/d2l/le/content/468314/viewContent/8130192/View"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "rel": ["https://api.brightspace.com/rels/organization"],
+      "href": "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.organizations.api.brightspace.com/468314"
+    },
+    {
+      "class": [""],
+      "rel": ["https://sequences.api.brightspace.com/rels/default-return-url"],
+      "type": "text/html",
+      "href": "https://nplms.polite.edu.sg/d2l/le/enhancedSequenceViewer/468314/backToContent"
+    },
+    {
+      "rel": ["https://sequences.api.brightspace.com/rels/sequence-viewer-application"],
+      "type": "text/html",
+      "href": "https://nplms.polite.edu.sg/d2l/le/enhancedSequenceViewer/468314?redirect=true&url=https%3a%2f%2f746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com%2f468314%2factivity%2f8130192%3ffilterOnDatesAndDepth%3d0"
+    },
+    {
+      "rel": ["alternate"],
+      "type": "text/html",
+      "href": "https://nplms.polite.edu.sg/d2l/le/content/468314/viewContent/8130192/View"
+    },
+    {
+      "rel": ["up"],
+      "href": "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/468314/activity/8130154?filterOnDatesAndDepth=0"
+    },
+    {
+      "class": ["sequenced-activity"],
+      "rel": ["self", "describes"],
+      "href": "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/468314/activity/8130192?filterOnDatesAndDepth=0"
+    }
+  ]
+}
