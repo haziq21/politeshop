@@ -1,6 +1,6 @@
 # POLITEShop
 
-POLITEShop is a third-party client for [POLITEMall](https://lms.polite.edu.sg/d2l/home), the Learning Management System (LMS) used by Polytechnics and ITEs in Singapore. It aims to solve quality-of-life issues present in POLITEMall, like inconvenient UX and poor load performance.
+POLITEShop is a third-party client for [POLITEMall](https://politemall.polite.edu.sg/), the Learning Management System (LMS) used by Polytechnics and ITEs in Singapore. It aims to solve quality-of-life issues present in POLITEMall, like inconvenient UX and poor load performance.
 
 ## Planned features
 
@@ -42,7 +42,7 @@ The POLITEShop site then sets the received POLITEMall credentials as cookies, wh
 
 ## Reverse-engineering
 
-TODO.
+To interface with POLITEMall, POLITEShop uses APIs reverse-engineered from the POLITEMall website. The reverse-engineered APIs are being documented on [Postman](https://www.postman.com/haziqs-team/politemall/overview).
 
 
 
