@@ -8,13 +8,14 @@
     "watch-background": "vite build --watch --config vite.background.config.ts",
     "sse-server": " tsx dev/server.ts",
     "dev": "npm-run-all --parallel sse-server watch-content watch-background",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build --config vite.background.config.ts && vite build --config vite.content.config.ts",
     "preview": "vite preview"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.5",
+    "chalk": "^5.4.1",
     "chrome-types": "^0.1.343",
     "cors": "^2.8.5",
     "express": "^4.21.2",

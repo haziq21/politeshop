@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { PORT } from "./config";
+import chalk from "chalk";
 
 const app = express();
 app.use(cors());
@@ -18,10 +19,10 @@ app.get("/sse", (req, res) => {
 
   const clientId = Date.now();
   clients.push({ id: clientId, res });
-  console.log(`Client ${clientId} connected`);
+  console.log(`${chalk.gray(new Date(clientId).toLocaleTimeString("en-GB", { hour12: false }))} Client connected`);
 
   req.on("close", () => {
-    console.log(`Client ${clientId} disconnected`);
+    console.log(`${chalk.gray(new Date().toLocaleTimeString("en-GB", { hour12: false }))} Client disconnected`);
     clients = clients.filter((client) => client.id !== clientId);
   });
 });

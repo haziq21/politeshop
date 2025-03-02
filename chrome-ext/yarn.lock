@@ -562,6 +562,11 @@ chalk@^2.4.1:
     escape-string-regexp "^1.0.5"
     supports-color "^5.3.0"
 
+chalk@^5.4.1:
+  version "5.4.1"
+  resolved "https://registry.yarnpkg.com/chalk/-/chalk-5.4.1.tgz#1b48bf0963ec158dce2aacf69c093ae2dd2092d8"
+  integrity sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w==
+
 chrome-types@^0.1.343:
   version "0.1.343"
   resolved "https://registry.yarnpkg.com/chrome-types/-/chrome-types-0.1.343.tgz#c5efce50da6af383b36b32e056e96f9ff6dc1f48"

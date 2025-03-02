@@ -1,6 +1,8 @@
 import { Message } from "../../shared";
 
-export type ExtMessage = Message<"SET_POLITESHOP_COOKIES", { brightspaceJWT: string }> | Message<"RELOAD">;
+export type ExtMessage =
+  | Message<"SET_POLITESHOP_COOKIES", { brightspaceJWT: string; currentURL: string }>
+  | Message<"RELOAD">;
 
 /** Send a message from the content script to the background worker. */
 export async function msgBackground(message: ExtMessage): Promise<void> {

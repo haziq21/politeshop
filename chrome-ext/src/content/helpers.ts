@@ -1,4 +1,16 @@
+import { log } from "../logging";
 import { msgBackground } from "../message";
+
+export async function overwritePage(): Promise<HTMLIFrameElement> {
+  const res = await fetch(chrome.runtime.getURL("base.html"));
+  const baseHTML = await res.text();
+
+  document.open();
+  document.write(baseHTML);
+  document.close();
+
+  return document.getElementById("politeshop") as HTMLIFrameElement;
+}
 
 export function getBrightspaceToken(): string {
   // TODO: Better error handling
@@ -11,7 +23,7 @@ export function getCSRFToken(): string {
 }
 
 export function connectDevServer() {
-  console.log("Connecting to dev server...");
+  log("Connecting to dev server...");
 
   // Connect to SSE dev server
   const sse = new EventSource(process.env.DEV_SERVER!);
