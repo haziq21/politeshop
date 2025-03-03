@@ -17,9 +17,13 @@ export function addMessageListener<T extends ExtMessage["type"]>(
   ) => void | Promise<void>
 ) {
   chrome.runtime.onMessage.addListener((msg: ExtMessage, _, sendResponse) => {
-    if (msg.type === messageType) {
-      const payload = (msg as any).payload ?? undefined;
-      Promise.resolve(callback(payload)).then(sendResponse);
+    if (msg.type !== messageType) return;
+
+    const payload = (msg as any).payload;
+    const res = callback(payload);
+
+    if (res instanceof Promise) {
+      res.then(sendResponse);
       return true; // Indicates that sendResponse will be called asynchronously
     }
   });

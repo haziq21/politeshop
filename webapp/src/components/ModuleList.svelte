@@ -8,11 +8,11 @@
   let { modules }: Props = $props();
 </script>
 
-<ul class="flex flex-col gap-1 max-w-140">
+<ul class="flex flex-col gap-1 w-140">
   {#each modules as mod}
     <li class="">
       <a
-        href="#top"
+        href={`/d2l/home/${mod.id}`}
         class="group grid grid-rows-[repeat(3,auto)] grid-cols-[auto_1fr] hover:bg-stone-800
           border border-transparent hover:border-stone-700 pl-3 pr-6 py-3 rounded-lg"
       >

@@ -11,17 +11,26 @@ import "../styles/global.css";
     <meta name="generator" content={Astro.generator} />
     <title>POLITEShop</title>
   </head>
-  <body class="bg-stone-900 text-stone-50 font-inter">
+  <body class="bg-stone-900 text-stone-50 font-inter" data-domain={Astro.locals.polite.domain}>
     <slot />
 
     <script>
       import { actions } from "astro:actions";
+      import type { WindowMessage } from "../../../shared";
+
+      const politeDomain = (document.querySelector("[data-domain]")! as HTMLElement).dataset.domain;
+
+      const message: WindowMessage = {
+        type: "URL_PATH_CHANGED",
+        payload: location.pathname,
+      };
+      window.top!.postMessage(message, `https://${politeDomain}.polite.edu.sg`);
 
       // TODO: Use MutationObserver when necessary
       for (const a of document.getElementsByTagName("a")) {
         if (a.hostname !== location.hostname) continue;
 
-        a.hostname = "nplms.polite.edu.sg";
+        a.hostname = `${politeDomain}.polite.edu.sg`;
         a.port = "";
 
         a.addEventListener("click", (e) => {

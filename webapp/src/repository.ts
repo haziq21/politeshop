@@ -110,6 +110,11 @@ export class Repository {
       .onConflictDoUpdate({ target: semester.id, set: { name: excluded(semester.name) } });
   }
 
+  /** Get the specified module. */
+  async module(moduleId: string): Promise<Module> {
+    return (await db.select().from(module).where(eq(module.id, moduleId)))[0];
+  }
+
   /** Get every module the user is enrolled in. */
   async modules(): Promise<Module[]> {
     if (this.data.modules) return this.data.modules;

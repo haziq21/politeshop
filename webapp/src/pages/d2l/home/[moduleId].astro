@@ -1,0 +1,32 @@
+---
+import type { ActivityFolder, AnyActivity } from "../../../db";
+import Layout from "../../../layouts/Layout.astro";
+import type { FolderTreeNode, ActivityTreeNode, AnyTreeNode } from "../../../types";
+import ActivityTree from "../../../components/ActivityTree.svelte";
+
+const { moduleId } = Astro.params as Record<"moduleId", string>;
+
+const repo = Astro.locals.repo;
+const module = await repo.module(moduleId);
+const activityFolders = await repo.activityFolders(moduleId);
+const activities = await repo.activities(moduleId);
+
+const allNodes = [
+  ...activityFolders.map((f): FolderTreeNode => ({ ...f, isFolder: true, children: [] })),
+  ...activities.map((act): ActivityTreeNode => ({ ...act, isFolder: false })),
+];
+
+// Construct the activity tree
+const allNodesByParent: Map<string | null | undefined, AnyTreeNode[]> = allNodes.reduce((acc, node) => {
+  const parentId = node.isFolder ? node.parentId : node.folderId;
+  const siblings = acc.get(parentId) || [];
+  siblings.push(node);
+  acc.set(parentId, siblings);
+  return acc;
+}, new Map<string | null | undefined, AnyTreeNode[]>());
+---
+
+<Layout>
+  <p>{module.niceName || module.name}</p>
+  <ActivityTree {allNodesByParent} />
+</Layout>

@@ -10,14 +10,6 @@ const POLITESHOP_URL = process.env.POLITESHOP_URL!;
 // Connect to the development server for live reloading
 if (process.env.ENVIRONMENT === "development") connectDevServer();
 
-// Listen for messages from the POLITEShop iframe
-window.onmessage = (event: MessageEvent<WindowMessage>) => {
-  if (event.origin !== POLITESHOP_URL) return;
-
-  // Update the POLITEMall URL when the iframe navigates
-  if (event.data.type === "URL_PATH_CHANGED") window.history.pushState({}, "", event.data.payload);
-};
-
 const setPOLITEShopCookies = async () => {
   log("Setting POLITEShop cookies (this could take a while)");
   await msgBackground({
@@ -54,4 +46,14 @@ const politeshopJWTWasSet = document.cookie.split(";").some((cookie) => cookie.t
   } else {
     await Promise.all([setPOLITEShopCookies(), injectPOLITEShopIframe()]);
   }
+
+  // Listen for messages from the POLITEShop iframe
+  window.addEventListener("message", (event: MessageEvent<WindowMessage>) => {
+    if (event.origin !== new URL(POLITESHOP_URL).origin) return;
+
+    // Update the POLITEMall URL when the iframe navigates. replaceState() is used
+    // instead of pushState() because the iframe already has its own history stack,
+    // so we don't want to create a new entry in the browser's history stack.
+    if (event.data.type === "URL_PATH_CHANGED") window.history.replaceState(null, "", event.data.payload);
+  });
 })();
