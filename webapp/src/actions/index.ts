@@ -8,7 +8,7 @@ import { GoogleGenerativeAI, SchemaType, type GenerationConfig } from "@google/g
 const GEMINI_MODULE_RENAME_PROMPT = `Each JSON object in the array below describes the name and code of a module offered by a Polytechnic in Singapore. Output a corresponding array of JSON objects with each object containing the string fields "niceName" and "niceCode".
 
 Step 1: For "niceName" field:
-- Convert the module name to proper title case, but preserve any camelCasing
+- Convert the module name to proper title case, except for camelCased words - those should be preserved as-is
 - Remove any text in parentheses including the parentheses themselves
 - Preserve acronyms like "IT", "NP", "SP" in ALL CAPS
 
