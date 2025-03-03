@@ -1,5 +1,4 @@
 ---
-import type { ActivityFolder, AnyActivity } from "../../../db";
 import Layout from "../../../layouts/Layout.astro";
 import type { FolderTreeNode, ActivityTreeNode, AnyTreeNode } from "../../../types";
 import ActivityTree from "../../../components/ActivityTree.svelte";
@@ -27,6 +26,15 @@ const allNodesByParent: Map<string | null | undefined, AnyTreeNode[]> = allNodes
 ---
 
 <Layout>
-  <p>{module.niceName || module.name}</p>
-  <ActivityTree {allNodesByParent} />
+  <div class="flex h-full">
+    <nav class="h-full max-w-97 p-6 pb-10 overflow-y-scroll bg-stone-800 border-r border-stone-700">
+      <div class="mb-6 grid grid-cols-[max-content_auto] gap-x-3">
+        <img src={module.imageIconURL} alt="" class="w-9 h-9 object-cover rounded-md row-span-2" />
+        <p class="font-semibold text-xl leading-none">{module.niceCode || module.code}</p>
+        <p class="text-xs text-stone-300">{module.niceName || module.name}</p>
+      </div>
+
+      <ActivityTree {allNodesByParent} />
+    </nav>
+  </div>
 </Layout>
