@@ -25,8 +25,8 @@ export const module = pgTable("module", {
   niceName: text("nice_name"),
   code: text().notNull(),
   niceCode: text("nice_code"),
-  textUpdatedAt: timestamp("text_updated_at").notNull().defaultNow(),
-  niceTextUpdatedAt: timestamp("nice_text_updated_at").notNull().defaultNow(),
+  textUpdatedAt: timestamp("text_updated_at", { withTimezone: true }).notNull().defaultNow(),
+  niceTextUpdatedAt: timestamp("nice_text_updated_at", { withTimezone: true }).notNull().defaultNow(),
   semesterId: text("semester_id")
     .notNull()
     .references(() => semester.id, { onDelete: "cascade", onUpdate: "cascade" }),
@@ -99,7 +99,7 @@ export const docEmbedActivity = pgTable("doc_embed_activity", {
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   sourceURL: text("source_url").notNull(),
   previewURL: text("preview_url"),
-  previewURLExpiry: timestamp("preview_url_expiry"),
+  previewURLExpiry: timestamp("preview_url_expiry", { withTimezone: true }),
 });
 
 export const videoEmbedActivity = pgTable("video_embed_activity", {
@@ -107,14 +107,14 @@ export const videoEmbedActivity = pgTable("video_embed_activity", {
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   sourceURL: text("source_url").notNull(),
-  sourceURLExpiry: timestamp("source_url_expiry"),
+  sourceURLExpiry: timestamp("source_url_expiry", { withTimezone: true }),
 });
 
 export const submissionActivity = pgTable("submission_activity", {
   id: text()
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  dueDate: timestamp("due_date"),
+  dueDate: timestamp("due_date", { withTimezone: true }),
   description: text(),
 });
 
@@ -122,7 +122,7 @@ export const quizActivity = pgTable("quiz_activity", {
   id: text()
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  dueDate: timestamp("due_date"),
+  dueDate: timestamp("due_date", { withTimezone: true }),
   description: text(),
   attemptsAllowed: integer("attempts_allowed"),
   attemptsCompleted: integer("attempts_completed"),
