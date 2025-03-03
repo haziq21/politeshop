@@ -1,4 +1,4 @@
-import { eq, getTableColumns, sql } from "drizzle-orm";
+import { eq, getTableColumns, gt, isNull, lt, or, sql } from "drizzle-orm";
 import {
   db,
   school,
@@ -25,8 +25,8 @@ import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
 const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
 
-/** An interface to the POLITEShop database with local caching. */
-export class Datastore {
+/** A high(er)-level interface to the POLITEShop database with local caching. */
+export class Repository {
   data: {
     school?: School;
     user?: User;
@@ -43,7 +43,8 @@ export class Datastore {
   /** Get the current user. */
   async user(): Promise<User> {
     if (this.data.user) return this.data.user;
-    return (this.data.user = (await db.select().from(user).where(eq(user.id, this.userId)))[0]);
+    this.data.user = (await db.select().from(user).where(eq(user.id, this.userId)))[0];
+    return this.data.user;
   }
 
   /** Whether the user exists in the database. */
@@ -52,18 +53,17 @@ export class Datastore {
   }
 
   /**
-   * Insert the user into the database, returning `true` if the user was actually
-   * inserted and `false` if the user was already present in the database.
+   * Upsert the user into the database, returning `true` if
+   * the user was not already present, and `false` otherwise.
    */
   async upsertUser(u: User): Promise<boolean> {
     const { userInserted } = (
       await db
         .insert(user)
         .values(u)
-        .onConflictDoUpdate({ target: user.id, set: { name: u.name, schoolId: u.schoolId } })
+        .onConflictDoUpdate({ target: user.id, set: u })
         .returning({ userInserted: sql<boolean>`(xmax = 0)` })
     )[0];
-    this.data.user = u;
     return userInserted;
   }
 
@@ -71,28 +71,24 @@ export class Datastore {
   async school(): Promise<School> {
     if (this.data.school) return this.data.school;
 
-    return (this.data.school = (
+    this.data.school = (
       await db
         .select({ ...getTableColumns(school) })
         .from(user)
         .innerJoin(school, eq(school.id, user.schoolId))
         .where(eq(user.id, this.userId))
-    )[0]);
+    )[0];
+
+    return this.data.school;
   }
 
-  /** Insert the school. */
+  /** Upsert the school. */
   async upsertSchool(s: School) {
-    await db
-      .insert(school)
-      .values(s)
-      .onConflictDoUpdate({ target: school.id, set: { name: s.name, bannerImageURL: s.bannerImageURL } });
-    this.data.school = s;
+    await db.insert(school).values(s).onConflictDoUpdate({ target: school.id, set: s });
   }
 
   /** Get semesters the user is in. */
   async semesters(): Promise<Semester[]> {
-    // We're assuming that if insertSemester() is called first,
-    // the inserted semesters are the only semesters the user has.
     if (this.data.semesters) return this.data.semesters;
 
     this.data.semesters = await db
@@ -106,72 +102,91 @@ export class Datastore {
     return this.data.semesters;
   }
 
-  /** Insert semesters the user is in. */
+  /** Upsert semesters. */
   async upsertSemesters(s: Semester[]) {
     await db
       .insert(semester)
       .values(s)
       .onConflictDoUpdate({ target: semester.id, set: { name: excluded(semester.name) } });
-
-    if (!this.data.semesters) this.data.semesters = [];
-    this.data.semesters.push(...s);
   }
 
-  /** Get every module the user has. */
+  /** Get every module the user is enrolled in. */
   async modules(): Promise<Module[]> {
-    // We're assuming that if insertAndAssociateModules() is called
-    // first, the inserted modules are the only modules the user has.
     if (this.data.modules) return this.data.modules;
 
-    return (this.data.modules = await db
+    this.data.modules = await db
       .select(getTableColumns(module))
       .from(module)
       .innerJoin(userModule, eq(userModule.moduleId, module.id))
-      .where(eq(userModule.userId, this.userId)));
+      .where(eq(userModule.userId, this.userId));
+
+    return this.data.modules;
   }
 
-  /** Insert the modules and add them as the user's modules. */
-  async upsertAndAssociateModules(mods: Module[]) {
-    await db
-      .insert(module)
-      .values(mods)
-      .onConflictDoUpdate({
-        target: module.id,
-        set: {
-          name: excluded(module.name),
-          code: excluded(module.code),
-          semesterId: excluded(module.semesterId),
-          imageIconURL: excluded(module.imageIconURL),
-          textUpdatedAt: sql`
+  /**
+   * Upsert the modules as modules the user is enrolled in. If a given module in `mods` doesn't
+   * specify a `niceName` or `niceCode`, the existing `niceName` and `niceCode` in the database
+   * will be retained. Returns the upserted modules with outdated or missing "nice text".
+   */
+  async upsertAndAssociateModules(mods: Module[]): Promise<Module[]> {
+    const sq = db.$with("sq").as(
+      db
+        .insert(module)
+        .values(mods)
+        .onConflictDoUpdate({
+          target: module.id,
+          set: {
+            name: excluded(module.name),
+            code: excluded(module.code),
+            semesterId: excluded(module.semesterId),
+            imageIconURL: excluded(module.imageIconURL),
+
+            // Retain the niceName and niceCode if they're already set
+            niceName: sql`
+            case
+              when ${excluded(module.niceName)} is not null then ${excluded(module.niceName)}
+              else ${module.niceName}
+            end`,
+            niceCode: sql`
+            case
+              when ${excluded(module.niceCode)} is not null then ${excluded(module.niceCode)}
+              else ${module.niceCode}
+            end`,
+
+            textUpdatedAt: sql`
             case
               when ${module.name} is distinct from ${excluded(module.name)}
                 or ${module.code} is distinct from ${excluded(module.code)}
                 then now()
               else ${module.textUpdatedAt}
             end`,
-          niceTextUpdatedAt: sql`
+            niceTextUpdatedAt: sql`
             case
               when ${module.niceName} is distinct from ${excluded(module.niceName)}
                 or ${module.niceCode} is distinct from ${excluded(module.niceCode)}
                 then now()
               else ${module.niceTextUpdatedAt}
             end`,
-        },
-      });
+          },
+        })
+        .returning()
+    );
+    const uglyModules = await db
+      .with(sq)
+      .select()
+      .from(sq)
+      .where(or(gt(sq.textUpdatedAt, sq.niceTextUpdatedAt), isNull(sq.niceName), isNull(sq.niceCode)));
+
     await db
       .insert(userModule)
       .values(mods.map((m) => ({ userId: this.userId, moduleId: m.id })))
       .onConflictDoNothing();
 
-    if (!this.data.modules) this.data.modules = [];
-    this.data.modules.push(...mods);
+    return uglyModules;
   }
 
   /** Get the folders from the specified module. */
   async activityFolders(moduleId: string): Promise<ActivityFolder[]> {
-    // We're assuming that if insertActivityFolders() is called first and
-    // activity folders with the given moduleId are inserted, those inserted
-    // activity folders are the only activity folders in that module.
     const cachedFolders = this.data.activityFolders?.get(moduleId);
     if (cachedFolders) return cachedFolders;
 
@@ -182,7 +197,7 @@ export class Datastore {
     return folders;
   }
 
-  /** Insert the given activity folders. */
+  /** Upsert the given activity folders. */
   async upsertActivityFolders(folders: ActivityFolder[]) {
     if (!folders.length) return;
 
@@ -198,19 +213,10 @@ export class Datastore {
           moduleId: excluded(activityFolder.moduleId),
         },
       });
-
-    if (!this.data.activityFolders) this.data.activityFolders = new Map();
-    for (const f of folders) {
-      if (!this.data.activityFolders.has(f.moduleId)) this.data.activityFolders.set(f.moduleId, []);
-      this.data.activityFolders.get(f.moduleId)!.push(f);
-    }
   }
 
   /** Get the activities with the specified `moduleId`. */
   async activities(moduleId: string): Promise<AnyActivity[]> {
-    // We're assuming that if insertActivities() is called first
-    // and activities of the specified module are inserted, those
-    // inserted activities are the only activities in that module.
     const cachedActivities = this.data.activities?.get(moduleId);
     if (cachedActivities) return cachedActivities;
 
@@ -241,7 +247,7 @@ export class Datastore {
     return activities;
   }
 
-  /** Insert the given activities. */
+  /** Upsert the given activities. */
   async upsertActivities(acts: AnyActivity[]) {
     if (!acts.length) return;
 
@@ -270,21 +276,14 @@ export class Datastore {
         .onConflictDoUpdate({ target, set: set || value });
 
     await Promise.all(
-      acts.map((a) =>
-        a.type === "html"
-          ? upsertActivityDetails(htmlActivity, htmlActivity.id, a)
-          : a.type === "web_embed"
-          ? upsertActivityDetails(webEmbedActivity, webEmbedActivity.id, a)
-          : a.type === "doc_embed"
-          ? upsertActivityDetails(docEmbedActivity, docEmbedActivity.id, a)
-          : a.type === "video_embed"
-          ? upsertActivityDetails(videoEmbedActivity, videoEmbedActivity.id, a)
-          : a.type === "submission"
-          ? upsertActivityDetails(submissionActivity, submissionActivity.id, a)
-          : a.type === "quiz"
-          ? upsertActivityDetails(quizActivity, quizActivity.id, a)
-          : undefined
-      )
+      acts.map((a) => {
+        if (a.type === "html") return upsertActivityDetails(htmlActivity, htmlActivity.id, a);
+        if (a.type === "web_embed") return upsertActivityDetails(webEmbedActivity, webEmbedActivity.id, a);
+        if (a.type === "doc_embed") return upsertActivityDetails(docEmbedActivity, docEmbedActivity.id, a);
+        if (a.type === "video_embed") return upsertActivityDetails(videoEmbedActivity, videoEmbedActivity.id, a);
+        if (a.type === "submission") return upsertActivityDetails(submissionActivity, submissionActivity.id, a);
+        if (a.type === "quiz") return upsertActivityDetails(quizActivity, quizActivity.id, a);
+      })
     );
   }
 }

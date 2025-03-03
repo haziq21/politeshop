@@ -125,15 +125,10 @@ export class POLITEMallClient {
     if (!selfLink) return errorResult({ msg: "Missing self link in school entity" });
     const id = lastPathComponent(selfLink.href);
 
-    const bannerImageLinkHref = getSubEntWithClass(["course-image"], ent)?.href;
-    console.log(`Found banner image link href: ${bannerImageLinkHref}`);
-    let bannerImageURL: string | undefined = undefined;
-    if (bannerImageLinkHref) {
-      const { data, error } = await this.#fetchBrightspaceEntity(bannerImageLinkHref);
-      if (error) return errorResult(error);
-      bannerImageURL = getLinkWithClass(["banner", "wide", "max"], data)?.href;
-      console.log(`Found banner image URL: ${bannerImageURL}`);
-    }
+    // Get the banner image URL
+    const { data: imageData, error: imageError } = await this.#fetchBrightspaceEntity("organizations", `/${id}/image`);
+    if (imageError) return errorResult(imageError);
+    const bannerImageURL = getLinkWithClass(["banner", "wide", "max"], imageData)?.href;
 
     return dataResult({ id, name, bannerImageURL });
   }
@@ -174,39 +169,34 @@ export class POLITEMallClient {
         // The href of this link contains the module's ID
         const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", enrollmentEnt);
         if (!orgLink) return errorResult({ msg: "Missing organization link in enrollment entity" });
+        // The URL should look like https://<tenantId>.organizations.api.brightspace.com/<moduleId>
+        const id = lastPathComponent(orgLink.href);
 
         // This entity contains the module's name and code
         const { data: orgEnt, error: orgError } = await this.#fetchBrightspaceEntity(orgLink.href);
         if (orgError) return errorResult(orgError);
         if (!orgEnt.properties?.name || !orgEnt.properties?.code)
           return errorResult({ msg: "Missing name or code in module entity" });
+        const name = orgEnt.properties.name;
+        const code = orgEnt.properties.code;
 
         // The href of the parent-semester link contains the module's semester ID
         const semLink = getLinkWithRel("https://api.brightspace.com/rels/parent-semester", orgEnt);
         if (!semLink) return errorResult({ msg: "Missing parent semester link in organization entity" });
+        // The URL should look like https://<tenantId>.organizations.api.brightspace.com/<semesterId>
+        const semesterId = lastPathComponent(semLink.href);
 
         // Get the URL of the module's banner image
-        let imageIconURL: string | undefined = undefined;
-        const imageLinkHref = getSubEntWithClass(["course-image"], orgEnt)?.href;
-        console.log(`Found icon image link href: ${imageLinkHref}`);
+        const { data: imageData, error: imageError } = await this.#fetchBrightspaceEntity(
+          "organizations",
+          `/${id}/image`
+        );
+        if (imageError) return errorResult(imageError);
+        const imageIconURL =
+          getLinkWithClass(["tile", "high-density", "min"], imageData)?.href ||
+          getLinkWithClass(["tile", "mid"], imageData)?.href;
 
-        if (imageLinkHref) {
-          const { data, error } = await this.#fetchBrightspaceEntity(imageLinkHref);
-          if (error) return errorResult(error);
-          imageIconURL =
-            getLinkWithClass(["tile", "high-density", "min"], data)?.href ||
-            getLinkWithClass(["tile", "mid"], data)?.href;
-          console.log(`Found icon image URL: ${imageIconURL}`);
-        }
-
-        return dataResult({
-          name: orgEnt.properties.name,
-          code: orgEnt.properties.code,
-          // The URLs should look like https://<tenantId>.organizations.api.brightspace.com/<entityId>?localeId=...
-          id: lastPathComponent(orgLink.href),
-          semesterId: lastPathComponent(semLink.href),
-          imageIconURL,
-        });
+        return dataResult({ id, name, code, imageIconURL, semesterId });
       })
     );
 

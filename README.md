@@ -9,7 +9,7 @@ POLITEShop is a third-party client for [POLITEMall](https://politemall.polite.ed
 ⬜ Sort modules by last event date/time<br>
 ⬜ Display recent events for each module<br>
 ⬜ Interactive due date calendar heatmap<br>
-⬜ Auto-rename modules and module codes with DeepSeek<br>
+✅ Auto-rename modules and module codes with Gemini<br>
 
 **Module page**<br>
 ⬜ Interactive file tree for activities<br>
@@ -24,7 +24,7 @@ POLITEShop is a third-party client for [POLITEMall](https://politemall.polite.ed
 ⬜ SCORM activities<br>
 ⬜ Assignment submission<br>
 ⬜ Quiz submission<br>
-⬜ Automatic link to submission page on briefing page (with DeepSeek)<br>
+⬜ Automatic link to submission page on briefing page (with Gemini)<br>
 
 **Miscellaneous**<br>
 ⬜ On-visit data syncing with POLITEMall<br>

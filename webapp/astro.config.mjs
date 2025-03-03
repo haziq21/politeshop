@@ -14,12 +14,9 @@ export default defineConfig({
   },
   env: {
     schema: {
-      D2L_SESSION_VAL: envField.string({ context: "server", access: "secret", optional: true }),
-      D2L_SECURE_SESSION_VAL: envField.string({ context: "server", access: "secret", optional: true }),
-      BRIGHTSPACE_JWT: envField.string({ context: "server", access: "secret", optional: true }),
-      POLITE_DOMAIN: envField.string({ context: "server", access: "secret", optional: true }),
       DATABASE_URL: envField.string({ context: "server", access: "secret" }),
       SIGNING_KEY: envField.string({ context: "server", access: "secret" }),
+      GEMINI_API_KEY: envField.string({ context: "server", access: "secret" }),
     },
   },
 });

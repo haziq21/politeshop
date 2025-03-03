@@ -1,8 +1,8 @@
-import { BRIGHTSPACE_JWT, D2L_SECURE_SESSION_VAL, D2L_SESSION_VAL, POLITE_DOMAIN, SIGNING_KEY } from "astro:env/server";
+import { SIGNING_KEY } from "astro:env/server";
 import { defineMiddleware } from "astro:middleware";
 import { POLITEMallClient } from "./politemall";
 import * as jose from "jose";
-import { Datastore } from "./datastore";
+import { Repository } from "./repository";
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const d2lSessionVal = context.cookies.get("d2lSessionVal")?.value;
@@ -35,7 +35,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const trustedUserId = payload.sub;
 
   polite.userId = trustedUserId;
-  context.locals.datastore = new Datastore(trustedUserId);
+  context.locals.repo = new Repository(trustedUserId);
 
   return next();
 });
