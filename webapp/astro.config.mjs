@@ -19,4 +19,7 @@ export default defineConfig({
       GEMINI_API_KEY: envField.string({ context: "server", access: "secret" }),
     },
   },
+  redirects: {
+    "/": "/d2l/home",
+  },
 });
