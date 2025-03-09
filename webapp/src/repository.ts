@@ -23,7 +23,6 @@ import {
   defaultSemesterFilter,
   type SemesterBreak,
   semesterBreak,
-  academicCalendarLink,
 } from "./db";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
@@ -347,17 +346,5 @@ export class Repository {
         .orderBy(semesterBreak.startDate)
         .limit(1)
     ).at(0);
-  }
-
-  /** Get the link to the official academic calendar for the user's school. */
-  async academicCalendarLink(): Promise<string | undefined> {
-    return (
-      await db
-        .select({ url: academicCalendarLink.url })
-        .from(academicCalendarLink)
-        .innerJoin(school, eq(school.id, academicCalendarLink.schoolId))
-        .innerJoin(user, eq(user.schoolId, school.id))
-        .where(eq(user.id, this.userId))
-    ).at(0)?.url;
   }
 }

@@ -4,6 +4,7 @@ export const school = pgTable("school", {
   id: text().primaryKey(),
   name: text().notNull(),
   bannerImageURL: text("banner_image_url"),
+  academicCalendarLink: text("academic_calendar_link"),
 });
 
 export const user = pgTable("user", {
@@ -142,11 +143,4 @@ export const semesterBreak = pgTable("semester_break", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   name: text().notNull(),
-});
-
-export const academicCalendarLink = pgTable("academic_calendar_link", {
-  schoolId: text("school_id")
-    .primaryKey()
-    .references(() => school.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  url: text().notNull(),
 });

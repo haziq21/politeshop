@@ -9,7 +9,6 @@ const semesters = await repo.semesters();
 const modules = await repo.modules();
 const defaultSemester = await repo.defaultSemesterFilter();
 const semesterBreak = await repo.currentOrNextSemesterBreak();
-const academicCalendarLink = await repo.academicCalendarLink();
 ---
 
 <Layout>
@@ -17,15 +16,18 @@ const academicCalendarLink = await repo.academicCalendarLink();
   <h1 class="text-3xl font-semibold mx-35 mt-10">{school.name}</h1>
 
   <a
-    href={academicCalendarLink ?? ""}
+    href={school.academicCalendarLink}
     target="_blank"
-    class="mx-35 font-medium text-xs text-stone-500 hover:text-stone-400"
+    class:list={["mx-35 font-medium text-xs text-stone-500", school.academicCalendarLink && "hover:text-stone-400"]}
   >
     {
-      semesterBreak &&
-        (semesterBreak.isCurrent
-          ? `${semesterBreak.daysToEnd} days until semester ${semesterBreak.name} ends`
-          : `${semesterBreak.daysToStart} days until semester ${semesterBreak.name} starts`)
+      semesterBreak
+        ? semesterBreak.isCurrent
+          ? `${semesterBreak.daysToEnd} days until semester resumes`
+          : `${semesterBreak.daysToStart} days until semester ${semesterBreak.name} starts`
+        : school.academicCalendarLink
+          ? "View academic calendar"
+          : ""
     }
   </a>
 
