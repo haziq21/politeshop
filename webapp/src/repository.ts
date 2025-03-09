@@ -20,6 +20,7 @@ import {
   type ActivityFolder,
   type School,
   type User,
+  defaultSemesterFilter,
 } from "./db";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
@@ -290,5 +291,25 @@ export class Repository {
         if (a.type === "quiz") return upsertActivityDetails(quizActivity, quizActivity.id, a);
       })
     );
+  }
+
+  /** Get the user's default semester filter. */
+  async defaultSemesterFilter(): Promise<Semester | undefined> {
+    const filter = (
+      await db
+        .select()
+        .from(defaultSemesterFilter)
+        .innerJoin(semester, eq(semester.id, defaultSemesterFilter.semesterId))
+        .where(eq(defaultSemesterFilter.userId, this.userId))
+    ).at(0);
+    return filter?.semester ?? undefined;
+  }
+
+  /** Set the semester filter as the default for the user. */
+  async setDefaultSemesterFilter(semesterId: string | undefined) {
+    await db
+      .insert(defaultSemesterFilter)
+      .values({ userId: this.userId, semesterId: semesterId ?? null })
+      .onConflictDoUpdate({ target: defaultSemesterFilter.userId, set: { semesterId: semesterId ?? null } });
   }
 }

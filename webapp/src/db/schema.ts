@@ -127,3 +127,10 @@ export const quizActivity = pgTable("quiz_activity", {
   attemptsAllowed: integer("attempts_allowed"),
   attemptsCompleted: integer("attempts_completed"),
 });
+
+export const defaultSemesterFilter = pgTable("default_semester_filter", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  semesterId: text("semester_id").references(() => semester.id, { onDelete: "cascade", onUpdate: "cascade" }),
+});

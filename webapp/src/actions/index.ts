@@ -1,3 +1,4 @@
+import { setDefaultSemesterFilter } from "./defaults";
 import { ActionError, defineAction } from "astro:actions";
 import type { POLITEMallClient } from "../politemall";
 import type { school, semester, module, Module } from "../db";
@@ -188,4 +189,5 @@ export const server = {
       }
     },
   }),
+  setDefaultSemesterFilter,
 };
