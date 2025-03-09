@@ -205,6 +205,7 @@ export class POLITEMallClient {
     return dataResult(moduleResults.map((res) => res.data!));
   }
 
+  // TODO: Explicit folder / activity order
   async fetchModuleContent(moduleId: string): Promise<
     Result<{
       activityFolders: ActivityFolder[];
@@ -234,6 +235,7 @@ export class POLITEMallClient {
     const folders: ActivityFolder[] = [];
     const activities: AnyActivity[] = [];
 
+    // TODO: Better parallelization
     for (const ent of entities) {
       // Parse activities in the folder
       if (ent.class.includes("sequenced-activity")) {
@@ -254,11 +256,11 @@ export class POLITEMallClient {
         return errorResult({ msg: "Unknown entity", data: ent });
       }
 
-      // Get the title and description (may be undefined) of the folder
-      const title = ent.properties?.title;
+      // Get the title and optional description of the folder
+      const name = ent.properties?.title;
       const description = ent.properties?.description;
-      if (typeof title !== "string")
-        return errorResult({ msg: `Unexpected sequence entity title type: ${typeof title}` });
+      if (typeof name !== "string")
+        return errorResult({ msg: `Unexpected sequence entity title type: ${typeof name}` });
       if (typeof description !== "undefined" && typeof description !== "string")
         return errorResult({
           msg: `Unexpected sequence entity description type: ${typeof description}`,
@@ -268,32 +270,30 @@ export class POLITEMallClient {
       // (https://<tenantId>.sequences.api.brightspace.com/<moduleId>/activity/<folderId>?filterOnDatesAndDepth=0)
       const selfLink = getLinkWithRel("self", ent);
       if (!selfLink) return errorResult({ msg: "Missing self link in sequence entity" });
+      const id = lastPathComponent(selfLink.href);
 
       // The organization link contains the module's ID
       // (https://<tenantId>.organizations.api.brightspace.com/<moduleId>)
       const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", ent);
       if (!orgLink) return errorResult({ msg: "Missing organization link in sequence entity" });
+      const moduleId = lastPathComponent(orgLink.href);
 
       // The up link contains the parent folder's ID if there is one
       // (https://<tenantId>.sequences.api.brightspace.com/<moduleId>/activity/<folderId>?filterOnDatesAndDepth=0)
       const upLink = getLinkWithRel("up", ent);
       if (!upLink) return errorResult({ msg: "Missing up link in sequence entity" });
       const upLinkHref = new URL(upLink.href);
+      // If the path isn't "/<moduleId>/activity/<folderId>", then the parent is the module
+      const parentId = /^\/.+\/activity\/.+$/.test(upLinkHref.pathname) ? lastPathComponent(upLinkHref) : undefined;
 
-      folders.push({
-        id: lastPathComponent(selfLink.href),
-        name: title,
-        description,
-        moduleId: lastPathComponent(orgLink.href),
-        // If the path isn't "/<moduleId>/activity/<folderId>", then the parent is the module
-        parentId: /^\/.+\/activity\/.+$/.test(upLinkHref.pathname) ? lastPathComponent(upLinkHref) : undefined,
-      });
+      folders.push({ id, name, description, moduleId, parentId });
 
       // Recursively parse child folders
-      const { data: chilData, error } = await this.parseFolderContents(ent.entities ?? []);
+      if (!ent.entities) continue;
+      const { data: childData, error } = await this.parseFolderContents(ent.entities);
       if (error) return errorResult(error);
-      folders.push(...chilData.folders);
-      activities.push(...chilData.activities);
+      folders.push(...childData.folders);
+      activities.push(...childData.activities);
     }
 
     return dataResult({ folders, activities });
@@ -384,34 +384,23 @@ export class POLITEMallClient {
       });
     }
 
-    // These are the "open in new tab" links
-    else if ((subEnt = getSubEntWithClass(["activity", "link-activity", "link-plain", "open-in-new-tab"], ent))) {
-      const embedURL = getLinkWithRel(["about"], subEnt)?.href;
-      if (!embedURL) return errorResult({ msg: "Missing about link in open-in-new-tab activity" });
-      return dataResult<WebEmbedActivity>({ ...partialActivity, type: "web_embed", embedURL });
-    }
-
-    // This is the same as the previous one
+    // These are link activities
     else if (
-      (subEnt = getSubEntWithClass(["activity", "link-activity", "link-plain", "external", "open-in-new-tab"], ent))
+      (subEnt =
+        // These are open-in-new-tab links that use POLITEMall's redirection service
+        getSubEntWithClass(["activity", "link-activity", "link-plain", "open-in-new-tab"], ent) ||
+        // These are open-in-new-tab links that directly link to the external site
+        getSubEntWithClass(["activity", "link-activity", "link-plain", "external", "open-in-new-tab"], ent) ||
+        // These are links that are directly embedded in the page
+        getSubEntWithClass(["activity", "link-activity", "link-plain", "external"], ent))
     ) {
-      const url = getLinkWithRel(["about"], subEnt)?.href;
-      if (!url) return errorResult({ msg: "Missing about link in external open-in-new-tab activity", data: ent });
-      return dataResult({ ...partialActivity, type: "web_embed", embedURL: url });
-    }
-
-    // Same as above but embedded instead of open-in-new-tab
-    else if ((subEnt = getSubEntWithClass(["activity", "link-activity", "link-plain", "external"], ent))) {
       const embedURL = getLinkWithRel(["about"], subEnt)?.href;
-      if (!embedURL) return errorResult({ msg: "Missing about link in external link-activity", data: ent });
-
+      if (!embedURL) return errorResult({ msg: "Missing about link in link activity", data: ent });
       return dataResult<WebEmbedActivity>({ ...partialActivity, type: "web_embed", embedURL });
     }
 
     // There might be more activity types
-    else {
-      return dataResult<UnknownActivity>({ ...partialActivity, type: "unknown" });
-    }
+    else return dataResult<UnknownActivity>({ ...partialActivity, type: "unknown" });
   }
 
   /** Fetch the source URL for the video used by a video (embed) activity. */
