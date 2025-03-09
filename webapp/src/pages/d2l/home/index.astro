@@ -8,14 +8,26 @@ const school = await repo.school();
 const semesters = await repo.semesters();
 const modules = await repo.modules();
 const defaultSemester = await repo.defaultSemesterFilter();
+const semesterBreak = await repo.currentOrNextSemesterBreak();
+const academicCalendarLink = await repo.academicCalendarLink();
 ---
 
 <Layout>
   <img src={school.bannerImageURL} alt="Banner" class="w-full h-50 mt-15 object-cover" draggable="false" />
   <h1 class="text-3xl font-semibold mx-35 mt-10">{school.name}</h1>
 
-  {/* TODO */}
-  <a href="#" class="mx-35 font-medium text-xs text-stone-500 hover:text-stone-400">x days until semester break</a>
+  <a
+    href={academicCalendarLink ?? ""}
+    target="_blank"
+    class="mx-35 font-medium text-xs text-stone-500 hover:text-stone-400"
+  >
+    {
+      semesterBreak &&
+        (semesterBreak.isCurrent
+          ? `${semesterBreak.daysToEnd} days until semester ${semesterBreak.name} ends`
+          : `${semesterBreak.daysToStart} days until semester ${semesterBreak.name} starts`)
+    }
+  </a>
 
   <div class="grid grid-cols-[auto_1fr] justify-items-center mt-10 ml-5 pb-60">
     <ModuleSelector filteredSemesterId={defaultSemester?.id} {semesters} {modules} client:load />

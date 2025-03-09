@@ -1,4 +1,4 @@
-import { eq, getTableColumns, gt, isNull, lt, or, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, gt, isNull, lt, or, SQL, sql } from "drizzle-orm";
 import {
   db,
   school,
@@ -21,6 +21,9 @@ import {
   type School,
   type User,
   defaultSemesterFilter,
+  type SemesterBreak,
+  semesterBreak,
+  academicCalendarLink,
 } from "./db";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
@@ -74,7 +77,7 @@ export class Repository {
 
     this.data.school = (
       await db
-        .select({ ...getTableColumns(school) })
+        .select(getTableColumns(school))
         .from(user)
         .innerJoin(school, eq(school.id, user.schoolId))
         .where(eq(user.id, this.userId))
@@ -311,5 +314,50 @@ export class Repository {
       .insert(defaultSemesterFilter)
       .values({ userId: this.userId, semesterId: semesterId ?? null })
       .onConflictDoUpdate({ target: defaultSemesterFilter.userId, set: { semesterId: semesterId ?? null } });
+  }
+
+  /**
+   * Get the current semester break, or next semester break if there isn't currently
+   * a semester break, or `undefined` if there are no more semester breaks.
+   */
+  async currentOrNextSemesterBreak(): Promise<
+    (SemesterBreak & { isCurrent: boolean; daysToStart: number; daysToEnd: number }) | undefined
+  > {
+    return (
+      await db
+        .select({
+          ...getTableColumns(semesterBreak),
+          isCurrent: lt(semesterBreak.startDate, sql`now()`) as SQL<boolean>,
+          daysToStart: sql<number>`extract(day from ${semesterBreak.startDate} - now())`,
+          // +1 because the end date is inclusive
+          daysToEnd: sql<number>`extract(day from ${semesterBreak.endDate} - now()) + 1`,
+        })
+        .from(semesterBreak)
+        .innerJoin(school, eq(school.id, semesterBreak.schoolId))
+        .innerJoin(user, eq(user.schoolId, school.id))
+        .where(
+          and(
+            eq(user.id, this.userId),
+            or(
+              and(lt(semesterBreak.startDate, sql`now()`), lt(sql`now()`, semesterBreak.endDate)),
+              lt(sql`now()`, semesterBreak.startDate)
+            )
+          )
+        )
+        .orderBy(semesterBreak.startDate)
+        .limit(1)
+    ).at(0);
+  }
+
+  /** Get the link to the official academic calendar for the user's school. */
+  async academicCalendarLink(): Promise<string | undefined> {
+    return (
+      await db
+        .select({ url: academicCalendarLink.url })
+        .from(academicCalendarLink)
+        .innerJoin(school, eq(school.id, academicCalendarLink.schoolId))
+        .innerJoin(user, eq(user.schoolId, school.id))
+        .where(eq(user.id, this.userId))
+    ).at(0)?.url;
   }
 }

@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, primaryKey, timestamp, text, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { integer, pgEnum, pgTable, primaryKey, timestamp, text, type AnyPgColumn, date } from "drizzle-orm/pg-core";
 
 export const school = pgTable("school", {
   id: text().primaryKey(),
@@ -133,4 +133,20 @@ export const defaultSemesterFilter = pgTable("default_semester_filter", {
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
   semesterId: text("semester_id").references(() => semester.id, { onDelete: "cascade", onUpdate: "cascade" }),
+});
+
+export const semesterBreak = pgTable("semester_break", {
+  schoolId: text("school_id")
+    .notNull()
+    .references(() => school.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  name: text().notNull(),
+});
+
+export const academicCalendarLink = pgTable("academic_calendar_link", {
+  schoolId: text("school_id")
+    .primaryKey()
+    .references(() => school.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  url: text().notNull(),
 });
