@@ -10,6 +10,7 @@
     if (error) errorOccurred = true;
     else {
       document.cookie = `politeshopJWT=${data}; SameSite=None; Secure`;
+      await actions.syncData();
       window.location.href = "/d2l/home";
     }
   });
