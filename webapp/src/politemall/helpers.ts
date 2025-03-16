@@ -8,7 +8,12 @@ export function getLinkWithRel(rel: string | string[], entity: SirenEntity): Sir
 
 export function getLinkWithClass(cls: string | string[], entity: SirenEntity): SirenLink | undefined {
   if (typeof cls === "string") return entity.links?.find(({ class: c }) => c?.includes(cls));
-  return entity.links?.find(({ class: c }) => arrEq(c ?? [], cls));
+  return entity.links?.find(({ class: c }) => c && arrEq(c, cls));
+}
+
+export function getSubEntWithRel(rel: string | string[], entity: SirenEntity): SirenEntity | undefined {
+  if (typeof rel === "string") return entity.entities?.find(({ rel: r }) => r?.includes(rel));
+  return entity.entities?.find(({ rel: r }) => r && arrEq(r, rel));
 }
 
 export function getSubEntWithClass(cls: string | string[], entity: SirenEntity): SirenEntity | undefined {

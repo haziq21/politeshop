@@ -1,3 +1,4 @@
+import fs from "fs";
 import type { Result } from "../types";
 import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity, dueDateSchema } from "./schema";
 import type {
@@ -11,11 +12,14 @@ import type {
   Module,
   ActivityFolder,
   School,
+  SubmissionActivity,
+  UserSubmission,
 } from "../db";
 import * as jose from "jose";
-import { arrEq, dataResult, errorResult } from "../helpers";
-import { getLinkWithClass, getLinkWithRel, getSubEntWithClass, lastPathComponent } from "./helpers";
+import { arrEq, dataResult, errorResult, unwrapResults } from "../helpers";
+import { getLinkWithClass, getLinkWithRel, getSubEntWithClass, getSubEntWithRel, lastPathComponent } from "./helpers";
 import { parse as parseDate, addSeconds } from "date-fns";
+import { get } from "svelte/store";
 
 /**
  * Client for interacting with POLITEMall. This client calls both `*.polite.edu.sg`
@@ -235,6 +239,8 @@ export class POLITEMallClient {
     const folders: ActivityFolder[] = [];
     const activities: AnyActivity[] = [];
 
+    await unwrapResults();
+
     // TODO: Better parallelization
     for (const ent of entities) {
       // Parse activities in the folder
@@ -359,15 +365,28 @@ export class POLITEMallClient {
 
     // Activities with the class ["activity", "link-activity", "link-plain"] can be submission or quiz activities
     else if ((subEnt = getSubEntWithClass(["activity", "link-activity", "link-plain"], ent))) {
-      const link = getLinkWithRel("about", subEnt);
-      if (!link) return errorResult({ msg: "Missing about link in activity entity" });
+      const aboutLink = getLinkWithRel("about", subEnt);
+      if (!aboutLink) return errorResult({ msg: "Missing about link in activity entity" });
 
-      const aboutType = new URL(link.href).searchParams.get("type");
+      const aboutType = new URL(aboutLink.href).searchParams.get("type");
       if (aboutType === "quiz") {
         // TODO
         return dataResult({ ...partialActivity, type: "quiz" });
       } else if (aboutType === "dropbox") {
-        return dataResult({ ...partialActivity, type: "submission" });
+        // This sub-entity contains the due date of the submission, and (if submitted) the last datetime it was submitted
+        const completionEnt = getSubEntWithRel("https://api.brightspace.com/rels/completion", subEnt);
+
+        const rawDueAt = completionEnt && getSubEntWithClass("due", completionEnt)?.properties?.date;
+        if (typeof rawDueAt !== "undefined" && typeof rawDueAt !== "string")
+          return errorResult({ msg: `Unexpected due date type: ${typeof rawDueAt}`, data: rawDueAt });
+        // These dates seem to be in ISO 8601 format, which is parseable by Date
+        const dueAt = rawDueAt ? new Date(rawDueAt) : undefined;
+
+        const description = getSubEntWithClass(["richtext", "description"], ent)?.properties?.html;
+        if (typeof description !== "undefined" && typeof description !== "string")
+          return errorResult({ msg: `Unexpected description type: ${typeof description}`, data: description });
+
+        return dataResult<SubmissionActivity>({ ...partialActivity, type: "submission", dueAt, description });
       } else return dataResult({ ...partialActivity, type: "unknown" });
     }
 
@@ -401,6 +420,74 @@ export class POLITEMallClient {
 
     // There might be more activity types
     else return dataResult<UnknownActivity>({ ...partialActivity, type: "unknown" });
+  }
+
+  /**
+   * Parse the user's submissions for an assignment activity.
+   */
+  async fetchAssignmentSubmissions(moduleId: string, activityId: string): Promise<Result<UserSubmission[]>> {
+    const { data: ent, error } = await this.#fetchBrightspaceEntity(
+      "sequences",
+      `/${moduleId}/activity/${activityId}?filterOnDatesAndDepth=0`
+    );
+    if (error) return errorResult(error);
+
+    // This URL points to an entity that contains a sub-entity that links to each submission.
+    // It looks like https://{tenantId}.activities.api.brightspace.com/old/activities/{activityUsageId}/usages/{moduleId}
+    const activityUsageHref = getLinkWithRel(["https://activities.api.brightspace.com/rels/activity-usage"], ent)?.href;
+    if (!activityUsageHref)
+      return errorResult({
+        msg: "Missing activity usage link in activity entity",
+        data: { activityId },
+      });
+
+    const { data: activityUsage, error: error2 } = await this.#fetchBrightspaceEntity(activityUsageHref);
+    if (error2) return errorResult({ msg: error2.msg, data: { fetch: error2.data, moduleId, activityId } });
+
+    const submissionUsageHref = getSubEntWithRel(
+      ["https://activities.api.brightspace.com/rels/child-activity-usage"],
+      activityUsage
+    )?.href;
+    if (!submissionUsageHref)
+      return errorResult({ msg: "Missing child activity usage link in activity usage entity", data: ent });
+
+    // This URL points to an entity that links to each submission made by the user
+    const userSubmissionUsageHref = `${submissionUsageHref.replace(/\/$/, "")}/users/${this.userId}`;
+    const { data: childUserActivityUsage, error: error3 } = await this.#fetchBrightspaceEntity(userSubmissionUsageHref);
+    if (error3) return errorResult(error3);
+
+    // This entity links to each submission
+    const submissionList = getSubEntWithClass(["assignment-submission-list"], childUserActivityUsage);
+    if (!submissionList) return errorResult({ msg: "Missing assignment submission list entity" });
+    if (!submissionList.links) return errorResult({ msg: "Missing links in assignment submission list entity" });
+
+    const submissions = submissionList.links.map(async (link): Promise<Result<UserSubmission>> => {
+      // The href of the link contains the submission's ID
+      if (!link.href) return errorResult({ msg: "Missing href in assignment submission link" });
+      const id = lastPathComponent(link.href);
+
+      const { data: submission, error: submissionError } = await this.#fetchBrightspaceEntity(link.href);
+      if (submissionError) return errorResult(submissionError);
+
+      // Get the date/time of the submission
+      const rawSubmittedAt = getSubEntWithClass(["date", "submission-date"], submission)?.properties?.date;
+      if (typeof rawSubmittedAt !== "string")
+        return errorResult({
+          msg: `Unexpected submission date type: ${typeof rawSubmittedAt}`,
+          data: rawSubmittedAt,
+        });
+      const submittedAt = new Date(rawSubmittedAt);
+
+      // Get the comment of the submission, if present
+      const commentEnt = getSubEntWithClass("submission-comment", submission);
+      const comment = commentEnt?.properties?.html;
+      if (typeof comment !== "undefined" && typeof comment !== "string")
+        return errorResult({ msg: `Unexpected comment type: ${typeof comment}`, data: comment });
+
+      return dataResult<UserSubmission>({ id, userId: this.userId, activityId, submittedAt, comment });
+    });
+
+    return await unwrapResults(submissions);
   }
 
   /** Fetch the source URL for the video used by a video (embed) activity. */
@@ -441,26 +528,33 @@ export class POLITEMallClient {
   }
 
   /** Fetch a Siren entity from the specified Brightspace API. */
-  #fetchBrightspaceEntity(apiSubdomain: string, path: string): Promise<Result<SirenEntity>>;
+  async #fetchBrightspaceEntity(apiSubdomain: string, path: string): Promise<Result<SirenEntity>>;
   /** Fetch a Siren entity from the specified Brightspace URL. */
-  #fetchBrightspaceEntity(url: string): Promise<Result<SirenEntity>>;
+  async #fetchBrightspaceEntity(url: string): Promise<Result<SirenEntity>>;
   async #fetchBrightspaceEntity(subdomainOrFullUrl: string, path?: string): Promise<Result<SirenEntity>> {
     let url = path ? `https://${this.tenantId}.${subdomainOrFullUrl}.api.brightspace.com${path}` : subdomainOrFullUrl;
-    const res = await fetch(url, { headers: this.apiRequestHeaders });
+    let res: Response;
+
+    try {
+      res = await fetch(url, { headers: this.apiRequestHeaders });
+    } catch (e) {
+      return errorResult({
+        msg: path ? `Failed to fetch ${subdomainOrFullUrl} entity ${path}` : `Failed to fetch ${subdomainOrFullUrl}`,
+        data: e,
+      });
+    }
 
     if (!res.ok)
-      return {
-        data: null,
-        error: { msg: `Failed to fetch ${subdomainOrFullUrl} entity ${path} (${res.status})`, data: await res.text() },
-      };
+      return errorResult({
+        msg: `Failed to fetch ${subdomainOrFullUrl} entity ${path} (${res.status})`,
+        data: await res.text(),
+      });
 
-    const parseRes = sirenEntity.safeParse(await res.json());
+    const json = await res.json();
+    const parseRes = sirenEntity.safeParse(json);
     if (!parseRes.success)
-      return {
-        data: null,
-        error: { msg: `Unexpected ${subdomainOrFullUrl} entity response`, data: parseRes.error.issues },
-      };
+      return errorResult({ msg: `Unexpected ${subdomainOrFullUrl} entity response`, data: parseRes.error.issues });
 
-    return { data: parseRes.data, error: null };
+    return dataResult(parseRes.data);
   }
 }

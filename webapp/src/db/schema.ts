@@ -115,7 +115,7 @@ export const submissionActivity = pgTable("submission_activity", {
   id: text()
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  dueDate: timestamp("due_date", { withTimezone: true }),
+  dueAt: timestamp("due_at", { withTimezone: true }),
   description: text(),
 });
 
@@ -125,8 +125,28 @@ export const quizActivity = pgTable("quiz_activity", {
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   dueDate: timestamp("due_date", { withTimezone: true }),
   description: text(),
-  attemptsAllowed: integer("attempts_allowed"),
-  attemptsCompleted: integer("attempts_completed"),
+});
+
+export const userSubmission = pgTable("user_submission", {
+  id: text().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  activityId: text("activity_id")
+    .notNull()
+    .references(() => submissionActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull(),
+  comment: text(),
+});
+
+export const submissionFile = pgTable("submission_file", {
+  id: text().primaryKey(),
+  submissionId: text("submission_id")
+    .notNull()
+    .references(() => userSubmission.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  name: text().notNull(),
+  url: text().notNull(),
+  size: integer().notNull(),
 });
 
 export const defaultSemesterFilter = pgTable("default_semester_filter", {

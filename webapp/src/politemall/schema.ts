@@ -41,6 +41,7 @@ export const dueDateSchema = z.object({
 
 export type SirenEntity = {
   class: (string | null | undefined)[];
+  rel?: string[];
   actions?: SirenAction[];
   entities?: SirenEntity[];
   links?: SirenLink[];
@@ -81,6 +82,7 @@ export const sirenEntity: z.ZodType<SirenEntity> = z.lazy(() =>
       .object({ class: z.string().array().optional(), rel: z.string().array(), href: z.string() })
       .array()
       .optional(),
+    rel: z.string().array().optional(),
     properties: z.record(z.string(), z.any()).optional(),
     class: z.string().nullable().array(),
     href: z.string().optional(),

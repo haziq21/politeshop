@@ -1,10 +1,11 @@
 import { setDefaultSemesterFilter } from "./defaults";
 import { ActionError, defineAction } from "astro:actions";
 import type { POLITEMallClient } from "../politemall";
-import type { school, semester, module, Module } from "../db";
-import * as jose from "jose";
-import { SIGNING_KEY, GEMINI_API_KEY } from "astro:env/server";
+import type { school, semester, module, Module, ActivityFolder, AnyActivity, UserSubmission } from "../db";
+import { GEMINI_API_KEY } from "astro:env/server";
 import { GoogleGenerativeAI, SchemaType, type GenerationConfig } from "@google/generative-ai";
+import { getPOLITEShopJWT } from "./auth";
+import { unwrapResults } from "../helpers";
 
 const GEMINI_MODULE_RENAME_PROMPT = `Each JSON object in the array below describes the name and code of a module offered by a Polytechnic in Singapore. Output a corresponding array of JSON objects with each object containing the string fields "niceName" and "niceCode".
 
@@ -96,42 +97,34 @@ async function fetchModules(polite: POLITEMallClient): Promise<(typeof module.$i
 }
 
 export const server = {
-  getPOLITEShopJWT: defineAction({
-    handler: async (_, context) => {
-      const polite = context.locals.polite;
+  getPOLITEShopJWT,
+  setDefaultSemesterFilter,
 
-      console.log("setPOLITEShopJWT(): Fetching partial user data...");
-      const partialUserData = await fetchPartialUser(polite);
-      console.log(`setPOLITEShopJWT(): Fetched partial user data: ${JSON.stringify(partialUserData)}`);
-
-      // Produce the politeshopJWT and set it as a cookie
-      const jwtSigningKey = new TextEncoder().encode(SIGNING_KEY);
-      return await new jose.SignJWT()
-        .setProtectedHeader({ alg: "HS256" })
-        .setSubject(partialUserData.id)
-        .sign(jwtSigningKey);
-    },
-  }),
   // TODO: Return changed data
   syncData: defineAction({
     handler: async (_, context) => {
       const polite = context.locals.polite;
       const repo = context.locals.repo;
 
-      const [partialUserData, schoolData, semestersData, modulesData] = await Promise.all([
-        fetchPartialUser(polite),
-        fetchSchool(polite),
-        fetchSemesters(polite),
-        fetchModules(polite),
+      // Fetch all the data in parallel
+      const { data, error } = await unwrapResults([
+        polite.fetchPartialUser(),
+        polite.fetchSchool(),
+        polite.fetchSemesters(),
+        polite.fetchModules(),
       ]);
+      if (error) {
+        console.dir(error, { depth: null });
+        throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
+      }
+      const [partialUser, school, semesters, modules] = data;
 
       // Update the database with the fetched data
-      const fullUserData = { ...partialUserData, schoolId: schoolData.id };
-      // TODO: Parallelize these too?
-      await repo.upsertSchool(schoolData);
+      const fullUserData = { ...partialUser, schoolId: school.id };
+      await repo.upsertSchool(school);
       await repo.upsertUser(fullUserData);
-      await repo.upsertSemesters(semestersData);
-      const uglyModules = await repo.upsertAndAssociateModules(modulesData);
+      await repo.upsertSemesters(semesters);
+      const uglyModules = await repo.upsertAndAssociateModules(modules);
 
       // Rename ugly modules with GenAI
       if (uglyModules.length > 0) {
@@ -144,50 +137,50 @@ export const server = {
       console.log("syncData(): Fetching module content from POLITEMall...");
 
       // Fetch all module content in parallel
-      const moduleData = await Promise.all(
-        modulesData.map(async ({ id }) => {
-          let res;
-
-          try {
-            // TODO: Make it so that the .fetch...() methods can't throw errors
-            res = await polite.fetchModuleContent(id);
-          } catch (e) {
-            console.dir(e, { depth: null });
-            throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch module content" });
-          }
-
-          const { data, error } = res;
-
-          if (error) {
-            console.dir(error, { depth: null });
-            throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch module content" });
-          }
-
-          return data;
-        })
+      const { data: moduleContents, error: error2 } = await unwrapResults(
+        modules.map(({ id }) => polite.fetchModuleContent(id))
       );
+      if (error2) {
+        console.dir(error, { depth: null });
+        throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
+      }
 
       console.log(`syncData(): Fetched module content in ${Date.now() - fetchStart}ms`);
 
       // Flatten the module data
-      const { activities, activityFolders } = moduleData.reduce(
+      const { activities, activityFolders } = moduleContents.reduce(
         (acc, { activityFolders, activities }) => {
           acc.activityFolders.push(...activityFolders);
           acc.activities.push(...activities);
           return acc;
         },
-        { activityFolders: [], activities: [] }
+        {
+          activityFolders: [],
+          activities: [],
+        }
       );
+
+      const { data: assignmentSubmissions, error: error3 } = await unwrapResults(
+        moduleContents.flatMap(({ activities }, i) =>
+          activities
+            .filter((act) => act.type === "submission")
+            .map((act) => polite.fetchAssignmentSubmissions(modules[i].id, act.id))
+        )
+      );
+      if (error3) {
+        console.dir(error3, { depth: null });
+        throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
+      }
 
       // Upsert the module content into the database
       try {
         await repo.upsertActivityFolders(activityFolders);
         await repo.upsertActivities(activities);
+        await repo.upsertUserSubmissions(assignmentSubmissions.flat());
       } catch (e) {
         console.dir(e, { depth: null });
         throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to insert module content" });
       }
     },
   }),
-  setDefaultSemesterFilter,
 };

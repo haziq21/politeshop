@@ -12,6 +12,8 @@ import type {
   school,
   user,
   semesterBreak,
+  userSubmission,
+  submissionFile,
 } from "./schema";
 
 export type School = typeof school.$inferInsert;
@@ -20,10 +22,12 @@ export type Semester = typeof semester.$inferInsert;
 export type Module = typeof module.$inferInsert;
 export type ActivityFolder = typeof activityFolder.$inferInsert;
 export type SemesterBreak = typeof semesterBreak.$inferInsert;
+export type UserSubmission = typeof userSubmission.$inferInsert;
+export type SubmissionFile = typeof submissionFile.$inferInsert;
 
 export type PartialActivity = typeof activity.$inferInsert;
 
-type FullActivity<T extends (typeof activity.$inferInsert)["type"], TData> = PartialActivity & { type: T } & TData;
+type FullActivity<T extends PartialActivity["type"], TData> = PartialActivity & { type: T } & TData;
 export type HTMLActivity = FullActivity<"html", typeof htmlActivity.$inferInsert>;
 export type WebEmbedActivity = FullActivity<"web_embed", typeof webEmbedActivity.$inferInsert>;
 export type DocEmbedActivity = FullActivity<"doc_embed", typeof docEmbedActivity.$inferInsert>;

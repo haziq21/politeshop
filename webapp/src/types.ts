@@ -4,7 +4,7 @@ export type Result<T> =
   | { data: T; error: null }
   | {
       data: null;
-      error: { msg: string; data?: Object };
+      error: { msg: string; data?: any };
     };
 
 export type ActivityTreeNode = AnyActivity & { isFolder: false };

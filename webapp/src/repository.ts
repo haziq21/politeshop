@@ -23,6 +23,8 @@ import {
   defaultSemesterFilter,
   type SemesterBreak,
   semesterBreak,
+  userSubmission,
+  type UserSubmission,
 } from "./db";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
@@ -293,6 +295,23 @@ export class Repository {
         if (a.type === "quiz") return upsertActivityDetails(quizActivity, quizActivity.id, a);
       })
     );
+  }
+
+  async upsertUserSubmissions(submissions: UserSubmission[]) {
+    if (!submissions.length) return;
+
+    await db
+      .insert(userSubmission)
+      .values(submissions)
+      .onConflictDoUpdate({
+        target: userSubmission.id,
+        set: {
+          userId: excluded(userSubmission.userId),
+          activityId: excluded(userSubmission.activityId),
+          submittedAt: excluded(userSubmission.submittedAt),
+          comment: excluded(userSubmission.comment),
+        },
+      });
   }
 
   /** Get the user's default semester filter. */
