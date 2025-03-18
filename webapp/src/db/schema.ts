@@ -58,6 +58,7 @@ export const activityFolder = pgTable("activity_folder", {
   moduleId: text("module_id")
     .notNull()
     .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  sortOrder: integer("sort_order").notNull(),
 });
 
 export const activityTypeEnum = pgEnum("activity_type", [
@@ -72,17 +73,18 @@ export const activityTypeEnum = pgEnum("activity_type", [
 
 export const activity = pgTable("activity", {
   id: text().primaryKey(),
-  name: text().notNull(),
   type: activityTypeEnum().notNull(),
   folderId: text("folder_id")
     .notNull()
     .references(() => activityFolder.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  sortOrder: integer("sort_order").notNull(),
 });
 
 export const htmlActivity = pgTable("html_activity", {
   id: text()
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  name: text().notNull(),
   content: text().notNull(),
 });
 
@@ -90,6 +92,7 @@ export const webEmbedActivity = pgTable("web_embed_activity", {
   id: text()
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  name: text().notNull(),
   embedURL: text("embed_url").notNull(),
   newTabURL: text("new_tab_url"),
 });
@@ -98,6 +101,7 @@ export const docEmbedActivity = pgTable("doc_embed_activity", {
   id: text()
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  name: text().notNull(),
   sourceURL: text("source_url").notNull(),
   previewURL: text("preview_url"),
   previewURLExpiry: timestamp("preview_url_expiry", { withTimezone: true }),
@@ -107,24 +111,49 @@ export const videoEmbedActivity = pgTable("video_embed_activity", {
   id: text()
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  name: text().notNull(),
   sourceURL: text("source_url").notNull(),
   sourceURLExpiry: timestamp("source_url_expiry", { withTimezone: true }),
+  thumbnailURL: text("thumbnail_url"),
+  thumbnailURLExpiry: timestamp("thumbnail_url_expiry", { withTimezone: true }),
 });
 
 export const submissionActivity = pgTable("submission_activity", {
   id: text()
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  dueAt: timestamp("due_at", { withTimezone: true }),
-  description: text(),
+  dropboxId: text("dropbox_id")
+    .notNull()
+    .references(() => submissionDropbox.id, { onDelete: "cascade", onUpdate: "cascade" }),
 });
 
 export const quizActivity = pgTable("quiz_activity", {
   id: text()
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  dueDate: timestamp("due_date", { withTimezone: true }),
+  quizId: text("quiz_id")
+    .notNull()
+    .references(() => quiz.id, { onDelete: "cascade", onUpdate: "cascade" }),
+});
+
+export const submissionDropbox = pgTable("submission_dropbox", {
+  id: text().primaryKey(),
+  moduleId: text("module_id")
+    .notNull()
+    .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  name: text().notNull(),
   description: text(),
+  dueAt: timestamp("due_at", { withTimezone: true }),
+});
+
+export const quiz = pgTable("quiz", {
+  id: text().primaryKey(),
+  moduleId: text("module_id")
+    .notNull()
+    .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  name: text().notNull(),
+  description: text(),
+  dueAt: timestamp("due_at", { withTimezone: true }),
 });
 
 export const userSubmission = pgTable("user_submission", {
@@ -132,10 +161,10 @@ export const userSubmission = pgTable("user_submission", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  activityId: text("activity_id")
+  dropboxId: text("dropbox_id")
     .notNull()
-    .references(() => submissionActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull(),
+    .references(() => submissionDropbox.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
   comment: text(),
 });
 

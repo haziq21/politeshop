@@ -14,6 +14,8 @@ import type {
   semesterBreak,
   userSubmission,
   submissionFile,
+  submissionDropbox,
+  quiz,
 } from "./schema";
 
 export type School = typeof school.$inferInsert;
@@ -21,9 +23,11 @@ export type User = typeof user.$inferInsert;
 export type Semester = typeof semester.$inferInsert;
 export type Module = typeof module.$inferInsert;
 export type ActivityFolder = typeof activityFolder.$inferInsert;
-export type SemesterBreak = typeof semesterBreak.$inferInsert;
+export type SubmissionDropbox = typeof submissionDropbox.$inferInsert;
 export type UserSubmission = typeof userSubmission.$inferInsert;
 export type SubmissionFile = typeof submissionFile.$inferInsert;
+export type Quiz = typeof quiz.$inferInsert;
+export type SemesterBreak = typeof semesterBreak.$inferInsert;
 
 export type PartialActivity = typeof activity.$inferInsert;
 

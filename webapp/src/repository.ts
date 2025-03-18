@@ -25,6 +25,10 @@ import {
   semesterBreak,
   userSubmission,
   type UserSubmission,
+  type SubmissionDropbox,
+  submissionDropbox,
+  type Quiz,
+  quiz,
 } from "./db";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
@@ -221,6 +225,7 @@ export class Repository {
           description: excluded(activityFolder.description),
           parentId: excluded(activityFolder.parentId),
           moduleId: excluded(activityFolder.moduleId),
+          sortOrder: excluded(activityFolder.sortOrder),
         },
       });
   }
@@ -267,9 +272,9 @@ export class Repository {
       .onConflictDoUpdate({
         target: activity.id,
         set: {
-          name: excluded(activity.name),
           type: excluded(activity.type),
           folderId: excluded(activity.folderId),
+          sortOrder: excluded(activity.sortOrder),
         },
       });
 
@@ -297,6 +302,40 @@ export class Repository {
     );
   }
 
+  async upsertSubmissionDropboxes(dropboxes: SubmissionDropbox[]) {
+    if (!dropboxes.length) return;
+
+    await db
+      .insert(submissionDropbox)
+      .values(dropboxes)
+      .onConflictDoUpdate({
+        target: submissionDropbox.id,
+        set: {
+          name: excluded(submissionDropbox.name),
+          moduleId: excluded(submissionDropbox.moduleId),
+          description: excluded(submissionDropbox.description),
+          dueAt: excluded(submissionDropbox.dueAt),
+        },
+      });
+  }
+
+  async upsertQuizzes(quizzes: Quiz[]) {
+    if (!quizzes.length) return;
+
+    await db
+      .insert(quiz)
+      .values(quizzes)
+      .onConflictDoUpdate({
+        target: quiz.id,
+        set: {
+          name: excluded(quiz.name),
+          moduleId: excluded(quiz.moduleId),
+          description: excluded(quiz.description),
+          dueAt: excluded(quiz.dueAt),
+        },
+      });
+  }
+
   async upsertUserSubmissions(submissions: UserSubmission[]) {
     if (!submissions.length) return;
 
@@ -307,7 +346,7 @@ export class Repository {
         target: userSubmission.id,
         set: {
           userId: excluded(userSubmission.userId),
-          activityId: excluded(userSubmission.activityId),
+          dropboxId: excluded(userSubmission.dropboxId),
           submittedAt: excluded(userSubmission.submittedAt),
           comment: excluded(userSubmission.comment),
         },

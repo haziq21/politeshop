@@ -10,6 +10,10 @@ export function errorResult<T>(error: ResultError<T>): Result<T> {
   return { data: null, error };
 }
 
+/**
+ * Reduces `Promise<Result<T>>[]` into a `Promise<Result<T[]>>` that runs in parallel (via `Promise.all()`)
+ * and rejects when one of the input `Promise<Result<T>>` values resolves to an error result.
+ */
 export async function unwrapResults<T extends any[]>(resultPromises: {
   [K in keyof T]: Promise<Result<T[K]>>;
 }): Promise<Result<T>> {

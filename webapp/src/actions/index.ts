@@ -136,47 +136,43 @@ export const server = {
       let fetchStart = Date.now();
       console.log("syncData(): Fetching module content from POLITEMall...");
 
-      // Fetch all module content in parallel
-      const { data: moduleContents, error: error2 } = await unwrapResults(
-        modules.map(({ id }) => polite.fetchModuleContent(id))
-      );
-      if (error2) {
-        console.dir(error, { depth: null });
+      // Fetch everything in parallel
+      const { data: fetchResult, error: fetchError } = await unwrapResults([
+        unwrapResults(modules.map(({ id }) => polite.fetchModuleContent(id))),
+        unwrapResults(modules.map(({ id }) => polite.fetchSubmissionDropboxes(id))),
+        unwrapResults(modules.map(({ id }) => polite.fetchQuizzes(id))),
+      ]);
+      if (fetchError) {
+        console.dir(fetchError, { depth: null });
         throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
       }
+      const [moduleContents, submissionsDropboxes, quizzes] = fetchResult;
 
       console.log(`syncData(): Fetched module content in ${Date.now() - fetchStart}ms`);
 
       // Flatten the module data
-      const { activities, activityFolders } = moduleContents.reduce(
-        (acc, { activityFolders, activities }) => {
-          acc.activityFolders.push(...activityFolders);
-          acc.activities.push(...activities);
-          return acc;
-        },
-        {
-          activityFolders: [],
-          activities: [],
-        }
-      );
+      const activities = moduleContents.flatMap((m) => m.activities);
+      const activityFolders = moduleContents.flatMap((m) => m.activityFolders);
 
-      const { data: assignmentSubmissions, error: error3 } = await unwrapResults(
-        moduleContents.flatMap(({ activities }, i) =>
-          activities
-            .filter((act) => act.type === "submission")
-            .map((act) => polite.fetchAssignmentSubmissions(modules[i].id, act.id))
-        )
-      );
-      if (error3) {
-        console.dir(error3, { depth: null });
-        throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
-      }
+      // const { data: assignmentSubmissions, error: error3 } = await unwrapResults(
+      //   moduleContents.flatMap(({ activities }, i) =>
+      //     activities
+      //       .filter((act) => act.type === "submission")
+      //       .map((act) => polite.fetchUserSubmissions(modules[i].id, act.id))
+      //   )
+      // );
+      // if (error3) {
+      //   console.dir(error3, { depth: null });
+      //   throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
+      // }
 
       // Upsert the module content into the database
       try {
+        await repo.upsertSubmissionDropboxes(submissionsDropboxes.flat());
+        await repo.upsertQuizzes(quizzes.flat());
         await repo.upsertActivityFolders(activityFolders);
         await repo.upsertActivities(activities);
-        await repo.upsertUserSubmissions(assignmentSubmissions.flat());
+        // await repo.upsertUserSubmissions(assignmentSubmissions.flat());
       } catch (e) {
         console.dir(e, { depth: null });
         throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to insert module content" });

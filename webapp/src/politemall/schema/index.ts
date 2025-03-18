@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export * from "./tenant";
+
 export const brightspaceJWTBody = z.object({ tenantid: z.string(), sub: z.string() });
 
 // API responses
