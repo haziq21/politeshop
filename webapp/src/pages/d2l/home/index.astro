@@ -4,7 +4,7 @@ import ModuleSelector from "../../../components/ModuleSelector.svelte";
 import DueDateHeatmap from "../../../components/DueDateHeatmap.svelte";
 
 const repo = Astro.locals.repo;
-const school = await repo.school();
+const organization = await repo.organization();
 const semesters = await repo.semesters();
 const modules = await repo.modules();
 const defaultSemester = await repo.defaultSemesterFilter();
@@ -12,20 +12,23 @@ const semesterBreak = await repo.currentOrNextSemesterBreak();
 ---
 
 <Layout>
-  <img src={school.bannerImageURL} alt="Banner" class="w-full h-50 mt-15 object-cover" draggable="false" />
-  <h1 class="text-3xl font-semibold mx-35 mt-10">{school.name}</h1>
+  <img src={organization.bannerImageURL} alt="Banner" class="w-full h-50 mt-15 object-cover" draggable="false" />
+  <h1 class="text-3xl font-semibold mx-35 mt-10">{organization.name}</h1>
 
   <a
-    href={school.academicCalendarLink}
+    href={organization.academicCalendarLink}
     target="_blank"
-    class:list={["mx-35 font-medium text-xs text-stone-500", school.academicCalendarLink && "hover:text-stone-400"]}
+    class:list={[
+      "mx-35 font-medium text-xs text-stone-500",
+      organization.academicCalendarLink && "hover:text-stone-400",
+    ]}
   >
     {
       semesterBreak
         ? semesterBreak.isCurrent
           ? `${semesterBreak.daysToEnd} days until semester resumes`
           : `${semesterBreak.daysToStart} days until semester ${semesterBreak.name} starts`
-        : school.academicCalendarLink
+        : organization.academicCalendarLink
           ? "View academic calendar"
           : ""
     }

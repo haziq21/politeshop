@@ -9,7 +9,7 @@ import type {
   module,
   semester,
   activityFolder,
-  school,
+  organization,
   user,
   semesterBreak,
   userSubmission,
@@ -18,7 +18,7 @@ import type {
   quiz,
 } from "./schema";
 
-export type School = typeof school.$inferInsert;
+export type Organization = typeof organization.$inferInsert;
 export type User = typeof user.$inferInsert;
 export type Semester = typeof semester.$inferInsert;
 export type Module = typeof module.$inferInsert;

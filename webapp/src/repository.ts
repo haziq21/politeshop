@@ -1,7 +1,7 @@
 import { and, eq, getTableColumns, gt, isNull, lt, or, SQL, sql } from "drizzle-orm";
 import {
   db,
-  school,
+  organization,
   user,
   semester,
   module,
@@ -18,7 +18,7 @@ import {
   type Semester,
   type Module,
   type ActivityFolder,
-  type School,
+  type Organization,
   type User,
   defaultSemesterFilter,
   type SemesterBreak,
@@ -37,7 +37,7 @@ const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
 /** A high(er)-level interface to the POLITEShop database with local caching. */
 export class Repository {
   data: {
-    school?: School;
+    organization?: Organization;
     user?: User;
     semesters?: Semester[];
     modules?: Module[];
@@ -70,30 +70,30 @@ export class Repository {
       await db
         .insert(user)
         .values(u)
-        .onConflictDoUpdate({ target: user.id, set: u })
+        .onConflictDoUpdate({ target: user.id, set: { name: u.name, organizationId: u.organizationId } })
         .returning({ userInserted: sql<boolean>`(xmax = 0)` })
     )[0];
     return userInserted;
   }
 
-  /** Get the user's school. */
-  async school(): Promise<School> {
-    if (this.data.school) return this.data.school;
+  /** Get the user's organization. */
+  async organization(): Promise<Organization> {
+    if (this.data.organization) return this.data.organization;
 
-    this.data.school = (
+    this.data.organization = (
       await db
-        .select(getTableColumns(school))
+        .select(getTableColumns(organization))
         .from(user)
-        .innerJoin(school, eq(school.id, user.schoolId))
+        .innerJoin(organization, eq(organization.id, user.organizationId))
         .where(eq(user.id, this.userId))
     )[0];
 
-    return this.data.school;
+    return this.data.organization;
   }
 
-  /** Upsert the school. */
-  async upsertSchool(s: School) {
-    await db.insert(school).values(s).onConflictDoUpdate({ target: school.id, set: s });
+  /** Upsert the organization. */
+  async upsertOrganization(s: Organization) {
+    await db.insert(organization).values(s).onConflictDoUpdate({ target: organization.id, set: s });
   }
 
   /** Get semesters the user is in. */
@@ -390,8 +390,8 @@ export class Repository {
           daysToEnd: sql<number>`extract(day from ${semesterBreak.endDate} - now()) + 1`,
         })
         .from(semesterBreak)
-        .innerJoin(school, eq(school.id, semesterBreak.schoolId))
-        .innerJoin(user, eq(user.schoolId, school.id))
+        .innerJoin(organization, eq(organization.id, semesterBreak.organization))
+        .innerJoin(user, eq(user.organizationId, organization.id))
         .where(
           and(
             eq(user.id, this.userId),

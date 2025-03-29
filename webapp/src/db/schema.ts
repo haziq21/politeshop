@@ -1,6 +1,6 @@
 import { integer, pgEnum, pgTable, primaryKey, timestamp, text, type AnyPgColumn, date } from "drizzle-orm/pg-core";
 
-export const school = pgTable("school", {
+export const organization = pgTable("organization", {
   id: text().primaryKey(),
   name: text().notNull(),
   bannerImageURL: text("banner_image_url"),
@@ -10,15 +10,25 @@ export const school = pgTable("school", {
 export const user = pgTable("user", {
   id: text().primaryKey(),
   name: text().notNull(),
-  schoolId: text("school_id")
+  organizationId: text("organization_id")
     .notNull()
-    .references(() => school.id),
+    .references(() => organization.id),
 });
 
 export const semester = pgTable("semester", {
   id: text().primaryKey(),
   name: text().notNull(),
 });
+
+// TOOD: Perhaps we could store schools (e.g. NP's School of ICT) too
+// export const school = pgTable("school", {
+//   id: text().primaryKey(),
+//   name: text().notNull(),
+//   code: text().notNull(),
+//   organizationId: text("organization_id")
+//     .notNull()
+//     .references(() => organization.id, { onDelete: "cascade", onUpdate: "cascade" }),
+// });
 
 export const module = pgTable("module", {
   id: text().primaryKey(),
@@ -93,8 +103,7 @@ export const webEmbedActivity = pgTable("web_embed_activity", {
     .primaryKey()
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   name: text().notNull(),
-  embedURL: text("embed_url").notNull(),
-  newTabURL: text("new_tab_url"),
+  url: text("url").notNull(),
 });
 
 export const docEmbedActivity = pgTable("doc_embed_activity", {
@@ -144,6 +153,7 @@ export const submissionDropbox = pgTable("submission_dropbox", {
   name: text().notNull(),
   description: text(),
   dueAt: timestamp("due_at", { withTimezone: true }),
+  closesAt: timestamp("closes_at", { withTimezone: true }),
 });
 
 export const quiz = pgTable("quiz", {
@@ -186,9 +196,9 @@ export const defaultSemesterFilter = pgTable("default_semester_filter", {
 });
 
 export const semesterBreak = pgTable("semester_break", {
-  schoolId: text("school_id")
+  organization: text("organization_id")
     .notNull()
-    .references(() => school.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    .references(() => organization.id, { onDelete: "cascade", onUpdate: "cascade" }),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   name: text().notNull(),

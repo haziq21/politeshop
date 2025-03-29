@@ -1,6 +1,4 @@
-import fs from "fs";
 import type { Result } from "../types";
-import { brightspaceJWTBody, whoamiRes, sirenEntity, type SirenEntity, dueDateSchema } from "./schema";
 import * as schema from "./schema";
 import type {
   AnyActivity,
@@ -12,20 +10,20 @@ import type {
   Semester,
   Module,
   ActivityFolder,
-  School,
+  Organization,
   SubmissionActivity,
   UserSubmission,
   User,
   QuizActivity,
   SubmissionDropbox,
-  submissionDropbox,
   Quiz,
 } from "../db";
 import * as jose from "jose";
-import { arrEq, dataResult, errorResult, unwrapResults } from "../helpers";
-import { getLinkWithClass, getLinkWithRel, getSubEntWithClass, getSubEntWithRel, lastPathComponent } from "./helpers";
+import { dataResult, errorResult, unwrapResults } from "../helpers";
+import { getLinkWithClass, getSubEntWithClass, lastPathComponent } from "./helpers";
 import { parse as parseDate, addSeconds } from "date-fns";
 import { z } from "zod";
+import { logger } from "../logging";
 
 /**
  * Client for interacting with POLITEMall. This client calls both `*.polite.edu.sg`
@@ -52,20 +50,8 @@ export class POLITEMallClient {
   /** ID of the Brightspace tenant, used by both `*.polite.edu.sg` and `*.api.brightspace.com` APIs. */
   tenantId: string;
 
-  get basePOLITEMallURL() {
-    return `https://${this.domain}.polite.edu.sg`;
-  }
-
-  get apiRequestHeaders(): HeadersInit {
-    return {
-      Authorization: `Bearer ${this.brightspaceJWT}`,
-      Cookie: `d2lSessionVal=${this.d2lSessionVal}; d2lSecureSessionVal=${this.d2lSecureSessionVal}`,
-    };
-  }
-
-  get d2lCookies(): string {
-    return `d2lSessionVal=${this.d2lSessionVal}; d2lSecureSessionVal=${this.d2lSecureSessionVal}`;
-  }
+  /** `AbortController` for all fetch requests made by the client. */
+  abortController = new AbortController();
 
   /**
    * Construct a new POLITEMallClient. The `sub` claim of the `brightspaceJWT`
@@ -85,7 +71,7 @@ export class POLITEMallClient {
     this.domain = config.domain;
 
     // Extract the tenant and user IDs from brightspaceJWT
-    const res = brightspaceJWTBody.safeParse(jose.decodeJwt(config.brightspaceJWT));
+    const res = schema.brightspaceJWTBody.safeParse(jose.decodeJwt(config.brightspaceJWT));
     if (!res.success) throw new Error("Malformed Brightspace JWT");
 
     this.tenantId = res.data.tenantid;
@@ -93,130 +79,76 @@ export class POLITEMallClient {
   }
 
   /** Fetch the user's name and ID from the POLITEMall API. */
-  async fetchPartialUser(): Promise<Result<{ id: string; name: string }>> {
-    const res = await fetch(`${this.basePOLITEMallURL}/d2l/api/lp/1.0/users/whoami`, {
-      headers: this.apiRequestHeaders,
-    });
-    if (!res.ok) return errorResult({ msg: "Failed to fetch whoami", data: await res.text() });
-
-    const parseRes = whoamiRes.safeParse(await res.json());
-    if (!parseRes.success)
-      return errorResult({ msg: "Unexpected whoami response from POLITEMall API", data: parseRes.error.issues });
-
-    return dataResult({ id: parseRes.data.Identifier, name: parseRes.data.FirstName });
-  }
-
-  /** Get the user's school from the Brightspace API. */
-  async fetchSchool(): Promise<Result<School>> {
-    const { data: enrollmentData, error: enrollmentError } = await this.#fetchFromBrightspace(
-      "enrollments",
-      `/users/${this.userId}`
-    );
-    if (enrollmentError) return errorResult(enrollmentError);
-
-    // Find the link to the organization entity
-    const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", enrollmentData);
-    if (!orgLink) return errorResult({ msg: "Missing organization link in user entity" });
-
-    // Fetch the organization entity (this describes the school)
-    const { data: orgData, error: orgError } = await this.#fetchFromBrightspace(orgLink.href);
-    if (orgError) return errorResult(orgError);
-
-    const parseRes = await this.parseSchool(orgData);
-    if (parseRes.error) return errorResult(parseRes.error);
-
-    return dataResult(parseRes.data);
-  }
-
-  /** Parse an organization entity into a school. */
-  async parseSchool(ent: SirenEntity): Promise<Result<School>> {
-    const name = ent.properties?.name;
-    if (typeof name !== "string")
-      return errorResult({ msg: `Unexpected type for school name: ${typeof name}`, data: name });
-
-    // Find the self link to extract the school ID from
-    const selfLink = getLinkWithRel("self", ent);
-    if (!selfLink) return errorResult({ msg: "Missing self link in school entity" });
-    const id = lastPathComponent(selfLink.href);
-
-    // Get the banner image URL
-    const { data: imageData, error: imageError } = await this.#fetchFromBrightspace("organizations", `/${id}/image`);
-    if (imageError) return errorResult(imageError);
-    const bannerImageURL = getLinkWithClass(["banner", "wide", "max"], imageData)?.href;
-
-    return dataResult({ id, name, bannerImageURL });
-  }
-
-  async fetchSemesters(): Promise<Result<Semester[]>> {
-    const url = `${this.basePOLITEMallURL}/d2l/api/le/manageCourses/courses-searches/${this.userId}/BySemester?desc=1`;
-    const { data, error } = await this.#fetchFromBrightspace(url);
+  async fetchPartialUser(): Promise<Result<Pick<User, "id" | "name">>> {
+    const { data, error } = await this.#fetchFromTenant(`/d2l/api/lp/1.0/users/whoami`, { schema: schema.whoAmIUser });
     if (error) return errorResult(error);
 
-    // Semester data is in the entity's actions
-    if (!data.actions) return errorResult({ msg: "Missing actions in semester entity" });
+    return dataResult({ id: data.Identifier, name: data.FirstName });
+  }
 
-    const semesters: Semester[] = [];
-    for (const action of data.actions) {
-      if (!action.name || !action.title) return errorResult({ msg: "Missing name in semester action" });
-      // Trim the name because sometimes it has leading spaces...
-      semesters.push({ id: action.name, name: action.title.trim() });
+  /** Get the user's organization from the Brightspace API. */
+  async fetchOrganization(): Promise<Result<Organization>> {
+    const { data, error } = await this.#fetchFromTenant("/d2l/api/lp/1.46/organization/info", {
+      schema: schema.organization,
+    });
+    if (error) return errorResult(error);
+
+    return dataResult<Organization>({
+      id: data.Identifier,
+      name: data.Name,
+      bannerImageURL: this.getImageURL(data.Identifier, { width: 1500, height: 240 }),
+    });
+  }
+
+  /** Get the user's modules and their semesters from the Brightspace API. */
+  async fetchModulesAndSemesters(): Promise<Result<{ modules: Module[]; semesters: Semester[] }>> {
+    const rawModules: schema.MyOrgUnitInfo[] = [];
+    let hasMoreItems = true;
+    let bookmark: string | null = null;
+
+    // Fetch all modules from the paginated API
+    do {
+      const query: string = bookmark ? `?bookmark=${bookmark}` : "";
+      const { data, error } = await this.#fetchFromTenant(`/d2l/api/lp/1.46/enrollments/myenrollments/${query}`, {
+        schema: schema.pagedResultSet(schema.myOrgUnitInfo),
+      });
+      if (error) return errorResult(error);
+
+      // Filter for modules only
+      rawModules.push(...data.Items.filter((org) => org.OrgUnit.Type.Id === 3));
+
+      hasMoreItems = data.PagingInfo.HasMoreItems;
+      bookmark = data.PagingInfo.Bookmark;
+    } while (hasMoreItems);
+
+    const { data: rawModuleParents, error } = await this.#fetchFromTenant(
+      `/d2l/api/lp/1.46/courses/parentorgunits?orgUnitIdsCSV=${rawModules.map((m) => m.OrgUnit.Id).join(",")}`,
+      { schema: schema.courseParent.array() }
+    );
+    if (error) return errorResult(error);
+
+    const modules: Module[] = [];
+    const semestersMap = new Map<string, Semester>();
+
+    for (const { OrgUnit } of rawModules) {
+      const parent = rawModuleParents.find((p) => p.CourseOfferingId === OrgUnit.Id.toString());
+      if (!parent) return errorResult({ msg: "Failed to find parent for module", data: OrgUnit });
+
+      modules.push({
+        id: OrgUnit.Id.toString(),
+        name: OrgUnit.Name,
+        code: OrgUnit.Code || OrgUnit.Name,
+        semesterId: parent.Semester.Identifier,
+        imageIconURL: this.getImageURL(OrgUnit.Id.toString(), { width: 50, height: 50 }),
+      });
+
+      semestersMap.set(parent.Semester.Identifier, {
+        id: parent.Semester.Identifier,
+        name: parent.Semester.Name.trim(),
+      });
     }
 
-    return dataResult(semesters);
-  }
-
-  async fetchModules(): Promise<Result<Module[]>> {
-    const { data, error } = await this.#fetchFromBrightspace("enrollments", `/users/${this.userId}?pageSize=100`);
-    if (error) return errorResult(error);
-    if (!data.entities) return errorResult({ msg: "Missing entities in user enrollments" });
-
-    // Fetch all the modules in parallel
-    // TODO: Maybe use errors to reject the promise early
-    const moduleResults = await Promise.all(
-      data.entities.map(async (ent): Promise<Result<Module>> => {
-        if (!ent.href) return errorResult({ msg: "Missing href in enrollment entity" });
-
-        // This entity only contains links to other entities (one of them containing the data we need)
-        const { data: enrollmentEnt, error: enrollmentError } = await this.#fetchFromBrightspace(ent.href);
-        if (enrollmentError) return errorResult(enrollmentError);
-
-        // The href of this link contains the module's ID
-        const orgLink = getLinkWithRel("https://api.brightspace.com/rels/organization", enrollmentEnt);
-        if (!orgLink) return errorResult({ msg: "Missing organization link in enrollment entity" });
-        // The URL should look like https://<tenantId>.organizations.api.brightspace.com/<moduleId>
-        const id = lastPathComponent(orgLink.href);
-
-        // This entity contains the module's name and code
-        const { data: orgEnt, error: orgError } = await this.#fetchFromBrightspace(orgLink.href);
-        if (orgError) return errorResult(orgError);
-        if (!orgEnt.properties?.name || !orgEnt.properties?.code)
-          return errorResult({ msg: "Missing name or code in module entity" });
-        const name = orgEnt.properties.name;
-        const code = orgEnt.properties.code;
-
-        // The href of the parent-semester link contains the module's semester ID
-        const semLink = getLinkWithRel("https://api.brightspace.com/rels/parent-semester", orgEnt);
-        if (!semLink) return errorResult({ msg: "Missing parent semester link in organization entity" });
-        // The URL should look like https://<tenantId>.organizations.api.brightspace.com/<semesterId>
-        const semesterId = lastPathComponent(semLink.href);
-
-        // Get the URL of the module's banner image
-        const { data: imageData, error: imageError } = await this.#fetchFromBrightspace(
-          "organizations",
-          `/${id}/image`
-        );
-        if (imageError) return errorResult(imageError);
-        const imageIconURL =
-          getLinkWithClass(["tile", "high-density", "min"], imageData)?.href ||
-          getLinkWithClass(["tile", "mid"], imageData)?.href;
-
-        return dataResult({ id, name, code, imageIconURL, semesterId });
-      })
-    );
-
-    if (moduleResults.some((res) => res.error))
-      return errorResult({ msg: "Failed to fetch some modules", data: moduleResults });
-    return dataResult(moduleResults.map((res) => res.data!));
+    return dataResult({ modules, semesters: semestersMap.values().toArray() });
   }
 
   async fetchModuleContent(moduleId: string): Promise<
@@ -245,7 +177,7 @@ export class POLITEMallClient {
 
   /** Parse what Brightspace calls "Modules", but we call activity folders. */
   async parseActivityFolder(
-    folder: z.infer<typeof schema.module>,
+    folder: schema.TOCModule,
     moduleId: string,
     parentId: string | null
   ): Promise<Result<{ activityFolders: ActivityFolder[]; activities: AnyActivity[] }>> {
@@ -286,12 +218,11 @@ export class POLITEMallClient {
     return dataResult({ activityFolders, activities });
   }
 
-  /** Parse what Brightspace calls "Topics", but we call activities. */
-  async parseActivity(
-    activity: z.infer<typeof schema.topic>,
-    moduleId: string,
-    folderId: string
-  ): Promise<Result<AnyActivity>> {
+  /**
+   * Parse what Brightspace calls "Topics", but we call activities.
+   * This may require additional fetch requests, depending on the activity.
+   */
+  async parseActivity(activity: schema.TOCTopic, moduleId: string, folderId: string): Promise<Result<AnyActivity>> {
     if (activity.IsBroken) return errorResult({ msg: "parseActivity() can't handle broken activities" });
 
     const baseActivity = {
@@ -311,8 +242,8 @@ export class POLITEMallClient {
     // These are document embed activities
     if (activity.ActivityType === 1 && activity.TypeIdentifier === "File") {
       const { data: activityEnt, error } = await this.#fetchFromBrightspace(
-        "sequences",
-        `/${moduleId}/activity/${activity.TopicId}?filterOnDatesAndDepth=0`
+        `/${moduleId}/activity/${activity.TopicId}?filterOnDatesAndDepth=0`,
+        { api: "sequences" }
       );
       if (error) return errorResult(error);
 
@@ -358,7 +289,7 @@ export class POLITEMallClient {
 
     // These are web embed activities
     if (activity.ActivityType === 2) {
-      return dataResult<WebEmbedActivity>({ ...baseActivity, type: "web_embed", name, embedURL: activity.Url });
+      return dataResult<WebEmbedActivity>({ ...baseActivity, type: "web_embed", name, url: activity.Url });
     }
 
     // These are submission activities
@@ -395,6 +326,7 @@ export class POLITEMallClient {
           moduleId,
           description: d.CustomInstructions.Html,
           dueAt: d.DueDate,
+          closesAt: d.Availability?.EndDate,
         })
       )
     );
@@ -403,25 +335,72 @@ export class POLITEMallClient {
   /**
    * Fetch the user's submissions for an assignment activity.
    */
-  async fetchUserSubmissions(moduleId: string, dropboxId: string): Promise<Result<UserSubmission[]>> {
-    const { data, error: fetchError } = await this.#fetchFromTenant(
-      // POLITEMall/Brightspace needs the trailing / or else it returns 404...
-      `/d2l/api/le/1.75/${moduleId}/dropbox/folders/${dropboxId}/submissions/`,
-      { schema: schema.entityDropbox }
-    );
-    if (fetchError) return errorResult(fetchError);
+  async fetchUserSubmissions(
+    moduleId: string,
+    dropboxId: string,
+    config?: { dropboxIsClosed: boolean; organizationId: string }
+  ): Promise<Result<UserSubmission[]>> {
+    // There are two ways of fetching user submissions: using either the `*.polite.edu.sg` or
+    // `*.api.brightspace.com` API. When a dropbox is closed (i.e. it's past its availability
+    // end date), the `*.polite.edu.sg` API returns 403 (???), but the `*.api.brightspace.com`
+    // API still works. This method prefers to use the `*.polite.edu.sg` API whenever possible
+    // because it only requires one request per dropbox, while the `*.api.brightspace.com` API
+    // additionally requires one request per submission.
 
-    const submissions = data.Submissions.map(
-      (sub): UserSubmission => ({
-        id: sub.Id.toString(),
+    if (!config?.dropboxIsClosed) {
+      const { data, error: fetchError } = await this.#fetchFromTenant(
+        `/d2l/api/le/1.75/${moduleId}/dropbox/folders/${dropboxId}/submissions/`,
+        { schema: schema.entityDropbox.array().max(1) }
+      );
+      if (fetchError) return errorResult(fetchError);
+
+      if (data.length === 0) return dataResult([]);
+
+      const submissions = data[0].Submissions.map(
+        (sub): UserSubmission => ({
+          id: sub.Id.toString(),
+          userId: this.userId,
+          dropboxId,
+          submittedAt: sub.SubmissionDate,
+          comment: sub.Comment.Html,
+        })
+      );
+
+      return dataResult(submissions);
+    }
+
+    const { data: ent, error } = await this.#fetchFromBrightspace(
+      `/old/activities/${config.organizationId}_2000_${dropboxId}/usages/${moduleId}/users/${this.userId}`,
+      { api: "activities" }
+    );
+    if (error) return errorResult(error);
+
+    const assignmentSubmissionList = getSubEntWithClass(["assignment-submission-list"], ent);
+    if (!assignmentSubmissionList) return errorResult({ msg: "Missing assignment-submission-list entity" });
+    if (!assignmentSubmissionList.links) return dataResult([]);
+
+    const results = assignmentSubmissionList.links.map(async (l): Promise<Result<UserSubmission>> => {
+      const { data: ent, error } = await this.#fetchFromBrightspace(l.href);
+      if (error) return errorResult(error);
+
+      const submittedAtEnt = getSubEntWithClass("submission-date", ent);
+      const submittedAt = new Date(submittedAtEnt?.properties?.date);
+
+      const commentEnt = getSubEntWithClass("submission-comment", ent);
+      const comment = commentEnt?.properties?.html;
+      if (comment !== undefined && typeof comment !== "string")
+        return errorResult({ msg: "Unexpected comment type", data: commentEnt });
+
+      return dataResult<UserSubmission>({
+        id: lastPathComponent(l.href),
         userId: this.userId,
         dropboxId,
-        submittedAt: sub.SubmissionDate,
-        comment: sub.Comment.Html,
-      })
-    );
+        submittedAt,
+        comment,
+      });
+    });
 
-    return dataResult(submissions);
+    return await unwrapResults(results);
   }
 
   /** Fetch quizzes in a module. */
@@ -459,10 +438,9 @@ export class POLITEMallClient {
     moduleId: string,
     activityId: string
   ): Promise<Result<{ url: string; urlExpiry: Date | undefined }>> {
-    const { data: ent, error } = await this.#fetchFromBrightspace(
-      "content-service",
-      `/topics/${moduleId}/${activityId}`
-    );
+    const { data: ent, error } = await this.#fetchFromBrightspace(`/topics/${moduleId}/${activityId}`, {
+      api: "content-service",
+    });
     if (error) return errorResult(error);
 
     const thumbnailProperties = getSubEntWithClass(["thumbnail"], ent)?.properties;
@@ -479,10 +457,9 @@ export class POLITEMallClient {
     moduleId: string,
     activityId: string
   ): Promise<Result<{ url: string; urlExpiry: Date | undefined }>> {
-    const { data, error } = await this.#fetchFromBrightspace(
-      "content-service",
-      `/topics/${moduleId}/${activityId}/media`
-    );
+    const { data, error } = await this.#fetchFromBrightspace(`/topics/${moduleId}/${activityId}/media`, {
+      api: "content-service",
+    });
     if (error) return errorResult(error);
 
     const url = data.properties?.src;
@@ -510,72 +487,111 @@ export class POLITEMallClient {
     }
   }
 
+  /** Return the URL for the specified `moduleOrOrganizationId`. */
+  getImageURL(moduleOrOrganizationId: string, dim?: { width: number; height: number }): string {
+    const query = dim ? `?width=${dim.width}&height=${dim.height}` : "";
+    return `https://${this.domain}.polite.edu.sg/d2l/api/lp/1.46/courses/${moduleOrOrganizationId}/image${query}`;
+  }
+
   /**
-   * Fetch from `*.polite.edu.sg`, validating the response with the provided schema.
-   * `url` can either be a full URL or a path.
+   * Fetch from `*.polite.edu.sg`, validating the response with the
+   * provided schema (if any). `url` can either be a full URL or a path.
    */
-  async #fetchFromTenant(url: string | URL, config?: { init?: RequestInit }): Promise<Result<string>>;
+  async #fetchFromTenant(url: string | URL, config?: RequestInit): Promise<Result<string>>;
   async #fetchFromTenant<T extends z.Schema>(
     url: string | URL,
-    config?: { schema: T; init?: RequestInit }
+    config: RequestInit & { schema: T }
   ): Promise<Result<z.infer<T>>>;
-  async #fetchFromTenant(url: string | URL, config?: { schema?: z.Schema; init?: RequestInit }): Promise<Result<any>> {
+  async #fetchFromTenant<T extends z.Schema>(
+    url: string | URL,
+    config: RequestInit & { schema?: T } = {}
+  ): Promise<Result<any>> {
     // Add D2L cookies to the request headers
-    if (!config) config = {};
-    if (!config.init) config.init = {};
-    if (!config.init.headers) config.init.headers = {};
-    if (config.init.headers instanceof Headers) config.init.headers.set("Cookie", this.d2lCookies);
-    else if (Array.isArray(config.init.headers)) config.init.headers.push(["Cookie", this.d2lCookies]);
-    else config.init.headers.Cookie = this.d2lCookies;
+    const d2lCookies = `d2lSessionVal=${this.d2lSessionVal}; d2lSecureSessionVal=${this.d2lSecureSessionVal}`;
+    const { schema: _schema, ...init } = config || {};
+    this.#setReqInitHeader(init, "Cookie", d2lCookies);
 
     const fullURL = new URL(url, `https://${this.domain}.polite.edu.sg`);
 
     // Attempt to fetch
     let res: Response;
     try {
-      res = await fetch(fullURL, config.init);
+      const start = Date.now();
+
+      res = await fetch(fullURL, { ...init, signal: this.abortController.signal });
+
+      logger.debug(
+        { waitMs: Date.now() - start, sizeKB: +(res.headers.get("content-length") ?? 0) / 1000 },
+        `Fetched ${fullURL}`
+      );
     } catch (e) {
       return errorResult({ msg: `Failed to fetch ${fullURL}`, data: e });
     }
-    if (!res.ok) return errorResult({ msg: `Received status ${res.status} for ${fullURL}`, data: await res.text() });
-    if (!config.schema) return dataResult(await res.text());
-
-    // Attempt to parse the response
-    try {
-      return dataResult(config.schema.parse(await res.json()));
-    } catch (e) {
-      return errorResult({ msg: `Failed to parse response from ${fullURL}`, data: e });
-    }
-  }
-
-  /** Fetch a Siren entity from the specified Brightspace API. */
-  async #fetchFromBrightspace(apiSubdomain: string, path: string): Promise<Result<SirenEntity>>;
-  /** Fetch a Siren entity from the specified Brightspace URL. */
-  async #fetchFromBrightspace(url: string): Promise<Result<SirenEntity>>;
-  async #fetchFromBrightspace(subdomainOrFullUrl: string, path?: string): Promise<Result<SirenEntity>> {
-    let url = path ? `https://${this.tenantId}.${subdomainOrFullUrl}.api.brightspace.com${path}` : subdomainOrFullUrl;
-    let res: Response;
-
-    try {
-      res = await fetch(url, { headers: this.apiRequestHeaders });
-    } catch (e) {
-      return errorResult({
-        msg: path ? `Failed to fetch ${subdomainOrFullUrl} entity ${path}` : `Failed to fetch ${subdomainOrFullUrl}`,
-        data: e,
-      });
-    }
-
     if (!res.ok)
       return errorResult({
-        msg: `Failed to fetch ${subdomainOrFullUrl} entity ${path} (${res.status})`,
-        data: await res.text(),
+        msg: `Received status ${res.status} for ${fullURL}`,
+        data: res.headers.get("content-type") === "application/json" ? await res.json() : await res.text(),
       });
 
-    const json = await res.json();
-    const parseRes = sirenEntity.safeParse(json);
-    if (!parseRes.success)
-      return errorResult({ msg: `Unexpected ${subdomainOrFullUrl} entity response`, data: parseRes.error.issues });
+    // Return the response as a string if no schema was provided
+    if (!_schema) return dataResult(await res.text());
 
+    // Attempt to parse the response using the provided schema
+    const parseRes = _schema.safeParse(await res.json());
+    if (parseRes.success) return dataResult(parseRes.data);
+    return errorResult({ msg: `Failed to parse response from ${fullURL}`, data: parseRes.error.issues });
+  }
+
+  /** Fetch a Siren entity from the specified Brightspace API. `url` can either be a full URL or a path. */
+  async #fetchFromBrightspace(fullURL: string | URL, config?: RequestInit): Promise<Result<schema.SirenEntity>>;
+  async #fetchFromBrightspace(path: string, config: RequestInit & { api: string }): Promise<Result<schema.SirenEntity>>;
+  async #fetchFromBrightspace(
+    url: string | URL,
+    config?: RequestInit & { api?: string }
+  ): Promise<Result<schema.SirenEntity>> {
+    // Compute the full URL and add the Brightspace JWT to the request headers
+    const { api, ...init } = config || {};
+    if (api) url = new URL(url, `https://${this.tenantId}.${api}.api.brightspace.com`);
+    this.#setReqInitHeader(init, "Authorization", `Bearer ${this.brightspaceJWT}`);
+
+    // Attempt to fetch
+    let res: Response;
+    try {
+      const start = Date.now();
+
+      res = await fetch(url, { ...init, signal: this.abortController.signal });
+
+      logger.debug(
+        { waitMs: Date.now() - start, sizeKB: +(res.headers.get("content-length") ?? 0) / 1000 },
+        `Fetched ${url}`
+      );
+    } catch (e) {
+      return errorResult({ msg: `Failed to fetch ${url}`, data: e });
+    }
+    if (!res.ok)
+      return errorResult({
+        msg: `Failed to fetch ${url} (${res.status})`,
+        data: res.headers.get("content-type") === "application/json" ? await res.json() : await res.text(),
+      });
+
+    // Parse the response as a Siren entity
+    const json = await res.json();
+    const parseRes = schema.sirenEntity.safeParse(json);
+    if (!parseRes.success) return errorResult({ msg: `Unexpected ${url} response`, data: parseRes.error.issues });
     return dataResult(parseRes.data);
+  }
+
+  /** Add a header to a `RequestInit` and return it. */
+  #setReqInitHeader(init: RequestInit, name: string, value: string): RequestInit {
+    if (!init.headers) init.headers = new Headers();
+    if (init.headers instanceof Headers) init.headers.set(name, value);
+    else if (Array.isArray(init.headers)) init.headers.push([name, value]);
+    else init.headers[name] = value;
+    return init;
+  }
+
+  /** Abort all fetch requests made by the client. */
+  abort() {
+    this.abortController.abort();
   }
 }

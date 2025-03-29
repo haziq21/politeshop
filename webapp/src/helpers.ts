@@ -1,4 +1,4 @@
-import type { Result } from "./types";
+import type { Awaitable, Result } from "./types";
 
 type ResultError<T> = Exclude<Result<T>, { error: null }>["error"];
 
@@ -11,22 +11,22 @@ export function errorResult<T>(error: ResultError<T>): Result<T> {
 }
 
 /**
- * Reduces `Promise<Result<T>>[]` into a `Promise<Result<T[]>>` that runs in parallel (via `Promise.all()`)
- * and rejects when one of the input `Promise<Result<T>>` values resolves to an error result.
+ * Reduces `Awaitable<Result<T>>[]` into a `Promise<Result<T[]>>` that runs in parallel (via `Promise.all()`)
+ * and rejects when one of the input `Awaitable<Result<T>>` values resolves to an error result.
  */
-export async function unwrapResults<T extends any[]>(resultPromises: {
-  [K in keyof T]: Promise<Result<T[K]>>;
+export async function unwrapResults<T extends any[]>(results: {
+  [K in keyof T]: Awaitable<Result<T[K]>>;
 }): Promise<Result<T>> {
   try {
-    const results = (await Promise.all(
-      resultPromises.map(async (r) => {
+    const combinedResult = (await Promise.all(
+      results.map(async (r) => {
         const { data, error } = await r;
         if (error) throw error;
         return data;
       })
     )) as T;
 
-    return dataResult(results);
+    return dataResult(combinedResult);
   } catch (error) {
     return errorResult(error as ResultError<T>);
   }
