@@ -516,14 +516,7 @@ export class POLITEMallClient {
     // Attempt to fetch
     let res: Response;
     try {
-      const start = Date.now();
-
-      res = await fetch(fullURL, { ...init, signal: this.abortController.signal });
-
-      logger.debug(
-        { waitMs: Date.now() - start, sizeKB: +(res.headers.get("content-length") ?? 0) / 1000 },
-        `Fetched ${fullURL}`
-      );
+      res = await this.#fetch(fullURL, { ...init, signal: this.abortController.signal });
     } catch (e) {
       return errorResult({ msg: `Failed to fetch ${fullURL}`, data: e });
     }
@@ -557,14 +550,7 @@ export class POLITEMallClient {
     // Attempt to fetch
     let res: Response;
     try {
-      const start = Date.now();
-
-      res = await fetch(url, { ...init, signal: this.abortController.signal });
-
-      logger.debug(
-        { waitMs: Date.now() - start, sizeKB: +(res.headers.get("content-length") ?? 0) / 1000 },
-        `Fetched ${url}`
-      );
+      res = await this.#fetch(url, init);
     } catch (e) {
       return errorResult({ msg: `Failed to fetch ${url}`, data: e });
     }
@@ -575,10 +561,32 @@ export class POLITEMallClient {
       });
 
     // Parse the response as a Siren entity
-    const json = await res.json();
+    let json;
+    try {
+      json = await res.json();
+    } catch (e) {
+      return errorResult({ msg: `Failed to parse ${url} response as JSON`, data: e });
+    }
+
     const parseRes = schema.sirenEntity.safeParse(json);
     if (!parseRes.success) return errorResult({ msg: `Unexpected ${url} response`, data: parseRes.error.issues });
     return dataResult(parseRes.data);
+  }
+
+  async #fetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+    const start = Date.now();
+
+    const res = await fetch(input, {
+      ...init,
+      signal: this.abortController.signal,
+    } as NodeRequestInit);
+
+    logger.debug(
+      { waitMs: Date.now() - start, sizeKB: +(res.headers.get("content-length") ?? 0) / 1000 },
+      `Fetched ${input instanceof Request ? input.url : input}`
+    );
+
+    return res;
   }
 
   /** Add a header to a `RequestInit` and return it. */
