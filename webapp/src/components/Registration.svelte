@@ -10,8 +10,9 @@
     if (error) errorOccurred = true;
     else {
       document.cookie = `politeshopJWT=${data}; SameSite=None; Secure`;
-      await actions.syncData();
-      window.location.href = "/d2l/home";
+      const { error: syncError } = await actions.syncData();
+      if (syncError) errorOccurred = true;
+      else window.location.href = "/d2l/home";
     }
   });
 </script>
