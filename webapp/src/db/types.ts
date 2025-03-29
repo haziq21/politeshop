@@ -48,3 +48,5 @@ export type AnyActivity =
   | SubmissionActivity
   | QuizActivity
   | UnknownActivity;
+
+export type AnyActivityWithName = AnyActivity & { name: string };

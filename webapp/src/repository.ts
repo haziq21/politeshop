@@ -29,6 +29,7 @@ import {
   submissionDropbox,
   type Quiz,
   quiz,
+  type AnyActivityWithName,
 } from "./db";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
@@ -44,7 +45,7 @@ export class Repository {
     /** Map of module IDs to activity folders. */
     activityFolders?: Map<string, ActivityFolder[]>;
     /** Map of module IDs to activities. */
-    activities?: Map<string, AnyActivity[]>;
+    activities?: Map<string, AnyActivityWithName[]>;
   } = {};
 
   constructor(public userId: string) {}
@@ -204,7 +205,11 @@ export class Repository {
     const cachedFolders = this.data.activityFolders?.get(moduleId);
     if (cachedFolders) return cachedFolders;
 
-    const folders = await db.select().from(activityFolder).where(eq(activityFolder.moduleId, moduleId));
+    const folders = await db
+      .select()
+      .from(activityFolder)
+      .where(eq(activityFolder.moduleId, moduleId))
+      .orderBy(activityFolder.sortOrder);
 
     if (!this.data.activityFolders) this.data.activityFolders = new Map();
     this.data.activityFolders.set(moduleId, folders);
@@ -231,7 +236,7 @@ export class Repository {
   }
 
   /** Get the activities with the specified `moduleId`. */
-  async activities(moduleId: string): Promise<AnyActivity[]> {
+  async activities(moduleId: string): Promise<AnyActivityWithName[]> {
     const cachedActivities = this.data.activities?.get(moduleId);
     if (cachedActivities) return cachedActivities;
 
@@ -245,17 +250,21 @@ export class Repository {
         .leftJoin(docEmbedActivity, eq(docEmbedActivity.id, activity.id))
         .leftJoin(videoEmbedActivity, eq(videoEmbedActivity.id, activity.id))
         .leftJoin(submissionActivity, eq(submissionActivity.id, activity.id))
+        .leftJoin(submissionDropbox, eq(submissionDropbox.id, submissionActivity.dropboxId))
         .leftJoin(quizActivity, eq(quizActivity.id, activity.id))
+        .leftJoin(quiz, eq(quiz.id, quizActivity.quizId))
         .where(eq(activityFolder.moduleId, moduleId))
+        .orderBy(activity.sortOrder)
     ).map((a) => {
       if (a.activity.type === "html") return { ...a.activity, ...a.html_activity };
       if (a.activity.type === "web_embed") return { ...a.activity, ...a.web_embed_activity };
       if (a.activity.type === "doc_embed") return { ...a.activity, ...a.doc_embed_activity };
       if (a.activity.type === "video_embed") return { ...a.activity, ...a.video_embed_activity };
-      if (a.activity.type === "submission") return { ...a.activity, ...a.submission_activity };
-      if (a.activity.type === "quiz") return { ...a.activity, ...a.quiz_activity };
+      if (a.activity.type === "submission")
+        return { ...a.activity, ...a.submission_activity, name: a.submission_dropbox!.name };
+      if (a.activity.type === "quiz") return { ...a.activity, ...a.quiz_activity, name: a.quiz!.name };
       return a.activity;
-    }) as AnyActivity[];
+    }) as AnyActivityWithName[];
 
     if (!this.data.activities) this.data.activities = new Map();
     this.data.activities.set(moduleId, activities);
