@@ -13,6 +13,7 @@ export const user = pgTable("user", {
   organizationId: text("organization_id")
     .notNull()
     .references(() => organization.id),
+  sourceCredentials: text("source_credentials").notNull(),
 });
 
 export const semester = pgTable("semester", {

@@ -1,30 +1,38 @@
-import { Message } from "../../shared";
+import browser from "webextension-polyfill";
+import { log } from "./logging";
 
-export type ExtMessage =
-  | Message<"SET_POLITESHOP_COOKIES", { brightspaceJWT: string; currentURL: string }>
-  | Message<"RELOAD">;
+export function defineBackgroundFunc<T extends (...args: any[]) => any>(
+  name: string,
+  listener: T
+): (...args: Parameters<T>) => Promise<ReturnType<T>> {
+  type RPCMsg = { name: string; args: any[] };
 
-/** Send a message from the content script to the background worker. */
-export async function msgBackground(message: ExtMessage): Promise<void> {
-  await chrome.runtime.sendMessage(message);
-}
+  // When defineBackgroundFunc() is called in the background
+  // script, we register it as an onMessage listener
+  if (process.env.IN_WORKER) {
+    browser.runtime.onMessage.addListener(((msg: RPCMsg, _, sendResponse) => {
+      log(`Received RPC for ${msg.name}(${msg.args.map((a) => JSON.stringify(a)).join(", ")})`);
 
-/** Type-safe wrapper of `chrome.runtime.onMessage.addListener()`. */
-export function addMessageListener<T extends ExtMessage["type"]>(
-  messageType: T,
-  callback: (
-    payload: Extract<ExtMessage, { type: T }> extends { payload: infer P } ? P : undefined
-  ) => void | Promise<void>
-) {
-  chrome.runtime.onMessage.addListener((msg: ExtMessage, _, sendResponse) => {
-    if (msg.type !== messageType) return;
+      if (msg.name !== name) return;
 
-    const payload = (msg as any).payload;
-    const res = callback(payload);
+      const res = listener(...msg.args);
 
-    if (res instanceof Promise) {
-      res.then(sendResponse);
-      return true; // Indicates that sendResponse will be called asynchronously
-    }
-  });
+      if (res instanceof Promise) {
+        res.then(sendResponse);
+        return true; // Indicates that sendResponse() will be called asynchronously
+      }
+
+      // If the result is not a promise, we can send it immediately
+      sendResponse(res);
+    }) as browser.Runtime.OnMessageListener);
+  }
+
+  return (...args: any[]) =>
+    !process.env.IN_WORKER
+      ? // When the function is called in the content script,
+        // we just send a message to the background script
+        browser.runtime.sendMessage(<RPCMsg>{ name, args })
+      : // When the function is called in the background
+        // script, we call the handler directly
+        listener(...args);
 }

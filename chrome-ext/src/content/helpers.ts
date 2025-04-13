@@ -1,15 +1,26 @@
-import { log } from "../logging";
-import { msgBackground } from "../message";
+import { reload } from "../background";
 
-export async function overwritePage(): Promise<HTMLIFrameElement> {
-  const res = await fetch(chrome.runtime.getURL("base.html"));
-  const baseHTML = await res.text();
+/** Return `true` if the `politeshopJWT` matches `d2lSessionVal`
+ * and `d2lSecureSessionVal`, and `false` otherwise.
+ */
+export async function verifyPOLITEShopJWTConsistency(
+  politeshopJWT: string,
+  {
+    d2lSessionVal,
+    d2lSecureSessionVal,
+  }: {
+    d2lSessionVal: string;
+    d2lSecureSessionVal: string;
+  }
+): Promise<boolean> {
+  const body = getJWTBody(politeshopJWT);
+  if (!body || typeof body.d2lSessionHashSalt !== "string") return false;
 
-  document.open();
-  document.write(baseHTML);
-  document.close();
+  const expectedHash = await hashStringToBase64url(
+    `${d2lSessionVal}:${d2lSecureSessionVal}:${body.d2lSessionHashSalt}`
+  );
 
-  return document.getElementById("politeshop") as HTMLIFrameElement;
+  return body.d2lSessionHash === expectedHash;
 }
 
 export function getBrightspaceToken(): string {
@@ -17,22 +28,41 @@ export function getBrightspaceToken(): string {
   return JSON.parse(localStorage.getItem("D2L.Fetch.Tokens")!)["*:*:*"].access_token;
 }
 
-export function getCSRFToken(): string {
+/** Return the body of a JWT, or `null` if the JWT is invalid. */
+export function getJWTBody(jwt: string): Record<string, unknown> | null {
+  const payload = jwt.split(".").at(1);
+  if (!payload) return null;
   // TODO: Better error handling
-  return localStorage.getItem("XSRF.Token")!;
+  const decodedPayload = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+  return JSON.parse(decodedPayload);
 }
 
-export function connectDevServer() {
-  log("Connecting to dev server...");
+/** Return the SHA-256 hash of a string in base64url format. */
+export async function hashStringToBase64url(str: string): Promise<string> {
+  const data = new TextEncoder().encode(str);
+  const hashBuff = await crypto.subtle.digest("SHA-256", data);
+  return btoa(String.fromCharCode(...new Uint8Array(hashBuff)))
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
 
-  // Connect to SSE dev server
-  const sse = new EventSource(process.env.DEV_SERVER!);
-  sse.onmessage = async (event) => {
-    if (event.data === "reload") {
-      await msgBackground({ type: "RELOAD" });
-      window.location.reload();
-    } else {
-      console.log(`Unknown message from dev server: ${event.data}`);
-    }
-  };
+/** Send the user's d2lSessionVal and d2lSecureSessionVal to POLITEShop's database. */
+export async function registerSourceCredentials(credentials: { d2lSessionVal: string; d2lSecureSessionVal: string }) {
+  const url = `${process.env.POLITESHOP_URL!}/shop/register-source-credentials`;
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials),
+  });
+}
+
+/** Initialize the SSE connection to the live reload server, for use during development. */
+export function initReloadClient() {
+  const eventSource = new EventSource(`${process.env.DEV_SERVER!}/esbuild`);
+  eventSource.addEventListener("open", reload);
+  eventSource.addEventListener("change", async () => {
+    await reload();
+    window.location.reload();
+  });
 }

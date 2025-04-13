@@ -23,8 +23,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const path = new URL(context.request.url).pathname.replace(/\/$/, "");
     if (path === "/register" || path === "/_actions/getPOLITEShopJWT") return next();
 
-    console.log(`Redirecting ${context.request.url} to /register`);
-    return context.redirect("/register");
+    console.log(`Redirecting ${context.request.url} to /shop/register`);
+    return context.redirect("/shop/register");
   }
 
   // Get the user ID from the politeshopJWT.

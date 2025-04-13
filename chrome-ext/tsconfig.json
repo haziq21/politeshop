@@ -20,8 +20,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
-    // Type-checking for Node (dev server) and Chrome extension APIs
-    "types": ["node", "chrome-types"]
+    // Type-checking for Node (dev server)
+    "types": ["node"]
   },
-  "include": ["src", "../shared/index.ts"]
+  "include": ["src", "../shared/index.ts", "scripts"]
 }

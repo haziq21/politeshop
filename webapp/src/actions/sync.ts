@@ -1,10 +1,10 @@
 import { ActionError, defineAction } from "astro:actions";
-import { dataResult, errorResult, unwrapResults } from "../helpers";
+import { dataResult, errorResult, unwrapResults } from "../../../shared";
 import { logger } from "../logging";
 import type { Module, SubmissionDropbox, UserSubmission } from "../db";
 import { GoogleGenerativeAI, SchemaType, type GenerationConfig } from "@google/generative-ai";
 import { GEMINI_API_KEY } from "astro:env/server";
-import type { Result } from "../types";
+import type { Result } from "../../../shared";
 
 // TODO: Return changed data
 export const syncData = defineAction({

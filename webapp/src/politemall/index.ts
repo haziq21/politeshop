@@ -1,4 +1,4 @@
-import type { Result } from "../types";
+import type { Result } from "../../../shared";
 import * as schema from "./schema";
 import type {
   AnyActivity,
@@ -19,7 +19,7 @@ import type {
   Quiz,
 } from "../db";
 import * as jose from "jose";
-import { dataResult, errorResult, unwrapResults } from "../helpers";
+import { dataResult, errorResult, unwrapResults } from "../../../shared";
 import { getLinkWithClass, getSubEntWithClass, lastPathComponent } from "./helpers";
 import { parse as parseDate, addSeconds } from "date-fns";
 import { z } from "zod";

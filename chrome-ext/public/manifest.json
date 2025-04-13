@@ -3,21 +3,23 @@
   "name": "POLITEShop",
   "description": "Custom POLITEMall interface.",
   "version": "1.0",
-  "host_permissions": ["https://*.polite.edu.sg/", "http://localhost/"],
+  "host_permissions": ["https://*.polite.edu.sg/", "http://localhost:4321/"],
   "permissions": ["cookies"],
   "content_scripts": [
     {
       "js": ["content.js"],
-      "run_at": "document_start",
-      "matches": ["https://*.polite.edu.sg/*"]
+      "matches": ["https://*.polite.edu.sg/d2l/home", "https://*.polite.edu.sg/d2l/home/**"],
+      "run_at": "document_start"
     }
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module",
+    "scripts": ["background.js"]
   },
   "web_accessible_resources": [
     {
-      "resources": ["*"],
+      "resources": ["base.html"],
       "matches": ["https://*.polite.edu.sg/*"]
     }
   ]
