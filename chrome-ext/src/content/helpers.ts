@@ -1,4 +1,4 @@
-import { reload } from "../background";
+import { funcs } from "../background";
 
 /** Return `true` if the `politeshopJWT` matches `d2lSessionVal`
  * and `d2lSecureSessionVal`, and `false` otherwise.
@@ -60,9 +60,9 @@ export async function registerSourceCredentials(credentials: { d2lSessionVal: st
 /** Initialize the SSE connection to the live reload server, for use during development. */
 export function initReloadClient() {
   const eventSource = new EventSource(`${process.env.DEV_SERVER!}/esbuild`);
-  eventSource.addEventListener("open", reload);
+  eventSource.addEventListener("open", funcs.reload);
   eventSource.addEventListener("change", async () => {
-    await reload();
+    await funcs.reload();
     window.location.reload();
   });
 }

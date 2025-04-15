@@ -1,5 +1,5 @@
 import { WindowMessage } from "../../../shared";
-import { getCookie } from "../background";
+import { funcs } from "../background";
 import { log } from "../logging";
 import { initReloadClient, registerSourceCredentials, verifyPOLITEShopJWTConsistency } from "./helpers";
 
@@ -7,9 +7,8 @@ log("POLITEShop is running!");
 
 const POLITESHOP_URL = process.env.POLITESHOP_URL!;
 
-// TODO: Add CORS to dev server
 // Connect to the development server for live reloading
-// if (process.env.ENVIRONMENT === "development") initReloadClient();
+if (process.env.ENVIRONMENT === "development") initReloadClient();
 
 // Listen for messages from the POLITEShop iframe
 window.addEventListener("message", (event: MessageEvent<WindowMessage>) => {
@@ -26,9 +25,9 @@ window.addEventListener("message", (event: MessageEvent<WindowMessage>) => {
 
   // Retrieve all the relevant cookies
   const [d2lSessionVal, d2lSecureSessionVal, politeshopJWT] = await Promise.all([
-    getCookie({ name: "d2lSessionVal", url: window.location.toString() }),
-    getCookie({ name: "d2lSecureSessionVal", url: window.location.toString() }),
-    getCookie({ name: "politeshopJWT", url: POLITESHOP_URL }),
+    funcs.getCookie({ name: "d2lSessionVal", url: window.location.toString() }),
+    funcs.getCookie({ name: "d2lSecureSessionVal", url: window.location.toString() }),
+    funcs.getCookie({ name: "politeshopJWT", url: POLITESHOP_URL }),
   ]);
 
   log(`d2lSessionVal: ${d2lSessionVal}`);
