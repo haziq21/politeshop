@@ -59,7 +59,7 @@ export async function registerSourceCredentials(credentials: { d2lSessionVal: st
 
 /** Initialize the SSE connection to the live reload server, for use during development. */
 export function initReloadClient() {
-  const eventSource = new EventSource(`${process.env.DEV_SERVER!}/esbuild`);
+  const eventSource = new EventSource(process.env.LIVE_RELOAD_URL!);
   eventSource.addEventListener("open", funcs.reload);
   eventSource.addEventListener("change", async () => {
     await funcs.reload();

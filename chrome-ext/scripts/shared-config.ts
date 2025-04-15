@@ -10,7 +10,7 @@ const shared: esbuild.BuildOptions = {
 export const workerConfig: esbuild.BuildOptions = {
   ...shared,
   entryPoints: {
-    background: "src/background.ts",
+    background: "src/background/index.ts",
   },
 };
 
@@ -19,6 +19,5 @@ export const contentConfig: esbuild.BuildOptions = {
   entryPoints: {
     content: "src/content/index.ts",
     manifest: "public/manifest.json",
-    base: "public/base.html",
   },
 };
