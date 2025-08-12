@@ -1,0 +1,149 @@
+openapi: 3.0.0
+info:
+  title: POLITEMall D2L API
+  version: 1.0.0
+  description: |
+    API for `*.polite.edu.sg` endpoints used by the POLITEMall client.
+servers:
+  - url: "https://{domain}.polite.edu.sg"
+    variables:
+      domain:
+        default: "nplms"
+        description: "The subdomain for the POLITEMall instance (e.g., nplms, nyp-politemall)."
+tags:
+  - name: Users
+    description: Operations related to users.
+  - name: Courses
+    description: Operations related to courses and course content.
+paths:
+  /d2l/api/lp/1.0/users/whoami:
+    get:
+      summary: Get current user information
+      tags:
+        - Users
+      description: Fetches basic information about the currently authenticated user.
+      operationId: whoami
+      security:
+        - d2lSession: []
+      responses:
+        "200":
+          description: "Successful response with user data."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhoamiResponse"
+        "403":
+          description: "Forbidden. The session cookies are likely invalid or expired."
+
+  /d2l/api/le/manageCourses/courses-searches/{userId}/BySemester:
+    get:
+      summary: Get semesters for a user
+      tags:
+        - Courses
+      description: Fetches a list of semesters for a given user.
+      operationId: getSemesters
+      security:
+        - d2lSession: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The ID of the user.
+          schema:
+            type: string
+        - name: desc
+          in: query
+          description: "Sort order (1 for descending)."
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: "A Siren entity containing the list of semesters in its actions."
+          content:
+            application/json:
+              schema:
+                $ref: "siren-schemas.yaml#/components/schemas/SemesterListEntity"
+        "403":
+          description: "Forbidden. The session cookies are likely invalid or expired."
+
+  /d2l/api/le/1.12/{moduleId}/content/topics/{id}/file:
+    get:
+      summary: Get activity file content
+      tags:
+        - Courses
+      description: Fetches the content of a file associated with an activity.
+      operationId: getActivityFile
+      security:
+        - d2lSession: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: The ID of the module.
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          description: The ID of the activity (topic).
+          schema:
+            type: string
+        - name: stream
+          in: query
+          description: "Stream the file content."
+          schema:
+            type: boolean
+            default: true
+      responses:
+        "200":
+          description: "The content of the file. This could be HTML or any other file type."
+          content:
+            text/html:
+              schema:
+                type: string
+                format: html
+            application/octet-stream:
+              description: "The file content for non-HTML files."
+              schema:
+                type: string
+                format: binary
+        "403":
+          description: "Forbidden. The session cookies are likely invalid or expired."
+
+components:
+  securitySchemes:
+    d2lSession:
+      type: apiKey
+      in: cookie
+      name: d2lSessionVal
+  schemas:
+    WhoamiResponse:
+      type: object
+      required:
+        - Identifier
+        - FirstName
+        - LastName
+        - UniqueName
+        - ProfileIdentifier
+      properties:
+        Identifier:
+          type: string
+          description: The user's ID.
+          example: "12345"
+        FirstName:
+          type: string
+          description: The user's first name.
+          example: "John"
+        LastName:
+          type: string
+          description: The user's last name.
+          example: "Doe"
+        UniqueName:
+          type: string
+          description: The user's email address.
+          format: email
+          example: "john.doe@example.com"
+        ProfileIdentifier:
+          type: string
+          example: "johndoe1"

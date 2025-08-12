@@ -1,0 +1,53 @@
+openapi: 3.0.0
+info:
+  title: POLITEMall Brightspace Content Service API
+  version: 1.0.0
+  description: |
+    API for the `content-service.api.brightspace.com` subdomain, used by the POLITEMall client.
+    This is a hypermedia API that uses the Siren format.
+servers:
+  - url: "https://{tenantId}.content-service.api.brightspace.com"
+    variables:
+      tenantId:
+        default: "example-tenant"
+        description: The ID of the Brightspace tenant.
+tags:
+  - name: Content
+    description: Operations related to content topics and media.
+paths:
+  /content-service/topics/{moduleId}/{activityId}/media:
+    get:
+      summary: Get topic media
+      tags:
+        - Content
+      description: Fetches media information for a content topic, typically a video.
+      operationId: getTopicMedia
+      security:
+        - brightspaceJWT: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: The ID of the module.
+          schema:
+            type: string
+        - name: activityId
+          in: path
+          required: true
+          description: The ID of the activity (topic).
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "A Siren entity containing information about the media."
+          content:
+            application/json:
+              schema:
+                $ref: "siren-schemas.yaml#/components/schemas/ContentServiceMediaEntity"
+        "403":
+          description: "Forbidden. The JWT is likely invalid or expired."
+
+components:
+  securitySchemes:
+    brightspaceJWT:
+      $ref: "components.yaml#/components/securitySchemes/brightspaceJWT"

@@ -1,0 +1,53 @@
+openapi: 3.0.0
+info:
+  title: POLITEMall Brightspace Enrollments API
+  version: 1.0.0
+  description: |
+    API for the `enrollments.api.brightspace.com` subdomain, used by the POLITEMall client.
+    This is a hypermedia API that uses the Siren format.
+servers:
+  - url: "https://{tenantId}.enrollments.api.brightspace.com"
+    variables:
+      tenantId:
+        default: "example-tenant"
+        description: The ID of the Brightspace tenant.
+tags:
+  - name: Enrollments
+    description: Operations related to user course enrollments.
+paths:
+  /users/{userId}:
+    get:
+      summary: Get user enrollments
+      tags:
+        - Enrollments
+      description: Fetches the list of a user's course enrollments.
+      operationId: getUserEnrollments
+      security:
+        - brightspaceJWT: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The ID of the user.
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          description: "The number of results to return per page."
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: "A Siren entity representing the user's enrollments."
+          content:
+            application/json:
+              schema:
+                $ref: "siren-schemas.yaml#/components/schemas/UserEnrollmentsEntity"
+        "403":
+          description: "Forbidden. The JWT is likely invalid or expired."
+
+components:
+  securitySchemes:
+    brightspaceJWT:
+      $ref: "components.yaml#/components/securitySchemes/brightspaceJWT"
