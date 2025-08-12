@@ -1,0 +1,432 @@
+# This file contains detailed schemas for the various Siren entity structures
+# returned by the Brightspace and D2L APIs.
+
+components:
+  schemas:
+    # --------------------------------------------------------------------------
+    # Base Siren Schemas
+    # --------------------------------------------------------------------------
+    SirenEntity:
+      type: object
+      description: "A generic Siren hypermedia entity. The structure of properties and sub-entities depends on the specific resource."
+      properties:
+        class:
+          type: array
+          items:
+            type: string
+        properties:
+          type: object
+        entities:
+          type: array
+          items:
+            $ref: "#/components/schemas/SirenEntity"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/SirenLink"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SirenAction"
+        href:
+          type: string
+          format: uri
+
+    SirenLink:
+      type: object
+      required:
+        - rel
+        - href
+      properties:
+        class:
+          type: array
+          items:
+            type: string
+        rel:
+          type: array
+          items:
+            type: string
+        href:
+          type: string
+          format: uri
+        title:
+          type: string
+        type:
+          type: string
+
+    SirenAction:
+      type: object
+      required:
+        - name
+        - href
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        method:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+          default: GET
+        href:
+          type: string
+          format: uri
+        type:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/SirenActionField"
+
+    SirenActionField:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [hidden, text, search, tel, url, email, password, datetime, date, month, week, time, datetime-local, number, range, color, checkbox, radio, file]
+          default: text
+        value:
+          type: object
+        title:
+          type: string
+
+    # --------------------------------------------------------------------------
+    # Specific Siren Entity Schemas for Brightspace API
+    # --------------------------------------------------------------------------
+
+    UserEnrollmentsEntity:
+      description: "A Siren entity representing a user's enrollments. Returned by `GET /users/{userId}` on the `enrollments` subdomain."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              items:
+                type: string
+              example: ["enrollments", "collection"]
+            entities:
+              type: array
+              items:
+                $ref: "#/components/schemas/EnrollmentSubEntity"
+            links:
+              type: array
+              items:
+                $ref: "#/components/schemas/SirenLink"
+              example:
+                - rel: [self]
+                  href: "https://.../users/12345"
+                - rel: [next]
+                  href: "https://.../users/12345?pageSize=100&page=2"
+
+    EnrollmentSubEntity:
+      description: "A sub-entity within the UserEnrollmentsEntity, representing a single course enrollment."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              items:
+                type: string
+              example: ["enrollment"]
+            rel:
+              type: array
+              items:
+                type: string
+              example: ["https://api.brightspace.com/rels/user-enrollment"]
+            href:
+              type: string
+              format: uri
+              description: "A link to the full EnrollmentDetailEntity."
+            links:
+              type: array
+              items:
+                $ref: "#/components/schemas/SirenLink"
+              description: "Contains a link to the organization (course) entity."
+              example:
+                - rel: ["https://api.brightspace.com/rels/organization"]
+                  href: "https://.../organizations/67890"
+
+    OrganizationEntity_School:
+      description: "An organization entity that represents a school. It's the top-level organization for a user."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            properties:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: "The name of the school."
+                  example: "School of Engineering"
+            entities:
+              type: array
+              items:
+                $ref: "#/components/schemas/CourseImageLinkEntity"
+            links:
+              type: array
+              items:
+                $ref: "#/components/schemas/SirenLink"
+              description: "Must contain a 'self' link."
+
+    OrganizationEntity_Module:
+      description: "An organization entity that represents a course module."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            properties:
+              type: object
+              required:
+                - name
+                - code
+              properties:
+                name:
+                  type: string
+                  description: "The name of the module."
+                  example: "Introduction to Programming"
+                code:
+                  type: string
+                  description: "The module code."
+                  example: "PROG101"
+            entities:
+              type: array
+              items:
+                $ref: "#/components/schemas/CourseImageLinkEntity"
+            links:
+              type: array
+              items:
+                $ref: "#/components/schemas/SirenLink"
+              description: "Must contain a 'parent-semester' link."
+
+    CourseImageLinkEntity:
+      description: "A sub-entity that links to a CourseImageEntity."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              items:
+                type: string
+              example: ["course-image"]
+            href:
+              type: string
+              format: uri
+              description: "A link to the CourseImageEntity."
+
+    CourseImageEntity:
+      description: "An entity that contains links to the actual course image URLs in various sizes."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            links:
+              type: array
+              items:
+                $ref: "#/components/schemas/SirenLink"
+              description: "Contains links to image files. The client looks for specific classes like ['banner', 'wide', 'max'] or ['tile', 'mid']."
+
+    ModuleSequenceEntity:
+      description: "The root entity for a module's content, returned by `GET /sequences/{moduleId}`. It contains a tree of folders and activities."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            entities:
+              type: array
+              items:
+                $ref: "#/components/schemas/SequenceNodeEntity"
+
+    SequenceNodeEntity:
+      description: "Represents a node in the module content sequence tree. It can be a folder or an activity."
+      oneOf:
+        - $ref: "#/components/schemas/SequenceFolderEntity"
+        - $ref: "#/components/schemas/SequencedActivityEntity"
+
+    SequenceFolderEntity:
+      description: "A folder (or 'unit') in the module content sequence."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              items:
+                type: string
+              example: ["release-condition-fix", "sequence", "sequence-description"]
+            properties:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                  example: "Unit 1: Getting Started"
+                description:
+                  type: string
+                  example: "This unit covers the basics."
+            entities:
+              type: array
+              description: "Contains child nodes (folders or activities)."
+              items:
+                $ref: "#/components/schemas/SequenceNodeEntity"
+            links:
+              type: array
+              description: "Contains self, organization, and up links."
+
+    SequencedActivityEntity:
+      description: "An activity within the module content sequence."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              items:
+                type: string
+              example: ["sequenced-activity"]
+            properties:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                  example: "Lecture 1: Introduction"
+            entities:
+              type: array
+              description: "Contains one sub-entity that defines the specific activity type."
+              items:
+                $ref: "#/components/schemas/AnyActivitySubEntity"
+            links:
+              type: array
+              description: "Contains self, organization, and up links."
+
+    AnyActivitySubEntity:
+      description: "A union of all possible activity sub-entity types."
+      oneOf:
+        - $ref: "#/components/schemas/FileActivityEntity"
+        - $ref: "#/components/schemas/LinkActivityEntity"
+        - $ref: "#/components/schemas/ContentServiceActivityEntity"
+        - $ref: "#/components/schemas/WebEmbedActivityEntity"
+
+    FileActivityEntity:
+      description: "An activity that involves a file, which could be an HTML page or a document."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              example: ["activity", "file-activity"]
+            entities:
+              type: array
+              description: "Contains a sub-entity with class 'file'."
+              items:
+                $ref: "#/components/schemas/FileSubEntity"
+
+    FileSubEntity:
+      description: "The actual file entity within a FileActivityEntity."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              example: ["file"]
+            properties:
+              type: object
+              properties:
+                type:
+                  type: string
+                  description: "The MIME type of the file."
+                  example: "text/html"
+
+    LinkActivityEntity:
+      description: "An activity that is a simple link, like a quiz or submission folder."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              example: ["activity", "link-activity", "link-plain"]
+            links:
+              type: array
+              description: "Contains an 'about' link whose `type` query parameter indicates the activity type (e.g., 'quiz')."
+
+    ContentServiceActivityEntity:
+      description: "An activity that links to a content-service resource, like a video."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              example: ["activity", "link-activity", "link-content-service"]
+            href:
+              type: string
+              format: uri
+              description: "A link to the ContentServiceMediaEntity."
+
+    WebEmbedActivityEntity:
+      description: "An activity that embeds an external web page."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            class:
+              type: array
+              example: ["activity", "link-activity", "link-plain", "external"]
+            links:
+              type: array
+              description: "Contains an 'about' link with the URL to embed."
+
+    ContentServiceMediaEntity:
+      description: "An entity from the content-service API, containing a link to the media source."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            properties:
+              type: object
+              required:
+                - src
+              properties:
+                src:
+                  type: string
+                  format: uri
+                  description: "The URL to the media file. May have an expiry time."
+                  example: "https://content-service.brightspace.com/..."
+
+    # --------------------------------------------------------------------------
+    # Specific Siren Entity Schemas for D2L API
+    # --------------------------------------------------------------------------
+
+    SemesterListEntity:
+      description: "A Siren entity returned by the D2L `courses-searches` endpoint. The semesters are in the `actions` array."
+      allOf:
+        - $ref: "#/components/schemas/SirenEntity"
+        - type: object
+          properties:
+            actions:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: "The ID of the semester."
+                  title:
+                    type: string
+                    description: "The name of the semester."

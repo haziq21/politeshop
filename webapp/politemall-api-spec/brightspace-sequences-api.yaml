@@ -1,0 +1,62 @@
+openapi: 3.0.0
+info:
+  title: POLITEMall Brightspace Sequences API
+  version: 1.0.0
+  description: |
+    API for the `sequences.api.brightspace.com` subdomain, used by the POLITEMall client.
+    This is a hypermedia API that uses the Siren format.
+servers:
+  - url: "https://{tenantId}.sequences.api.brightspace.com"
+    variables:
+      tenantId:
+        default: "example-tenant"
+        description: The ID of the Brightspace tenant.
+tags:
+  - name: Sequences
+    description: Operations related to course content sequences (table of contents).
+paths:
+  /sequences/{moduleId}:
+    get:
+      summary: Get module content sequence
+      tags:
+        - Sequences
+      description: Fetches the content sequence (table of contents) for a module.
+      operationId: getModuleSequence
+      security:
+        - brightspaceJWT: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: The ID of the module (organization unit).
+          schema:
+            type: string
+        - name: deepEmbedEntities
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: embedDepth
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: filterOnDatesAndDepth
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: "A Siren entity representing the module's content sequence."
+          content:
+            application/json:
+              schema:
+                $ref: "siren-schemas.yaml#/components/schemas/ModuleSequenceEntity"
+        "403":
+          description: "Forbidden. The JWT is likely invalid or expired."
+
+components:
+  securitySchemes:
+    brightspaceJWT:
+      $ref: "components.yaml#/components/securitySchemes/brightspaceJWT"
