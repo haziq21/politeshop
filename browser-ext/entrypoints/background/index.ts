@@ -1,3 +1,18 @@
+import { defineBackground } from "wxt/utils/define-background";
+
+/**
+ * A string hashing function.
+ *
+ * @see http://www.cse.yorku.ca/~oz/hash.html
+ */
+function djb2Hash(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) + hash + str.charCodeAt(i);
+  }
+  return hash;
+}
+
 const POLITESHOP_HOSTNAME = process.env.POLITESHOP_HOSTNAME ?? "localhost";
 
 const HEADER_MAPPINGS = {
@@ -41,30 +56,32 @@ async function setSessionCredentials(credentials: SessionCredential[]) {
   });
 }
 
-browser.cookies.onChanged.addListener(async ({ cookie, removed }) => {
-  if (removed) return; // Only update our declarativeNetRequest rules when new cookies are set
-  if (cookie.name !== "d2lSessionVal" && cookie.name !== "d2lSecureSessionVal") return;
-  if (!/^(.+\.)?polite\.edu\.sg$/.test(cookie.domain)) return;
-  await setSessionCredentials([{ name: cookie.name, value: cookie.value, domain: cookie.domain }]);
-});
+export default defineBackground(() => {
+  browser.cookies.onChanged.addListener(async ({ cookie, removed }) => {
+    if (removed) return; // Only update our declarativeNetRequest rules when new cookies are set
+    if (cookie.name !== "d2lSessionVal" && cookie.name !== "d2lSecureSessionVal") return;
+    if (!/^(.+\.)?polite\.edu\.sg$/.test(cookie.domain)) return;
+    await setSessionCredentials([{ name: cookie.name, value: cookie.value, domain: cookie.domain }]);
+  });
 
-browser.runtime.onStartup.addListener(async () => {
-  const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
-  const cookies = (await Promise.all(cookiesToGet.map((name) => browser.cookies.getAll({ name })))).flat();
+  browser.runtime.onStartup.addListener(async () => {
+    const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
+    const cookies = (await Promise.all(cookiesToGet.map((name) => browser.cookies.getAll({ name })))).flat();
 
-  await setSessionCredentials(
-    cookies.map(({ name, value, domain }) => ({
-      name: name as "d2lSessionVal" | "d2lSecureSessionVal",
-      value,
-      domain,
-    }))
-  );
-});
+    await setSessionCredentials(
+      cookies.map(({ name, value, domain }) => ({
+        name: name as "d2lSessionVal" | "d2lSecureSessionVal",
+        value,
+        domain,
+      }))
+    );
+  });
 
-type BackgroundMessage = { name: "useD2lFetchToken"; payload: string };
-browser.runtime.onMessage.addListener((msg: BackgroundMessage, _, sendResponse) => {
-  if (msg.name !== "useD2lFetchToken") return;
+  type BackgroundMessage = { name: "useD2lFetchToken"; payload: { token: string; hostname: string } };
+  browser.runtime.onMessage.addListener((msg: BackgroundMessage) => {
+    if (msg.name !== "useD2lFetchToken") return;
 
-  // Update `declarativeNetRequest` rules to include the specified token in requests to POLITEShop
-  setSessionCredentials([{ name: "d2lFetchToken", value: msg.payload, domain: window.location.hostname }]);
+    // Update `declarativeNetRequest` rules to include the specified token in requests to POLITEShop
+    setSessionCredentials([{ name: "d2lFetchToken", value: msg.payload.token, domain: msg.payload.hostname }]);
+  });
 });

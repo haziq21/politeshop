@@ -1,6 +1,7 @@
 {
-  "name": "wxt-starter",
-  "description": "manifest.json description",
+  "name": "politeshop-ext",
+  "displayName": "POLITEShop Extension",
+  "description": "The web extension for POLITEShop.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
