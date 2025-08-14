@@ -1,20 +1,37 @@
-import { defineBackground } from "wxt/utils/define-background";
+const POLITESHOP_DOMAIN: string = new URL(import.meta.env.WXT_POLITESHOP_ORIGIN ?? "http://localhost:4321").hostname;
 
-/**
- * A string hashing function.
- *
- * @see http://www.cse.yorku.ca/~oz/hash.html
- */
-function djb2Hash(str: string): number {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) + hash + str.charCodeAt(i);
-  }
-  return hash;
-}
+export default defineBackground(() => {
+  // When the browser starts up, retrieve all POLITEMall session cookies and set them as declarativeNetRequest rules
+  browser.runtime.onStartup.addListener(async () => {
+    const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
+    const cookies = (await Promise.all(cookiesToGet.map((name) => browser.cookies.getAll({ name })))).flat();
 
-const POLITESHOP_HOSTNAME = process.env.POLITESHOP_HOSTNAME ?? "localhost";
+    await setSessionCredentials(
+      cookies.map(({ name, value, domain }) => ({
+        name: name as (typeof cookiesToGet)[number],
+        value,
+        domain,
+      }))
+    );
+  });
 
+  // When POLITEMall session cookies change, update declarativeNetRequest rules
+  browser.cookies.onChanged.addListener(async ({ cookie, removed }) => {
+    if (removed) return; // Only update our declarativeNetRequest rules when new cookies are set
+    if (cookie.name !== "d2lSessionVal" && cookie.name !== "d2lSecureSessionVal") return;
+    if (!/^(.+\.)?polite\.edu\.sg$/.test(cookie.domain)) return;
+    await setSessionCredentials([{ name: cookie.name, value: cookie.value, domain: cookie.domain }]);
+  });
+
+  browser.runtime.onMessage.addListener((msg: BackgroundMessage) => {
+    if (msg.name !== "useD2lFetchToken") return;
+
+    // Update `declarativeNetRequest` rules to include the token in requests to POLITEShop
+    setSessionCredentials([{ name: "d2lFetchToken", value: msg.payload.token, domain: msg.payload.domain }]);
+  });
+});
+
+/** Maps credential names to the header names that POLITEShop expects. */
 const HEADER_MAPPINGS = {
   d2lSessionVal: "X-D2l-Session-Val",
   d2lSecureSessionVal: "X-D2l-Secure-Session-Val",
@@ -43,8 +60,8 @@ async function setSessionCredentials(credentials: SessionCredential[]) {
         requestHeaders: [{ header, value, operation: "set" }],
       },
       condition: {
-        initiatorDomains: [domain, POLITESHOP_HOSTNAME],
-        requestDomains: [POLITESHOP_HOSTNAME],
+        initiatorDomains: [domain, POLITESHOP_DOMAIN],
+        requestDomains: [POLITESHOP_DOMAIN],
         resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest"],
       },
     };
@@ -56,32 +73,13 @@ async function setSessionCredentials(credentials: SessionCredential[]) {
   });
 }
 
-export default defineBackground(() => {
-  browser.cookies.onChanged.addListener(async ({ cookie, removed }) => {
-    if (removed) return; // Only update our declarativeNetRequest rules when new cookies are set
-    if (cookie.name !== "d2lSessionVal" && cookie.name !== "d2lSecureSessionVal") return;
-    if (!/^(.+\.)?polite\.edu\.sg$/.test(cookie.domain)) return;
-    await setSessionCredentials([{ name: cookie.name, value: cookie.value, domain: cookie.domain }]);
-  });
-
-  browser.runtime.onStartup.addListener(async () => {
-    const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
-    const cookies = (await Promise.all(cookiesToGet.map((name) => browser.cookies.getAll({ name })))).flat();
-
-    await setSessionCredentials(
-      cookies.map(({ name, value, domain }) => ({
-        name: name as "d2lSessionVal" | "d2lSecureSessionVal",
-        value,
-        domain,
-      }))
-    );
-  });
-
-  type BackgroundMessage = { name: "useD2lFetchToken"; payload: { token: string; hostname: string } };
-  browser.runtime.onMessage.addListener((msg: BackgroundMessage) => {
-    if (msg.name !== "useD2lFetchToken") return;
-
-    // Update `declarativeNetRequest` rules to include the specified token in requests to POLITEShop
-    setSessionCredentials([{ name: "d2lFetchToken", value: msg.payload.token, domain: msg.payload.hostname }]);
-  });
-});
+/**
+ * Hash a string with djb2.
+ */
+function djb2Hash(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) & 0xffffffff;
+  }
+  return hash >>> 0;
+}
