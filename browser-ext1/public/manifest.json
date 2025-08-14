@@ -4,7 +4,7 @@
   "description": "Custom POLITEMall interface.",
   "version": "1.0",
   "host_permissions": ["https://*.polite.edu.sg/", "http://localhost:4321/"],
-  "permissions": ["cookies"],
+  "permissions": ["cookies", "declarativeNetRequestWithHostAccess"],
   "content_scripts": [
     {
       "js": ["content.js"],

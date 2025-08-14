@@ -199,3 +199,8 @@ export function pagedResultSet<T extends z.Schema>(
     Items: s.array(),
   });
 }
+
+export const brightspaceToken = z.object({
+  access_token: z.string(),
+  expires_at: z.number(),
+});

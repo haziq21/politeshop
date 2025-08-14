@@ -1,4 +1,4 @@
-import { and, eq, getTableColumns, gt, isNull, lt, or, SQL, sql } from "drizzle-orm";
+import { and, count, eq, getTableColumns, gt, isNull, lt, or, SQL, sql } from "drizzle-orm";
 import {
   db,
   organization,
@@ -32,6 +32,9 @@ import {
   type AnyActivityWithName,
 } from "./db";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
+import { encryptAESGCM, importAESGCMKey } from "./utils/crypto";
+import { ENCRYPTION_KEY } from "astro:env/server";
+import { unwrapResults } from "../../shared";
 
 const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
 
@@ -59,7 +62,7 @@ export class Repository {
 
   /** Whether the user exists in the database. */
   async userExists(): Promise<boolean> {
-    return (await db.select().from(user).where(eq(user.id, this.userId))).length > 0;
+    return (await db.select({ count: count() }).from(user).where(eq(user.id, this.userId)))[0].count > 0;
   }
 
   /**
@@ -67,14 +70,40 @@ export class Repository {
    * the user was not already present, and `false` otherwise.
    */
   async upsertUser(u: User): Promise<boolean> {
+    const key = await importAESGCMKey(ENCRYPTION_KEY);
+    const { data, error } = await unwrapResults([
+      encryptAESGCM(u.d2lSessionVal, key),
+      encryptAESGCM(u.d2lSecureSessionVal, key),
+      encryptAESGCM(u.brightspaceJWT, key),
+    ]);
+    if (error) throw new Error("Failed to encrypt user data");
+
+    const [d2lSessionVal, d2lSecureSessionVal, brightspaceJWT] = data.map(
+      ({ ciphertext, iv }) => `${iv.toString("base64")}:${ciphertext.toString("base64")}`
+    );
+
+    u = { ...u, d2lSessionVal, d2lSecureSessionVal, brightspaceJWT };
+
     const { userInserted } = (
       await db
         .insert(user)
         .values(u)
-        .onConflictDoUpdate({ target: user.id, set: { name: u.name, organizationId: u.organizationId } })
+        .onConflictDoUpdate({ target: user.id, set: u })
         .returning({ userInserted: sql<boolean>`(xmax = 0)` })
     )[0];
     return userInserted;
+  }
+
+  /**
+   * Update the specified user, or the current user if `id` is omitted.
+   * Return `true` if a row was updated, and `false` otherwise.
+   */
+  async updateUser(u: Partial<User>): Promise<boolean> {
+    const res = await db
+      .update(user)
+      .set(u)
+      .where(eq(user.id, u.id ?? this.userId));
+    return res.rowCount === 1;
   }
 
   /** Get the user's organization. */

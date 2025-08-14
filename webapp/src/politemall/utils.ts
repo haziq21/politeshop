@@ -1,4 +1,4 @@
-import { arrEq } from "../helpers";
+import { arrEq } from "../utils";
 import type { SirenAction, SirenEntity, SirenLink } from "./schema";
 
 export function getLinkWithRel(rel: string | string[], entity: SirenEntity): SirenLink | undefined {

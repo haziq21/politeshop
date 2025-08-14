@@ -1,9 +1,9 @@
-import { getPOLITEShopJWT } from "./auth";
+import { registerSourceCredentials } from "./auth";
 import { setDefaultSemesterFilter } from "./defaults";
 import { syncData } from "./sync";
 
 export const server = {
-  getPOLITEShopJWT,
+  getPOLITEShopJWT: registerSourceCredentials,
   setDefaultSemesterFilter,
   syncData,
 };

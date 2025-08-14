@@ -1,22 +1,48 @@
 import { ActionError, defineAction } from "astro:actions";
 import { SIGNING_KEY } from "astro:env/server";
+import { z } from "astro:schema";
 import * as jose from "jose";
+import { POLITEMallClient } from "../politemall";
+import { Repository } from "../repository";
+import { getD2lSessionSignature } from "../../../shared";
 
-export const getPOLITEShopJWT = defineAction({
-  handler: async (_, context) => {
-    const polite = context.locals.polite;
+/**
+ * Updates a user's source credentials in the database.
+ * If the user doesn't exist, it creates a new user.
+ */
+export const registerSourceCredentials = defineAction({
+  input: z.object({
+    d2lSessionVal: z.string(),
+    d2lSecureSessionVal: z.string(),
+    d2lFetchToken: z.string(),
+    domain: z.string(),
+  }),
+  handler: async ({ d2lSessionVal, d2lSecureSessionVal, d2lFetchToken, domain }) => {
+    const polite = new POLITEMallClient({ d2lSessionVal, d2lSecureSessionVal, domain, d2lFetchToken });
 
-    console.log("setPOLITEShopJWT(): Fetching partial user data...");
-    const { data: partialUserData, error } = await polite.fetchPartialUser();
-    if (error)
-      throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch user from POLITEMall" });
-    console.log(`setPOLITEShopJWT(): Fetched partial user data: ${JSON.stringify(partialUserData)}`);
+    const organizationPromise = polite.fetchOrganization();
+    const { data: partialUser, error: partialUserError } = await polite.fetchPartialUser();
+    if (partialUserError)
+      throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
 
-    // Produce the politeshopJWT and set it as a cookie
-    const jwtSigningKey = new TextEncoder().encode(SIGNING_KEY);
-    return await new jose.SignJWT()
-      .setProtectedHeader({ alg: "HS256" })
-      .setSubject(partialUserData.id)
-      .sign(jwtSigningKey);
+    const d2lSessionSignature = await getD2lSessionSignature({ d2lSessionVal, d2lSecureSessionVal });
+    const repo = new Repository(partialUser.id);
+
+    // If this user already exists in POLITEShop's database, we just need to update the session tokens
+    if (!(await repo.updateUser({ d2lSessionVal, d2lSecureSessionVal, d2lFetchToken }))) {
+      // TODO: If the org is in the database, we could retrieve it based on the domain instead
+      const { data: organization, error: organizationError } = await organizationPromise;
+      if (organizationError)
+        throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
+
+      await repo.upsertUser({
+        ...partialUser,
+        organizationId: organization.id,
+        d2lSessionVal,
+        d2lSecureSessionVal,
+        d2lFetchToken,
+        d2lSessionSignature,
+      });
+    }
   },
 });

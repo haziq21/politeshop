@@ -13,7 +13,10 @@ export const user = pgTable("user", {
   organizationId: text("organization_id")
     .notNull()
     .references(() => organization.id),
-  sourceCredentials: text("source_credentials").notNull(),
+  d2lSessionVal: text("d2l_session_val").notNull(),
+  d2lSecureSessionVal: text("d2l_secure_session_val").notNull(),
+  d2lFetchToken: text("d2l_fetch_token").notNull(),
+  d2lSessionSignature: text("d2l_session_signature").notNull(),
 });
 
 export const semester = pgTable("semester", {

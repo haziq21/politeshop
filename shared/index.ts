@@ -52,3 +52,26 @@ export type POLITEShopAuth = POLITEMallAuth & {
 
 export type Message<T, P = void> = P extends void ? { type: T } : { type: T; payload: P };
 export type WindowMessage = Message<"URL_PATH_CHANGED", string>;
+
+export async function getD2lSessionSignature(
+  { d2lSessionVal, d2lSecureSessionVal }: { d2lSessionVal: string; d2lSecureSessionVal: string },
+  salt?: string
+): Promise<string> {
+  salt ||= Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString("base64");
+  const dataToHash = new TextEncoder().encode(`${salt}:${d2lSessionVal}:${d2lSecureSessionVal}`);
+  const hashBuff = await crypto.subtle.digest("SHA-256", dataToHash);
+  const hash = Buffer.from(hashBuff).toString("base64");
+  return `${salt}:${hash}`;
+}
+
+export async function verifyD2lSessionSignature(
+  signature: string,
+  credentials: { d2lSessionVal: string; d2lSecureSessionVal: string }
+): Promise<boolean> {
+  const parts = signature.split(":");
+  if (parts.length !== 2) return false;
+
+  const [salt] = parts;
+  const expectedSignature = await getD2lSessionSignature(credentials, salt);
+  return signature === expectedSignature;
+}

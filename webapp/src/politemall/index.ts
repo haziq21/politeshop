@@ -20,10 +20,10 @@ import type {
 } from "../db";
 import * as jose from "jose";
 import { dataResult, errorResult, unwrapResults } from "../../../shared";
-import { getLinkWithClass, getSubEntWithClass, lastPathComponent } from "./helpers";
+import { getLinkWithClass, getSubEntWithClass, lastPathComponent } from "./utils";
 import { parse as parseDate, addSeconds } from "date-fns";
 import { z } from "zod";
-import { logger } from "../logging";
+import { logger } from "../utils/logging";
 
 /**
  * Client for interacting with POLITEMall. This client calls both `*.polite.edu.sg`
@@ -37,7 +37,7 @@ export class POLITEMallClient {
   d2lSecureSessionVal: string;
 
   /** JWT used for authentication to Brightspace APIs (`*.api.brightspace.com`). */
-  brightspaceJWT: string;
+  d2lFetchToken: string;
 
   /** Subdomain of the POLITEMall site used (e.g. "nplms" for `nplms.polite.edu.sg`). */
   domain: string;
@@ -60,22 +60,39 @@ export class POLITEMallClient {
   constructor(config: {
     d2lSessionVal: string;
     d2lSecureSessionVal: string;
-    brightspaceJWT: string;
+    d2lFetchToken: string;
     domain: string;
     userId?: string;
   }) {
     // TODO: Maybe verify cookie format
     this.d2lSessionVal = config.d2lSessionVal;
     this.d2lSecureSessionVal = config.d2lSecureSessionVal;
-    this.brightspaceJWT = config.brightspaceJWT;
+    this.d2lFetchToken = config.d2lFetchToken;
     this.domain = config.domain;
 
     // Extract the tenant and user IDs from brightspaceJWT
-    const res = schema.brightspaceJWTBody.safeParse(jose.decodeJwt(config.brightspaceJWT));
+    const res = schema.brightspaceJWTBody.safeParse(jose.decodeJwt(config.d2lFetchToken));
     if (!res.success) throw new Error("Malformed Brightspace JWT");
 
     this.tenantId = res.data.tenantid;
     this.userId = config.userId || res.data.sub;
+  }
+
+  /** Get a new JWT for authentication to Brightspace APIs. */
+  async getNewD2lFetchToken(): Promise<Result<string>> {
+    const { data, error } = await this.#fetchFromTenant("/d2l/lp/auth/oauth2/token", {
+      schema: schema.brightspaceToken,
+    });
+    if (error) return errorResult(error);
+    return dataResult(data.access_token);
+  }
+
+  static getUserIdFromBrightspaceJWT(brightspaceJWT: string): Result<string> {
+    try {
+      return dataResult(schema.brightspaceJWTBody.parse(jose.decodeJwt(brightspaceJWT)).sub);
+    } catch (e) {
+      return errorResult({ msg: "Malformed Brightspace JWT" });
+    }
   }
 
   /** Fetch the user's name and ID from the POLITEMall API. */
@@ -545,7 +562,7 @@ export class POLITEMallClient {
     // Compute the full URL and add the Brightspace JWT to the request headers
     const { api, ...init } = config || {};
     if (api) url = new URL(url, `https://${this.tenantId}.${api}.api.brightspace.com`);
-    this.#setReqInitHeader(init, "Authorization", `Bearer ${this.brightspaceJWT}`);
+    this.#setReqInitHeader(init, "Authorization", `Bearer ${this.d2lFetchToken}`);
 
     // Attempt to fetch
     let res: Response;
@@ -579,7 +596,7 @@ export class POLITEMallClient {
     const res = await fetch(input, {
       ...init,
       signal: this.abortController.signal,
-    } as NodeRequestInit);
+    });
 
     logger.debug(
       { waitMs: Date.now() - start, sizeKB: +(res.headers.get("content-length") ?? 0) / 1000 },
