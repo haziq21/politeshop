@@ -9,14 +9,15 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/svelte": "^7.0.4",
-    "@astrojs/vercel": "^8.0.7",
+    "@astrojs/svelte": "^7.1.0",
+    "@astrojs/vercel": "^8.2.5",
     "@google/generative-ai": "^0.22.0",
-    "@supabase/supabase-js": "^2.48.1",
+    "@neondatabase/serverless": "^1.0.1",
     "@tailwindcss/vite": "^4.0.6",
-    "astro": "^5.3.0",
+    "astro": "^5.13.0",
     "date-fns": "^4.1.0",
-    "drizzle-orm": "^0.39.3",
+    "dotenv": "^17.2.1",
+    "drizzle-orm": "^0.44.4",
     "jose": "^5.10.0",
     "pino": "^9.6.0",
     "svelte": "^5.20.1",
@@ -28,15 +29,13 @@
     "@types/pg": "^8.11.11",
     "drizzle-kit": "^0.30.4",
     "pg": "^8.13.3",
-    "pino-pretty": "^13.0.0",
-    "supabase": "^2.12.1"
+    "pino-pretty": "^13.0.0"
   },
   "packageManager": "pnpm@10.6.4+sha512.da3d715bfd22a9a105e6e8088cfc7826699332ded60c423b14ec613a185f1602206702ff0fe4c438cb15c979081ce4cb02568e364b15174503a63c7a8e2a5f6c",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
-      "sharp",
-      "supabase"
+      "sharp"
     ]
   }
 }

@@ -1,4 +1,14 @@
-import { integer, pgEnum, pgTable, primaryKey, timestamp, text, type AnyPgColumn, date } from "drizzle-orm/pg-core";
+import {
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  timestamp,
+  text,
+  type AnyPgColumn,
+  date,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 export const organization = pgTable("organization", {
   id: text().primaryKey(),
@@ -7,17 +17,18 @@ export const organization = pgTable("organization", {
   academicCalendarLink: text("academic_calendar_link"),
 });
 
-export const user = pgTable("user", {
-  id: text().primaryKey(),
-  name: text().notNull(),
-  organizationId: text("organization_id")
-    .notNull()
-    .references(() => organization.id),
-  d2lSessionVal: text("d2l_session_val").notNull(),
-  d2lSecureSessionVal: text("d2l_secure_session_val").notNull(),
-  d2lFetchToken: text("d2l_fetch_token").notNull(),
-  d2lSessionSignature: text("d2l_session_signature").notNull(),
-});
+export const user = pgTable(
+  "user",
+  {
+    id: text().primaryKey(),
+    name: text().notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id),
+    sessionHash: integer("session_hash").notNull(),
+  },
+  (table) => [uniqueIndex().on(table.sessionHash)]
+);
 
 export const semester = pgTable("semester", {
   id: text().primaryKey(),
@@ -157,6 +168,7 @@ export const submissionDropbox = pgTable("submission_dropbox", {
   name: text().notNull(),
   description: text(),
   dueAt: timestamp("due_at", { withTimezone: true }),
+  opensAt: timestamp("opens_at", { withTimezone: true }),
   closesAt: timestamp("closes_at", { withTimezone: true }),
 });
 
@@ -192,15 +204,8 @@ export const submissionFile = pgTable("submission_file", {
   size: integer().notNull(),
 });
 
-export const defaultSemesterFilter = pgTable("default_semester_filter", {
-  userId: text("user_id")
-    .primaryKey()
-    .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  semesterId: text("semester_id").references(() => semester.id, { onDelete: "cascade", onUpdate: "cascade" }),
-});
-
 export const semesterBreak = pgTable("semester_break", {
-  organization: text("organization_id")
+  organizationId: text("organization_id")
     .notNull()
     .references(() => organization.id, { onDelete: "cascade", onUpdate: "cascade" }),
   startDate: date("start_date").notNull(),

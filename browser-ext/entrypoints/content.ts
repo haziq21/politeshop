@@ -25,6 +25,10 @@ export default defineContentScript({
       if (event.data.type === "URL_PATH_CHANGED") {
         window.history.replaceState(null, "", event.data.payload);
       }
+
+      if (event.data.type === "TITLE_CHANGED") {
+        document.title = event.data.payload;
+      }
     });
 
     // Replace the page with the POLITEShop iframe

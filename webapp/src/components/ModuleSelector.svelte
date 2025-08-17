@@ -1,24 +1,24 @@
 <script lang="ts">
-  import { actions } from "astro:actions";
   import type { Module, Semester } from "../db";
   import ModuleList from "./ModuleList.svelte";
   import SemesterFilter from "./SemesterFilter.svelte";
 
   interface Props {
-    filteredSemesterId: string | undefined;
+    filteredSemesterId: string;
     semesters: Semester[];
     modules: Module[];
   }
 
-  let { filteredSemesterId, semesters, modules }: Props = $props();
+  let { filteredSemesterId = "all", semesters, modules }: Props = $props();
 
-  let effectHasRun = false;
+  let firstRun = true;
   $effect(() => {
-    // Read filteredSemesterId to register it as a dependency of the effect
     filteredSemesterId;
-    // No need to call the action on the first render
-    if (!effectHasRun) effectHasRun = true;
-    else actions.setDefaultSemesterFilter(filteredSemesterId);
+    if (firstRun) {
+      firstRun = false;
+      return;
+    }
+    document.cookie = `defaultSemester=${filteredSemesterId}; SameSite=None; Secure; Max-Age=31536000`;
   });
 </script>
 
@@ -27,5 +27,7 @@
     <SemesterFilter options={semesters} bind:value={filteredSemesterId} />
   </div>
 
-  <ModuleList modules={filteredSemesterId ? modules.filter((mod) => mod.semesterId === filteredSemesterId) : modules} />
+  <ModuleList
+    modules={filteredSemesterId !== "all" ? modules.filter((mod) => mod.semesterId === filteredSemesterId) : modules}
+  />
 </div>

@@ -15,32 +15,79 @@ import "../styles/global.css";
     <slot />
 
     <script>
-      import { actions } from "astro:actions";
       import type { WindowMessage } from "../../../shared";
 
-      const politeDomain = (document.querySelector("[data-domain]")! as HTMLElement).dataset.domain;
+      const politeDomain = (document.querySelector("body")! as HTMLElement).dataset.domain;
 
-      const message: WindowMessage = {
-        type: "URL_PATH_CHANGED",
-        payload: location.pathname,
-      };
-      window.top!.postMessage(message, `https://${politeDomain}.polite.edu.sg`);
+      window.top?.postMessage(
+        { type: "URL_PATH_CHANGED", payload: location.pathname } as WindowMessage,
+        `https://${politeDomain}.polite.edu.sg`
+      );
+      window.top?.postMessage(
+        { type: "TITLE_CHANGED", payload: document.title } as WindowMessage,
+        `https://${politeDomain}.polite.edu.sg`
+      );
 
-      // TODO: Use MutationObserver when necessary
-      for (const a of document.getElementsByTagName("a")) {
-        if (a.hostname !== location.hostname) continue;
+      overridePOLITEShopLinks();
 
-        a.hostname = `${politeDomain}.polite.edu.sg`;
-        a.port = "";
+      // Call overridePOLITEShopLinks() when new links appear
+      const observer = new MutationObserver((mutations) => {
+        const mutationAffectedLink = mutations.some((mutation) => {
+          // Check if a link was added
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType !== Node.ELEMENT_NODE) continue;
+            const element = node as HTMLElement;
+            if (
+              (element.tagName === "A" && element.hasAttribute("href") && !element.dataset.preserveUrl) ||
+              element.querySelector("a[href]:not([data-preserve-url])")
+            ) {
+              return true;
+            }
+          }
 
-        a.addEventListener("click", (e) => {
-          e.preventDefault();
-          location.pathname = a.pathname;
+          // Check if a href attribute was changed
+          if (
+            mutation.type === "attributes" &&
+            mutation.target.nodeType === Node.ELEMENT_NODE &&
+            mutation.attributeName === "href" &&
+            !(mutation.target as HTMLElement).dataset.preserveUrl
+          ) {
+            return true;
+          }
+
+          return false;
+        });
+
+        if (mutationAffectedLink) overridePOLITEShopLinks();
+      });
+
+      // Start observing
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributeFilter: ["href"],
+      });
+
+      // Intercept link clicks for *.polite.edu.sg and redirect them to POLITEShop
+      document.addEventListener("click", (e) => {
+        if (!e.target) return;
+
+        const a = (e.target as HTMLElement).closest("a");
+        if (!a || a.hostname !== `${politeDomain}.polite.edu.sg`) return;
+
+        e.preventDefault();
+        window.location.pathname = a.pathname;
+      });
+
+      /** Change link URLs from POLITEShop's domain to `*.polite.edu.sg`. */
+      function overridePOLITEShopLinks(container = document) {
+        const links = container.querySelectorAll<HTMLAnchorElement>("a[href]:not([data-preserve-url])");
+        links.forEach((link) => {
+          if (link.host !== location.host) return;
+          link.hostname = `${politeDomain}.polite.edu.sg`;
+          link.port = "";
         });
       }
-
-      const { data, error } = await actions.syncData();
-      if (error) console.error(error);
     </script>
   </body>
 </html>

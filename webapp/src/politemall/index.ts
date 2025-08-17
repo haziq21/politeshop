@@ -1,4 +1,3 @@
-import type { Result } from "../../../shared";
 import * as schema from "./schema";
 import type {
   AnyActivity,
@@ -19,7 +18,6 @@ import type {
   Quiz,
 } from "../db";
 import * as jose from "jose";
-import { dataResult, errorResult, unwrapResults } from "../../../shared";
 import { getLinkWithClass, getSubEntWithClass, lastPathComponent } from "./utils";
 import { parse as parseDate, addSeconds } from "date-fns";
 import { z } from "zod";
@@ -42,9 +40,7 @@ export class POLITEMallClient {
   /** Subdomain of the POLITEMall site used (e.g. "nplms" for `nplms.polite.edu.sg`). */
   domain: string;
 
-  /**
-   * ID of the user, shared by both `*.polite.edu.sg` and `*.api.brightspace.com` APIs.
-   */
+  /** ID of the user, shared by both `*.polite.edu.sg` and `*.api.brightspace.com` APIs. */
   userId: string;
 
   /** ID of the Brightspace tenant, used by both `*.polite.edu.sg` and `*.api.brightspace.com` APIs. */
@@ -61,14 +57,14 @@ export class POLITEMallClient {
     d2lSessionVal: string;
     d2lSecureSessionVal: string;
     d2lFetchToken: string;
-    domain: string;
+    d2lSubdomain: string;
     userId?: string;
   }) {
     // TODO: Maybe verify cookie format
     this.d2lSessionVal = config.d2lSessionVal;
     this.d2lSecureSessionVal = config.d2lSecureSessionVal;
     this.d2lFetchToken = config.d2lFetchToken;
-    this.domain = config.domain;
+    this.domain = config.d2lSubdomain;
 
     // Extract the tenant and user IDs from brightspaceJWT
     const res = schema.brightspaceJWTBody.safeParse(jose.decodeJwt(config.d2lFetchToken));
@@ -79,46 +75,43 @@ export class POLITEMallClient {
   }
 
   /** Get a new JWT for authentication to Brightspace APIs. */
-  async getNewD2lFetchToken(): Promise<Result<string>> {
-    const { data, error } = await this.#fetchFromTenant("/d2l/lp/auth/oauth2/token", {
+  async getNewD2lFetchToken(): Promise<string> {
+    const data = await this.#fetchFromTenant("/d2l/lp/auth/oauth2/token", {
       schema: schema.brightspaceToken,
     });
-    if (error) return errorResult(error);
-    return dataResult(data.access_token);
+    return data.access_token;
   }
 
-  static getUserIdFromBrightspaceJWT(brightspaceJWT: string): Result<string> {
+  static getUserIdFromBrightspaceJWT(brightspaceJWT: string): string {
     try {
-      return dataResult(schema.brightspaceJWTBody.parse(jose.decodeJwt(brightspaceJWT)).sub);
+      return schema.brightspaceJWTBody.parse(jose.decodeJwt(brightspaceJWT)).sub;
     } catch (e) {
-      return errorResult({ msg: "Malformed Brightspace JWT" });
+      throw new Error("Malformed Brightspace JWT");
     }
   }
 
   /** Fetch the user's name and ID from the POLITEMall API. */
-  async fetchPartialUser(): Promise<Result<Pick<User, "id" | "name">>> {
-    const { data, error } = await this.#fetchFromTenant(`/d2l/api/lp/1.0/users/whoami`, { schema: schema.whoAmIUser });
-    if (error) return errorResult(error);
-
-    return dataResult({ id: data.Identifier, name: data.FirstName });
+  async fetchPartialUser(): Promise<Pick<User, "id" | "name">> {
+    logger.debug("Fetching partial user data from POLITEMall API");
+    const data = await this.#fetchFromTenant(`/d2l/api/lp/1.0/users/whoami`, { schema: schema.whoAmIUser });
+    return { id: data.Identifier, name: data.FirstName };
   }
 
   /** Get the user's organization from the Brightspace API. */
-  async fetchOrganization(): Promise<Result<Organization>> {
-    const { data, error } = await this.#fetchFromTenant("/d2l/api/lp/1.46/organization/info", {
+  async fetchOrganization(): Promise<Organization> {
+    const data = await this.#fetchFromTenant("/d2l/api/lp/1.46/organization/info", {
       schema: schema.organization,
     });
-    if (error) return errorResult(error);
 
-    return dataResult<Organization>({
+    return {
       id: data.Identifier,
       name: data.Name,
       bannerImageURL: this.getImageURL(data.Identifier, { width: 1500, height: 240 }),
-    });
+    };
   }
 
   /** Get the user's modules and their semesters from the Brightspace API. */
-  async fetchModulesAndSemesters(): Promise<Result<{ modules: Module[]; semesters: Semester[] }>> {
+  async fetchModulesAndSemesters(): Promise<{ modules: Module[]; semesters: Semester[] }> {
     const rawModules: schema.MyOrgUnitInfo[] = [];
     let hasMoreItems = true;
     let bookmark: string | null = null;
@@ -126,10 +119,9 @@ export class POLITEMallClient {
     // Fetch all modules from the paginated API
     do {
       const query: string = bookmark ? `?bookmark=${bookmark}` : "";
-      const { data, error } = await this.#fetchFromTenant(`/d2l/api/lp/1.46/enrollments/myenrollments/${query}`, {
+      const data = await this.#fetchFromTenant(`/d2l/api/lp/1.46/enrollments/myenrollments/${query}`, {
         schema: schema.pagedResultSet(schema.myOrgUnitInfo),
       });
-      if (error) return errorResult(error);
 
       // Filter for modules only
       rawModules.push(...data.Items.filter((org) => org.OrgUnit.Type.Id === 3));
@@ -138,18 +130,26 @@ export class POLITEMallClient {
       bookmark = data.PagingInfo.Bookmark;
     } while (hasMoreItems);
 
-    const { data: rawModuleParents, error } = await this.#fetchFromTenant(
-      `/d2l/api/lp/1.46/courses/parentorgunits?orgUnitIdsCSV=${rawModules.map((m) => m.OrgUnit.Id).join(",")}`,
-      { schema: schema.courseParent.array() }
-    );
-    if (error) return errorResult(error);
+    // The API only supports 25 orgUnitIds at a time
+    const orgUnitIdChunks: number[][] = [];
+    for (let i = 0; i < Math.ceil(rawModules.length / 25); i++) {
+      orgUnitIdChunks.push(rawModules.slice(i * 25, (i + 1) * 25).map((m) => m.OrgUnit.Id));
+    }
+
+    const rawModuleParents = await Promise.all(
+      orgUnitIdChunks.map((chunk) =>
+        this.#fetchFromTenant(`/d2l/api/lp/1.46/courses/parentorgunits?orgUnitIdsCSV=${chunk.join(",")}`, {
+          schema: schema.courseParent.array(),
+        })
+      )
+    ).then((res) => res.flat());
 
     const modules: Module[] = [];
     const semestersMap = new Map<string, Semester>();
 
     for (const { OrgUnit } of rawModules) {
       const parent = rawModuleParents.find((p) => p.CourseOfferingId === OrgUnit.Id.toString());
-      if (!parent) return errorResult({ msg: "Failed to find parent for module", data: OrgUnit });
+      if (!parent) throw new Error(`Failed to find parent for module: ${OrgUnit.Name}`);
 
       modules.push({
         id: OrgUnit.Id.toString(),
@@ -165,31 +165,25 @@ export class POLITEMallClient {
       });
     }
 
-    return dataResult({ modules, semesters: semestersMap.values().toArray() });
+    return { modules, semesters: semestersMap.values().toArray() };
   }
 
-  async fetchModuleContent(moduleId: string): Promise<
-    Result<{
-      activityFolders: ActivityFolder[];
-      activities: AnyActivity[];
-    }>
-  > {
+  async fetchModuleContent(moduleId: string): Promise<{
+    activityFolders: ActivityFolder[];
+    activities: AnyActivity[];
+  }> {
     // Fetch the module's "table of contents" (which contains basic info about all the folders and activities)
-    const { data: toc, error: fetchError } = await this.#fetchFromTenant(`/d2l/api/le/1.75/${moduleId}/content/toc`, {
+    const toc = await this.#fetchFromTenant(`/d2l/api/le/1.75/${moduleId}/content/toc`, {
       schema: schema.tableOfContents,
     });
-    if (fetchError) return errorResult(fetchError);
 
     // Parse all the folders and activities in parallel
-    const { data: parseData, error: parseError } = await unwrapResults(
-      toc.Modules.map(async (m) => await this.parseActivityFolder(m, moduleId, null))
-    );
-    if (parseError) return errorResult(parseError);
+    const parseData = await Promise.all(toc.Modules.map((m) => this.parseActivityFolder(m, moduleId, null)));
 
-    return dataResult({
+    return {
       activities: parseData.flatMap((d) => d.activities),
       activityFolders: parseData.flatMap((d) => d.activityFolders),
-    });
+    };
   }
 
   /** Parse what Brightspace calls "Modules", but we call activity folders. */
@@ -197,23 +191,21 @@ export class POLITEMallClient {
     folder: schema.TOCModule,
     moduleId: string,
     parentId: string | null
-  ): Promise<Result<{ activityFolders: ActivityFolder[]; activities: AnyActivity[] }>> {
+  ): Promise<{ activityFolders: ActivityFolder[]; activities: AnyActivity[] }> {
     const folderId = folder.ModuleId.toString();
 
     // Parse activities in the folder
-    const childActivitiesResultPromise = unwrapResults(
+    const childActivitiesResultPromise = Promise.all(
       folder.Topics.filter((t) => !t.IsBroken).map(async (t) => await this.parseActivity(t, moduleId, folderId))
     );
 
     // Parse subfolders
-    const subfoldersResultPromise = unwrapResults(
+    const subfoldersResultPromise = Promise.all(
       folder.Modules.map(async (m) => await this.parseActivityFolder(m, moduleId, folderId))
     );
 
     // Await both promises in parallel
-    const { data, error } = await unwrapResults([childActivitiesResultPromise, subfoldersResultPromise]);
-    if (error) return errorResult(error);
-    const [childActivities, subfolders] = data;
+    const [childActivities, subfolders] = await Promise.all([childActivitiesResultPromise, subfoldersResultPromise]);
 
     const activityFolders: ActivityFolder[] = [
       // Parse the folder itself
@@ -232,15 +224,15 @@ export class POLITEMallClient {
     // Combine the activities in this folder with the activities in all its subfolders
     const activities: AnyActivity[] = [...childActivities, ...subfolders.flatMap((f) => f.activities)];
 
-    return dataResult({ activityFolders, activities });
+    return { activityFolders, activities };
   }
 
   /**
    * Parse what Brightspace calls "Topics", but we call activities.
    * This may require additional fetch requests, depending on the activity.
    */
-  async parseActivity(activity: schema.TOCTopic, moduleId: string, folderId: string): Promise<Result<AnyActivity>> {
-    if (activity.IsBroken) return errorResult({ msg: "parseActivity() can't handle broken activities" });
+  async parseActivity(activity: schema.TOCTopic, moduleId: string, folderId: string): Promise<AnyActivity> {
+    if (activity.IsBroken) throw new Error("parseActivity() can't handle broken activities");
 
     const baseActivity = {
       id: activity.Identifier,
@@ -251,49 +243,45 @@ export class POLITEMallClient {
 
     // These are HTML activities
     if (activity.ActivityType === 1 && activity.TypeIdentifier === "File" && activity.Url.endsWith(".html")) {
-      const { data, error } = await this.#fetchFromTenant(activity.Url);
-      if (error) return errorResult(error);
-      return dataResult<HTMLActivity>({ ...baseActivity, type: "html", name, content: data });
+      const data = await this.#fetchFromTenant(activity.Url);
+      return { ...baseActivity, type: "html", name, content: data };
     }
 
     // These are document embed activities
     if (activity.ActivityType === 1 && activity.TypeIdentifier === "File") {
-      const { data: activityEnt, error } = await this.#fetchFromBrightspace(
+      const activityEnt = await this.#fetchFromBrightspace(
         `/${moduleId}/activity/${activity.TopicId}?filterOnDatesAndDepth=0`,
         { api: "sequences" }
       );
-      if (error) return errorResult(error);
 
       const fileActivityEnt = getSubEntWithClass(["activity", "file-activity"], activityEnt);
-      if (!fileActivityEnt) return errorResult({ msg: "Missing file-activity sub-entity in activity entity" });
+      if (!fileActivityEnt) throw new Error("Missing file-activity sub-entity in activity entity");
 
       // Get the preview URL of the document (.pptx and .docx files have generated PDF versions for previewing)
       const fileEnt = getSubEntWithClass(["file"], fileActivityEnt);
-      if (!fileEnt) return errorResult({ msg: "Missing file sub-entity in file activity" });
+      if (!fileEnt) throw new Error("Missing file sub-entity in file activity");
       const previewURL = getLinkWithClass(["pdf", "d2l-converted-doc"], fileEnt)?.href;
       // The preview PDFs are hosted on AWS and their URLs expire
       const previewURLExpiry = previewURL ? this.getURLExpiry(previewURL) : undefined;
 
-      return dataResult<DocEmbedActivity>({
+      return {
         ...baseActivity,
         type: "doc_embed",
         name,
         sourceURL: activity.Url,
         previewURL,
         previewURLExpiry,
-      });
+      };
     }
 
     // These are video embed activities
     if (activity.ActivityType === 1 && activity.TypeIdentifier === "ContentService") {
-      const { data, error } = await unwrapResults([
+      const [source, thumbnail] = await Promise.all([
         this.fetchContentServiceMediaURL(moduleId, activity.Identifier),
         this.fetchContentServiceResourceThumbnailURL(moduleId, activity.Identifier),
       ]);
-      if (error) return errorResult(error);
-      const [source, thumbnail] = data;
 
-      return dataResult<VideoEmbedActivity>({
+      return {
         ...baseActivity,
         type: "video_embed",
         name,
@@ -301,52 +289,48 @@ export class POLITEMallClient {
         sourceURLExpiry: source.urlExpiry,
         thumbnailURL: thumbnail.url,
         thumbnailURLExpiry: thumbnail.urlExpiry,
-      });
+      };
     }
 
     // These are web embed activities
     if (activity.ActivityType === 2) {
-      return dataResult<WebEmbedActivity>({ ...baseActivity, type: "web_embed", name, url: activity.Url });
+      return { ...baseActivity, type: "web_embed", name, url: activity.Url };
     }
 
     // These are submission activities
     if (activity.ActivityType === 3) {
-      if (!activity.ToolItemId) return errorResult({ msg: "Missing ToolItemId in submission activity" });
-      return dataResult<SubmissionActivity>({
+      if (!activity.ToolItemId) throw new Error("Missing ToolItemId in submission activity");
+      return {
         ...baseActivity,
         type: "submission",
         dropboxId: activity.ToolItemId.toString(),
-      });
+      };
     }
 
     // These are quiz activities
     if (activity.ActivityType === 4) {
-      if (!activity.ToolItemId) return errorResult({ msg: "Missing ToolItemId in quiz activity" });
-      return dataResult<QuizActivity>({ ...baseActivity, type: "quiz", quizId: activity.ToolItemId.toString() });
+      if (!activity.ToolItemId) throw new Error("Missing ToolItemId in quiz activity");
+      return { ...baseActivity, type: "quiz", quizId: activity.ToolItemId.toString() };
     }
 
-    return dataResult<UnknownActivity>({ ...baseActivity, type: "unknown" });
+    return { ...baseActivity, type: "unknown" };
   }
 
   /** Fetch submission dropboxes in a module. */
-  async fetchSubmissionDropboxes(moduleId: string): Promise<Result<SubmissionDropbox[]>> {
-    const { data, error } = await this.#fetchFromTenant(`/d2l/api/le/1.75/${moduleId}/dropbox/folders/`, {
+  async fetchSubmissionDropboxes(moduleId: string): Promise<SubmissionDropbox[]> {
+    const data = await this.#fetchFromTenant(`/d2l/api/le/1.75/${moduleId}/dropbox/folders/`, {
       schema: schema.dropboxFolder.array(),
     });
-    if (error) return errorResult(error);
 
-    return dataResult(
-      data.map(
-        (d): SubmissionDropbox => ({
-          id: d.Id.toString(),
-          name: d.Name,
-          moduleId,
-          description: d.CustomInstructions.Html,
-          dueAt: d.DueDate,
-          closesAt: d.Availability?.EndDate,
-        })
-      )
-    );
+    return data.map((d) => ({
+      id: d.Id.toString(),
+      name: d.Name,
+      moduleId,
+      description: d.CustomInstructions.Html,
+      dueAt: d.DueDate,
+      closesAt: d.Availability?.EndDate,
+      opensAt: d.Availability?.StartDate,
+    }));
   }
 
   /**
@@ -356,7 +340,7 @@ export class POLITEMallClient {
     moduleId: string,
     dropboxId: string,
     config?: { dropboxIsClosed: boolean; organizationId: string }
-  ): Promise<Result<UserSubmission[]>> {
+  ): Promise<UserSubmission[]> {
     // There are two ways of fetching user submissions: using either the `*.polite.edu.sg` or
     // `*.api.brightspace.com` API. When a dropbox is closed (i.e. it's past its availability
     // end date), the `*.polite.edu.sg` API returns 403 (???), but the `*.api.brightspace.com`
@@ -365,40 +349,35 @@ export class POLITEMallClient {
     // additionally requires one request per submission.
 
     if (!config?.dropboxIsClosed) {
-      const { data, error: fetchError } = await this.#fetchFromTenant(
+      const data = await this.#fetchFromTenant(
         `/d2l/api/le/1.75/${moduleId}/dropbox/folders/${dropboxId}/submissions/`,
         { schema: schema.entityDropbox.array().max(1) }
       );
-      if (fetchError) return errorResult(fetchError);
 
-      if (data.length === 0) return dataResult([]);
+      if (data.length === 0) return [];
 
-      const submissions = data[0].Submissions.map(
-        (sub): UserSubmission => ({
-          id: sub.Id.toString(),
-          userId: this.userId,
-          dropboxId,
-          submittedAt: sub.SubmissionDate,
-          comment: sub.Comment.Html,
-        })
-      );
+      const submissions = data[0].Submissions.map((sub) => ({
+        id: sub.Id.toString(),
+        userId: this.userId,
+        dropboxId,
+        submittedAt: sub.SubmissionDate,
+        comment: sub.Comment.Html,
+      }));
 
-      return dataResult(submissions);
+      return submissions;
     }
 
-    const { data: ent, error } = await this.#fetchFromBrightspace(
+    const ent = await this.#fetchFromBrightspace(
       `/old/activities/${config.organizationId}_2000_${dropboxId}/usages/${moduleId}/users/${this.userId}`,
       { api: "activities" }
     );
-    if (error) return errorResult(error);
 
     const assignmentSubmissionList = getSubEntWithClass(["assignment-submission-list"], ent);
-    if (!assignmentSubmissionList) return errorResult({ msg: "Missing assignment-submission-list entity" });
-    if (!assignmentSubmissionList.links) return dataResult([]);
+    if (!assignmentSubmissionList) throw new Error("Missing assignment-submission-list entity");
+    if (!assignmentSubmissionList.links) return [];
 
-    const results = assignmentSubmissionList.links.map(async (l): Promise<Result<UserSubmission>> => {
-      const { data: ent, error } = await this.#fetchFromBrightspace(l.href);
-      if (error) return errorResult(error);
+    const results = assignmentSubmissionList.links.map(async (l): Promise<UserSubmission> => {
+      const ent = await this.#fetchFromBrightspace(l.href);
 
       const submittedAtEnt = getSubEntWithClass("submission-date", ent);
       const submittedAt = new Date(submittedAtEnt?.properties?.date);
@@ -406,83 +385,78 @@ export class POLITEMallClient {
       const commentEnt = getSubEntWithClass("submission-comment", ent);
       const comment = commentEnt?.properties?.html;
       if (comment !== undefined && typeof comment !== "string")
-        return errorResult({ msg: "Unexpected comment type", data: commentEnt });
+        throw new Error(`Unexpected comment type: ${typeof comment}`);
 
-      return dataResult<UserSubmission>({
+      return {
         id: lastPathComponent(l.href),
         userId: this.userId,
         dropboxId,
         submittedAt,
         comment,
-      });
+      };
     });
 
-    return await unwrapResults(results);
+    return await Promise.all(results);
   }
 
   /** Fetch quizzes in a module. */
-  async fetchQuizzes(moduleId: string): Promise<Result<Quiz[]>> {
+  async fetchQuizzes(moduleId: string): Promise<Quiz[]> {
     const quizzes: Quiz[] = [];
     let nextURL: string | null = `/d2l/api/le/1.75/${moduleId}/quizzes/`;
 
     do {
       // Fetch one page (20 objects) of quizzes
       const url: string = nextURL!;
-      const { data, error } = await this.#fetchFromTenant(url, {
+      const data = await this.#fetchFromTenant(url, {
         schema: schema.objectListPage(schema.quizReadData),
       });
-      if (error) return errorResult(error);
       nextURL = data.Next;
 
       quizzes.push(
-        ...data.Objects.map(
-          (d): Quiz => ({
-            id: d.QuizId.toString(),
-            moduleId,
-            name: d.Name,
-            description: d.Description.Text.Html,
-            dueAt: d.DueDate,
-          })
-        )
+        ...data.Objects.map((d) => ({
+          id: d.QuizId.toString(),
+          moduleId,
+          name: d.Name,
+          description: d.Description.Text.Html,
+          dueAt: d.DueDate,
+        }))
       );
     } while (nextURL);
 
-    return dataResult(quizzes);
+    return quizzes;
   }
 
   /** Fetch the thumbnail URL of a resource on Brightspace's Content Service API. */
   async fetchContentServiceResourceThumbnailURL(
     moduleId: string,
     activityId: string
-  ): Promise<Result<{ url: string; urlExpiry: Date | undefined }>> {
-    const { data: ent, error } = await this.#fetchFromBrightspace(`/topics/${moduleId}/${activityId}`, {
+  ): Promise<{ url: string; urlExpiry: Date | undefined }> {
+    const ent = await this.#fetchFromBrightspace(`/topics/${moduleId}/${activityId}`, {
       api: "content-service",
     });
-    if (error) return errorResult(error);
 
     const thumbnailProperties = getSubEntWithClass(["thumbnail"], ent)?.properties;
     const url = thumbnailProperties?.src;
-    if (typeof url !== "string") return errorResult({ msg: `Unexpected thumbnail URL type: ${typeof url}`, data: ent });
+    if (typeof url !== "string") throw new Error(`Unexpected thumbnail URL type: ${typeof url}`);
 
     // TODO: Is casting like this safe?
     const urlExpiry = url ? new Date(+thumbnailProperties.expires * 1000) || this.getURLExpiry(url) : undefined;
-    return dataResult({ url, urlExpiry });
+    return { url, urlExpiry };
   }
 
   /** Fetch the source URL for the media of a content service entity (usually a video). */
   async fetchContentServiceMediaURL(
     moduleId: string,
     activityId: string
-  ): Promise<Result<{ url: string; urlExpiry: Date | undefined }>> {
-    const { data, error } = await this.#fetchFromBrightspace(`/topics/${moduleId}/${activityId}/media`, {
+  ): Promise<{ url: string; urlExpiry: Date | undefined }> {
+    const data = await this.#fetchFromBrightspace(`/topics/${moduleId}/${activityId}/media`, {
       api: "content-service",
     });
-    if (error) return errorResult(error);
 
     const url = data.properties?.src;
-    if (typeof url !== "string") return errorResult({ msg: `Unexpected video src type: ${typeof url}`, data: url });
+    if (typeof url !== "string") throw new Error(`Unexpected video src type: ${typeof url}`);
 
-    return dataResult({ url, urlExpiry: this.getURLExpiry(url) });
+    return { url, urlExpiry: this.getURLExpiry(url) };
   }
 
   /** Return the expiry date/time of an S3 or Brightspace content service resource URL. */
@@ -514,80 +488,56 @@ export class POLITEMallClient {
    * Fetch from `*.polite.edu.sg`, validating the response with the
    * provided schema (if any). `url` can either be a full URL or a path.
    */
-  async #fetchFromTenant(url: string | URL, config?: RequestInit): Promise<Result<string>>;
+  async #fetchFromTenant(url: string | URL, config?: RequestInit): Promise<string>;
   async #fetchFromTenant<T extends z.Schema>(
     url: string | URL,
     config: RequestInit & { schema: T }
-  ): Promise<Result<z.infer<T>>>;
+  ): Promise<z.infer<T>>;
   async #fetchFromTenant<T extends z.Schema>(
     url: string | URL,
     config: RequestInit & { schema?: T } = {}
-  ): Promise<Result<any>> {
-    // Add D2L cookies to the request headers
+  ): Promise<any> {
+    const fullURL = new URL(url, `https://${this.domain}.polite.edu.sg`);
     const d2lCookies = `d2lSessionVal=${this.d2lSessionVal}; d2lSecureSessionVal=${this.d2lSecureSessionVal}`;
     const { schema: _schema, ...init } = config || {};
     this.#setReqInitHeader(init, "Cookie", d2lCookies);
 
-    const fullURL = new URL(url, `https://${this.domain}.polite.edu.sg`);
+    logger.debug({ d2lSessionVal: this.d2lSessionVal, d2lSecureSessionVal: this.d2lSecureSessionVal });
 
     // Attempt to fetch
-    let res: Response;
-    try {
-      res = await this.#fetch(fullURL, { ...init, signal: this.abortController.signal });
-    } catch (e) {
-      return errorResult({ msg: `Failed to fetch ${fullURL}`, data: e });
+    let res = await this.#fetch(fullURL, init);
+    if (!res.ok) {
+      const errorData =
+        res.headers.get("content-type") === "application/json" ? JSON.stringify(await res.json()) : await res.text();
+      throw new Error(`Received status ${res.status} for ${fullURL}: ${errorData}`);
     }
-    if (!res.ok)
-      return errorResult({
-        msg: `Received status ${res.status} for ${fullURL}`,
-        data: res.headers.get("content-type") === "application/json" ? await res.json() : await res.text(),
-      });
 
     // Return the response as a string if no schema was provided
-    if (!_schema) return dataResult(await res.text());
+    if (!_schema) return await res.text();
 
-    // Attempt to parse the response using the provided schema
-    const parseRes = _schema.safeParse(await res.json());
-    if (parseRes.success) return dataResult(parseRes.data);
-    return errorResult({ msg: `Failed to parse response from ${fullURL}`, data: parseRes.error.issues });
+    // Parse the response using the provided schema
+    return _schema.parse(await res.json());
   }
 
   /** Fetch a Siren entity from the specified Brightspace API. `url` can either be a full URL or a path. */
-  async #fetchFromBrightspace(fullURL: string | URL, config?: RequestInit): Promise<Result<schema.SirenEntity>>;
-  async #fetchFromBrightspace(path: string, config: RequestInit & { api: string }): Promise<Result<schema.SirenEntity>>;
-  async #fetchFromBrightspace(
-    url: string | URL,
-    config?: RequestInit & { api?: string }
-  ): Promise<Result<schema.SirenEntity>> {
+  async #fetchFromBrightspace(fullURL: string | URL, config?: RequestInit): Promise<schema.SirenEntity>;
+  async #fetchFromBrightspace(path: string, config: RequestInit & { api: string }): Promise<schema.SirenEntity>;
+  async #fetchFromBrightspace(url: string | URL, config?: RequestInit & { api?: string }): Promise<schema.SirenEntity> {
     // Compute the full URL and add the Brightspace JWT to the request headers
     const { api, ...init } = config || {};
     if (api) url = new URL(url, `https://${this.tenantId}.${api}.api.brightspace.com`);
     this.#setReqInitHeader(init, "Authorization", `Bearer ${this.d2lFetchToken}`);
 
     // Attempt to fetch
-    let res: Response;
-    try {
-      res = await this.#fetch(url, init);
-    } catch (e) {
-      return errorResult({ msg: `Failed to fetch ${url}`, data: e });
+    let res = await this.#fetch(url, init);
+    if (!res.ok) {
+      const errorData =
+        res.headers.get("content-type") === "application/json" ? JSON.stringify(await res.json()) : await res.text();
+      throw new Error(`Failed to fetch ${url} (${res.status}): ${errorData}`);
     }
-    if (!res.ok)
-      return errorResult({
-        msg: `Failed to fetch ${url} (${res.status})`,
-        data: res.headers.get("content-type") === "application/json" ? await res.json() : await res.text(),
-      });
 
     // Parse the response as a Siren entity
-    let json;
-    try {
-      json = await res.json();
-    } catch (e) {
-      return errorResult({ msg: `Failed to parse ${url} response as JSON`, data: e });
-    }
-
-    const parseRes = schema.sirenEntity.safeParse(json);
-    if (!parseRes.success) return errorResult({ msg: `Unexpected ${url} response`, data: parseRes.error.issues });
-    return dataResult(parseRes.data);
+    return schema.sirenEntity.parse(await res.json());
   }
 
   async #fetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
@@ -599,7 +549,12 @@ export class POLITEMallClient {
     });
 
     logger.debug(
-      { waitMs: Date.now() - start, sizeKB: +(res.headers.get("content-length") ?? 0) / 1000 },
+      {
+        status: res.status,
+        waitMs: Date.now() - start,
+        sizeKB: +(res.headers.get("content-length") ?? 0) / 1000,
+        init: init?.headers?.entries.length,
+      },
       `Fetched ${input instanceof Request ? input.url : input}`
     );
 

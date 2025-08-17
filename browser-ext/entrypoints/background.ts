@@ -1,19 +1,17 @@
+import { CREDENTIAL_HEADER_MAPPINGS } from "../../shared";
+
 const POLITESHOP_DOMAIN: string = new URL(import.meta.env.WXT_POLITESHOP_ORIGIN ?? "http://localhost:4321").hostname;
+
+type SessionCredential = {
+  name: keyof typeof CREDENTIAL_HEADER_MAPPINGS;
+  value: string;
+  domain: string;
+};
 
 export default defineBackground(() => {
   // When the browser starts up, retrieve all POLITEMall session cookies and set them as declarativeNetRequest rules
-  browser.runtime.onStartup.addListener(async () => {
-    const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
-    const cookies = (await Promise.all(cookiesToGet.map((name) => browser.cookies.getAll({ name })))).flat();
-
-    await setSessionCredentials(
-      cookies.map(({ name, value, domain }) => ({
-        name: name as (typeof cookiesToGet)[number],
-        value,
-        domain,
-      }))
-    );
-  });
+  browser.runtime.onStartup.addListener(setCookieCredentials);
+  browser.runtime.onInstalled.addListener(setCookieCredentials);
 
   // When POLITEMall session cookies change, update declarativeNetRequest rules
   browser.cookies.onChanged.addListener(async ({ cookie, removed }) => {
@@ -23,26 +21,35 @@ export default defineBackground(() => {
     await setSessionCredentials([{ name: cookie.name, value: cookie.value, domain: cookie.domain }]);
   });
 
-  browser.runtime.onMessage.addListener((msg: BackgroundMessage) => {
+  browser.runtime.onMessage.addListener(async (msg: BackgroundMessage) => {
     if (msg.name !== "useD2lFetchToken") return;
 
-    // Update `declarativeNetRequest` rules to include the token in requests to POLITEShop
-    setSessionCredentials([{ name: "d2lFetchToken", value: msg.payload.token, domain: msg.payload.domain }]);
+    const subdomainMatch = msg.payload.domain.match(/^([^.]+)\./);
+    const subdomain = subdomainMatch ? subdomainMatch[1] : msg.payload.domain;
+
+    await setSessionCredentials([
+      // Update `declarativeNetRequest` rules to include the token
+      { name: "d2lFetchToken", value: msg.payload.token, domain: msg.payload.domain },
+      // Also include the D2L subdomain
+      { name: "d2lSubdomain", value: subdomain, domain: msg.payload.domain },
+    ]);
   });
 });
 
-/** Maps credential names to the header names that POLITEShop expects. */
-const HEADER_MAPPINGS = {
-  d2lSessionVal: "X-D2l-Session-Val",
-  d2lSecureSessionVal: "X-D2l-Secure-Session-Val",
-  d2lFetchToken: "X-D2l-Fetch-Token",
-} as const;
+async function setCookieCredentials() {
+  log(`Setting cookie credentials`);
 
-type SessionCredential = {
-  name: keyof typeof HEADER_MAPPINGS;
-  value: string;
-  domain: string;
-};
+  const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
+  const cookies = (await Promise.all(cookiesToGet.map((name) => browser.cookies.getAll({ name })))).flat();
+
+  await setSessionCredentials(
+    cookies.map(({ name, value, domain }) => ({
+      name: name as (typeof cookiesToGet)[number],
+      value,
+      domain,
+    }))
+  );
+}
 
 /**
  * Update the `declarativeNetRequest` session rules to include the
@@ -51,10 +58,10 @@ type SessionCredential = {
  */
 async function setSessionCredentials(credentials: SessionCredential[]) {
   const newRules = credentials.map(({ name, value, domain }): Browser.declarativeNetRequest.Rule => {
-    const header = HEADER_MAPPINGS[name];
+    const header = CREDENTIAL_HEADER_MAPPINGS[name];
     return {
       // Key the rules based on their domain and header name
-      id: djb2Hash(`${domain},${header}`),
+      id: hash(`${domain},${header}`),
       action: {
         type: "modifyHeaders",
         requestHeaders: [{ header, value, operation: "set" }],
@@ -67,19 +74,26 @@ async function setSessionCredentials(credentials: SessionCredential[]) {
     };
   });
 
+  log(`Setting session rules:`, newRules);
+
   await browser.declarativeNetRequest.updateSessionRules({
-    removeRuleIds: [],
+    removeRuleIds: newRules.map((rule) => rule.id),
     addRules: newRules,
   });
 }
 
 /**
- * Hash a string with djb2.
+ * Hash a string to a positive 32-bit integer (to align
+ * with declarativeNetRequest's rule ID restrictions).
  */
-function djb2Hash(str: string): number {
+function hash(str: string): number {
+  // Hash with djb2
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash + str.charCodeAt(i)) & 0xffffffff;
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0;
   }
-  return hash >>> 0;
+
+  // Modification of djb2: constrain the hash to a positive 32-bit signed integer
+  const mask = (1 << 31) - 1;
+  return hash & mask || 1;
 }

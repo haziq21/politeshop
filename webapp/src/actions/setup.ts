@@ -1,33 +1,23 @@
-import { ActionError, defineAction } from "astro:actions";
-import { dataResult, errorResult, unwrapResults } from "../../../shared";
+import { defineAction } from "astro:actions";
 import { logger } from "../utils/logging";
 import type { Module, SubmissionDropbox, UserSubmission } from "../db";
 import { GoogleGenerativeAI, SchemaType, type GenerationConfig } from "@google/generative-ai";
 import { GEMINI_API_KEY } from "astro:env/server";
-import type { Result } from "../../../shared";
 
-// TODO: Return changed data
-export const syncData = defineAction({
+export const initUser = defineAction({
   handler: async (_, context) => {
-    const polite = context.locals.polite;
-    const repo = context.locals.repo;
+    const { polite, repo, sessionHash } = context.locals;
 
     // Fetch all the data in parallel
-    const { data, error } = await unwrapResults([
+    const [partialUser, organization, { modules, semesters }] = await Promise.all([
       polite.fetchPartialUser(),
       polite.fetchOrganization(),
       polite.fetchModulesAndSemesters(),
     ]);
-    if (error) {
-      polite.abort();
-      logger.error({ err: error.data }, error.msg);
-      throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
-    }
-    const [partialUser, organization, { modules, semesters }] = data;
 
     // Update the database with the fetched data
     await repo.upsertOrganization(organization);
-    await repo.upsertUser({ ...partialUser, organizationId: organization.id });
+    await repo.upsertUser({ ...partialUser, sessionHash, organizationId: organization.id });
     await repo.upsertSemesters(semesters);
     const uglyModules = await repo.upsertAndAssociateModules(modules);
 
@@ -39,47 +29,33 @@ export const syncData = defineAction({
     }
 
     // Fetch everything in parallel
-    const { data: fetchResult, error: fetchError } = await unwrapResults([
-      unwrapResults(modules.map((m) => polite.fetchModuleContent(m.id))),
-      unwrapResults(modules.map((m) => polite.fetchQuizzes(m.id))),
-      // TODO: Perhaps this could be neater...
-      unwrapResults(
-        modules.map(async (m): Promise<Result<[SubmissionDropbox[], UserSubmission[]]>> => {
-          const { data: dropboxes, error } = await polite.fetchSubmissionDropboxes(m.id);
-          if (error) return errorResult(error);
+    const [moduleContents, quizzes, [dropboxes, userSubs]] = await Promise.all([
+      Promise.all(modules.map((m) => polite.fetchModuleContent(m.id))),
+      Promise.all(modules.map((m) => polite.fetchQuizzes(m.id))),
+      Promise.all(
+        modules.map(async (m): Promise<[SubmissionDropbox[], UserSubmission[]]> => {
+          const dropboxes = await polite.fetchSubmissionDropboxes(m.id);
 
-          const { data: userSubs, error: error2 } = await unwrapResults(
+          const userSubs = await Promise.all(
             dropboxes.map((d) =>
               polite.fetchUserSubmissions(m.id, d.id, {
-                dropboxIsClosed: !!d.closesAt && d.closesAt < new Date(),
+                dropboxIsClosed: (!!d.closesAt && d.closesAt < new Date()) || (!!d.opensAt && new Date() < d.opensAt),
                 organizationId: organization.id,
               })
             )
           );
-          if (error2) return errorResult(error2);
 
-          return dataResult([dropboxes, userSubs.flat()]);
+          return [dropboxes, userSubs.flat()];
         })
-      ),
+      ).then((res) => [res.flatMap(([d, _]) => d), res.flatMap(([_, s]) => s)] as const),
     ]);
-    if (fetchError) {
-      polite.abort();
-      logger.error({ err: fetchError.data }, fetchError.msg);
-      throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "POLITEMall API call failed" });
-    }
-    const [moduleContents, quizzes, subs] = fetchResult;
 
     // Upsert the module content into the database
-    try {
-      await repo.upsertQuizzes(quizzes.flat());
-      await repo.upsertSubmissionDropboxes(subs.flatMap(([dropboxes, _]) => dropboxes));
-      await repo.upsertUserSubmissions(subs.flatMap(([_, subs]) => subs));
-      await repo.upsertActivityFolders(moduleContents.flatMap((m) => m.activityFolders));
-      await repo.upsertActivities(moduleContents.flatMap((m) => m.activities));
-    } catch (e) {
-      logger.error(e, "Failed to upsert data");
-      throw new ActionError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to insert module content" });
-    }
+    await repo.upsertQuizzes(quizzes.flat());
+    await repo.upsertSubmissionDropboxes(dropboxes);
+    await repo.upsertUserSubmissions(userSubs);
+    await repo.upsertActivityFolders(moduleContents.flatMap((m) => m.activityFolders));
+    await repo.upsertActivities(moduleContents.flatMap((m) => m.activities));
   },
 });
 

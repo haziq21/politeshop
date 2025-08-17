@@ -20,7 +20,6 @@ import {
   type ActivityFolder,
   type Organization,
   type User,
-  defaultSemesterFilter,
   type SemesterBreak,
   semesterBreak,
   userSubmission,
@@ -32,9 +31,8 @@ import {
   type AnyActivityWithName,
 } from "./db";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
-import { encryptAESGCM, importAESGCMKey } from "./utils/crypto";
-import { ENCRYPTION_KEY } from "astro:env/server";
-import { unwrapResults } from "../../shared";
+import type { CredentialName } from "../../shared";
+import { hash32Signed } from "./utils";
 
 const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
 
@@ -53,6 +51,11 @@ export class Repository {
 
   constructor(public userId: string) {}
 
+  static async getUserFromSessionHash(sessionHash: number): Promise<User | null> {
+    const u = (await db.select().from(user).where(eq(user.sessionHash, sessionHash))).at(0);
+    return u ?? null;
+  }
+
   /** Get the current user. */
   async user(): Promise<User> {
     if (this.data.user) return this.data.user;
@@ -70,20 +73,6 @@ export class Repository {
    * the user was not already present, and `false` otherwise.
    */
   async upsertUser(u: User): Promise<boolean> {
-    const key = await importAESGCMKey(ENCRYPTION_KEY);
-    const { data, error } = await unwrapResults([
-      encryptAESGCM(u.d2lSessionVal, key),
-      encryptAESGCM(u.d2lSecureSessionVal, key),
-      encryptAESGCM(u.brightspaceJWT, key),
-    ]);
-    if (error) throw new Error("Failed to encrypt user data");
-
-    const [d2lSessionVal, d2lSecureSessionVal, brightspaceJWT] = data.map(
-      ({ ciphertext, iv }) => `${iv.toString("base64")}:${ciphertext.toString("base64")}`
-    );
-
-    u = { ...u, d2lSessionVal, d2lSecureSessionVal, brightspaceJWT };
-
     const { userInserted } = (
       await db
         .insert(user)
@@ -104,6 +93,20 @@ export class Repository {
       .set(u)
       .where(eq(user.id, u.id ?? this.userId));
     return res.rowCount === 1;
+  }
+
+  /**
+   * Generate the user's session hash using their session credentials.
+   */
+  static getSessionHash(credentials: Record<CredentialName, string>): number {
+    return hash32Signed(
+      [
+        credentials.d2lSessionVal,
+        credentials.d2lSecureSessionVal,
+        credentials.d2lFetchToken,
+        credentials.d2lSubdomain,
+      ].join(":")
+    );
   }
 
   /** Get the user's organization. */
@@ -391,26 +394,6 @@ export class Repository {
       });
   }
 
-  /** Get the user's default semester filter. */
-  async defaultSemesterFilter(): Promise<Semester | undefined> {
-    const filter = (
-      await db
-        .select()
-        .from(defaultSemesterFilter)
-        .innerJoin(semester, eq(semester.id, defaultSemesterFilter.semesterId))
-        .where(eq(defaultSemesterFilter.userId, this.userId))
-    ).at(0);
-    return filter?.semester ?? undefined;
-  }
-
-  /** Set the semester filter as the default for the user. */
-  async setDefaultSemesterFilter(semesterId: string | undefined) {
-    await db
-      .insert(defaultSemesterFilter)
-      .values({ userId: this.userId, semesterId: semesterId ?? null })
-      .onConflictDoUpdate({ target: defaultSemesterFilter.userId, set: { semesterId: semesterId ?? null } });
-  }
-
   /**
    * Get the current semester break, or next semester break if there isn't currently
    * a semester break, or `undefined` if there are no more semester breaks.
@@ -428,7 +411,7 @@ export class Repository {
           daysToEnd: sql<number>`extract(day from ${semesterBreak.endDate} - now()) + 1`,
         })
         .from(semesterBreak)
-        .innerJoin(organization, eq(organization.id, semesterBreak.organization))
+        .innerJoin(organization, eq(organization.id, semesterBreak.organizationId))
         .innerJoin(user, eq(user.organizationId, organization.id))
         .where(
           and(

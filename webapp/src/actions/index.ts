@@ -1,9 +1,5 @@
-import { registerSourceCredentials } from "./auth";
-import { setDefaultSemesterFilter } from "./defaults";
-import { syncData } from "./sync";
+import { initUser } from "./setup";
 
 export const server = {
-  getPOLITEShopJWT: registerSourceCredentials,
-  setDefaultSemesterFilter,
-  syncData,
+  initUser,
 };

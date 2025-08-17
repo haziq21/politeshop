@@ -7,7 +7,7 @@ const repo = Astro.locals.repo;
 const organization = await repo.organization();
 const semesters = await repo.semesters();
 const modules = await repo.modules();
-const defaultSemester = await repo.defaultSemesterFilter();
+const defaultSemester = Astro.cookies.get("defaultSemester")?.value || "all";
 const semesterBreak = await repo.currentOrNextSemesterBreak();
 ---
 
@@ -35,7 +35,7 @@ const semesterBreak = await repo.currentOrNextSemesterBreak();
   </a>
 
   <div class="grid grid-cols-[auto_1fr] justify-items-center mt-10 ml-5 pb-60">
-    <ModuleSelector filteredSemesterId={defaultSemester?.id} {semesters} {modules} client:load />
+    <ModuleSelector filteredSemesterId={defaultSemester} {semesters} {modules} client:load />
     <div class="sticky top-10 h-fit">
       <DueDateHeatmap {modules} client:load />
     </div>
