@@ -1,8 +1,10 @@
 import { defineAction } from "astro:actions";
 import { logger } from "../utils/logging";
 import type { Module, SubmissionDropbox, UserSubmission } from "../db";
-import { GoogleGenerativeAI, SchemaType, type GenerationConfig } from "@google/generative-ai";
 import { GEMINI_API_KEY } from "astro:env/server";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateObject } from "ai";
+import { z } from "zod";
 
 export const initUser = defineAction({
   handler: async (_, context) => {
@@ -89,30 +91,20 @@ Focus on extracting only the most essential identifiers that directly relate to 
 `;
 
 async function renameModules(modules: Module[]): Promise<Module[]> {
-  const generationConfig: GenerationConfig = {
-    responseMimeType: "application/json",
-    responseSchema: {
-      type: SchemaType.ARRAY,
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          niceCode: { type: SchemaType.STRING },
-          niceName: { type: SchemaType.STRING },
-        },
-        required: ["niceCode", "niceName"],
-      },
-    },
-  };
+  const google = createGoogleGenerativeAI({
+    apiKey: GEMINI_API_KEY,
+  });
 
-  const fullPrompt = GEMINI_MODULE_RENAME_PROMPT + JSON.stringify(modules.map(({ code, name }) => ({ code, name })));
-
-  const result = await new GoogleGenerativeAI(GEMINI_API_KEY!)
-    .getGenerativeModel({ model: "gemini-2.0-flash" })
-    .startChat({ generationConfig })
-    .sendMessage(fullPrompt);
-
-  // I'm trusting that the result does in fact follow the schema
-  const jsonResult = JSON.parse(result.response.text()) as { niceCode: string; niceName: string }[];
+  const { object: jsonResult } = await generateObject({
+    model: google("models/gemini-1.5-flash-latest"),
+    schema: z.array(
+      z.object({
+        niceCode: z.string(),
+        niceName: z.string(),
+      })
+    ),
+    prompt: GEMINI_MODULE_RENAME_PROMPT + JSON.stringify(modules.map(({ code, name }) => ({ code, name }))),
+  });
 
   return modules.map((module, i) => ({
     ...module,
