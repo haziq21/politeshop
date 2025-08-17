@@ -28,9 +28,22 @@ export default defineContentScript({
     });
 
     // Replace the page with the POLITEShop iframe
-    onceDocumentLoaded(() => {
-      document.body.innerHTML = "";
-      document.body.appendChild(createIframe());
+    setTimeout(() => {
+      // Stop loading any scripts / styles from POLITEMall
+      window.stop();
+
+      // Remove all attributes from <html>
+      Array.from(document.documentElement.attributes).forEach((attr) =>
+        document.documentElement.removeAttribute(attr.name)
+      );
+
+      // Clear the <head> and <body>
+      document.head.innerHTML = "";
+      if (document.body) document.body.innerHTML = "";
+      else document.documentElement.appendChild(document.createElement("body"));
+
+      // Create the POLITEShop iframe
+      document.body.appendChild(createPOLITEShopIframe());
     });
   },
 });
@@ -47,7 +60,7 @@ function getD2lFetchToken(): string | null {
   }
 }
 
-function createIframe(): HTMLIFrameElement {
+function createPOLITEShopIframe(): HTMLIFrameElement {
   const iframe = document.createElement("iframe");
   iframe.src = `${POLITESHOP_ORIGIN}${window.location.pathname}`;
   iframe.style.position = "fixed";
@@ -57,12 +70,4 @@ function createIframe(): HTMLIFrameElement {
   iframe.style.height = "100%";
   iframe.style.border = "none";
   return iframe;
-}
-
-function onceDocumentLoaded(callback: () => void) {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", callback, { once: true });
-  } else {
-    callback();
-  }
 }
