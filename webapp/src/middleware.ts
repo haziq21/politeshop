@@ -2,7 +2,6 @@ import { defineMiddleware } from "astro:middleware";
 import { POLITEMallClient } from "./politemall";
 import { Repository } from "./repository";
 import { CREDENTIAL_HEADER_MAPPINGS, type CredentialName } from "../../shared";
-import { logger } from "./utils/logging";
 import { initUser } from "./actions/setup";
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -10,7 +9,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const credentials: Partial<Record<CredentialName, string>> = {};
   for (const [name, header] of Object.entries(CREDENTIAL_HEADER_MAPPINGS)) {
     const value = context.request.headers.get(header);
-    if (value === null) return new Response("Missing credentials", { status: 401 });
+    if (value === null) return new Response(`Missing credentials: ${header} header`, { status: 401 });
     credentials[name as CredentialName] = value;
   }
 

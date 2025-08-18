@@ -21,7 +21,7 @@ import * as jose from "jose";
 import { getLinkWithClass, getSubEntWithClass, lastPathComponent } from "./utils";
 import { parse as parseDate, addSeconds } from "date-fns";
 import { z } from "zod";
-import { logger } from "../utils/logging";
+import { logger } from "../utils";
 
 /**
  * Client for interacting with POLITEMall. This client calls both `*.polite.edu.sg`
@@ -92,7 +92,6 @@ export class POLITEMallClient {
 
   /** Fetch the user's name and ID from the POLITEMall API. */
   async fetchPartialUser(): Promise<Pick<User, "id" | "name">> {
-    logger.debug("Fetching partial user data from POLITEMall API");
     const data = await this.#fetchFromTenant(`/d2l/api/lp/1.0/users/whoami`, { schema: schema.whoAmIUser });
     return { id: data.Identifier, name: data.FirstName };
   }
@@ -502,8 +501,6 @@ export class POLITEMallClient {
     const { schema: _schema, ...init } = config || {};
     this.#setReqInitHeader(init, "Cookie", d2lCookies);
 
-    logger.debug({ d2lSessionVal: this.d2lSessionVal, d2lSecureSessionVal: this.d2lSecureSessionVal });
-
     // Attempt to fetch
     let res = await this.#fetch(fullURL, init);
     if (!res.ok) {
@@ -553,7 +550,6 @@ export class POLITEMallClient {
         status: res.status,
         waitMs: Date.now() - start,
         sizeKB: +(res.headers.get("content-length") ?? 0) / 1000,
-        init: init?.headers?.entries.length,
       },
       `Fetched ${input instanceof Request ? input.url : input}`
     );

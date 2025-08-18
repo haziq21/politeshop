@@ -10,3 +10,6 @@
 
 1. redirect `*.polite.edu.sg` to `politeshop.com`
 2. 
+
+
+`/d2l/login?sessionExpired=0&target=%2fd2l%2fhome`

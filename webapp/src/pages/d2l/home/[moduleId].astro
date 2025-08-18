@@ -2,6 +2,8 @@
 import Layout from "../../../layouts/Layout.astro";
 import type { FolderTreeNode, ActivityTreeNode, AnyTreeNode } from "../../../types";
 import ActivityTree from "../../../components/ActivityTree.svelte";
+import * as Sidebar from "$lib/components/ui/sidebar";
+import AppSidebar from "$lib/components/app-sidebar.svelte";
 
 const { moduleId } = Astro.params as Record<"moduleId", string>;
 
@@ -26,7 +28,8 @@ const allNodesByParent: Map<string | null | undefined, AnyTreeNode[]> = allNodes
 ---
 
 <Layout>
-  <div class="flex h-full">
+  <AppSidebar />
+  <!-- <div class="flex h-full">
     <nav class="h-full max-w-97 p-6 pb-10 overflow-y-scroll bg-stone-800 border-r border-stone-700">
       <div class="mb-6 grid grid-cols-[max-content_auto] gap-x-3">
         <img src={module.imageIconURL} alt="" class="w-9 h-9 object-cover rounded-md row-span-2" />
@@ -37,5 +40,5 @@ const allNodesByParent: Map<string | null | undefined, AnyTreeNode[]> = allNodes
       <a href="/d2l/home">go back</a>
       <ActivityTree {allNodesByParent} />
     </nav>
-  </div>
+  </div> -->
 </Layout>

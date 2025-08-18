@@ -1,5 +1,5 @@
 import { defineAction } from "astro:actions";
-import { logger } from "../utils/logging";
+import { logger } from "../utils";
 import type { Module, SubmissionDropbox, UserSubmission } from "../db";
 import { GoogleGenerativeAI, SchemaType, type GenerationConfig } from "@google/generative-ai";
 import { GEMINI_API_KEY } from "astro:env/server";
