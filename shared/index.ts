@@ -1,5 +1,7 @@
 export type Message<T, P = void> = P extends void ? { type: T } : { type: T; payload: P };
-export type WindowMessage = Message<"URL_PATH_CHANGED", string> | Message<"TITLE_CHANGED", string>;
+export type WindowMessage =
+  | Message<"LOCATION_CHANGED", { path: string; title: string }>
+  | Message<"REDIRECT_LOGIN", { target: string; sessionExpired: string }>;
 
 /** Maps credential names to the header names that POLITEShop expects. */
 export const CREDENTIAL_HEADER_MAPPINGS = {

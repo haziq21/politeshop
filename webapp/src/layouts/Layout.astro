@@ -20,11 +20,13 @@ import "../styles/global.css";
       const politeDomain = (document.querySelector("body")! as HTMLElement).dataset.domain;
 
       window.top?.postMessage(
-        { type: "URL_PATH_CHANGED", payload: location.pathname } as WindowMessage,
-        `https://${politeDomain}.polite.edu.sg`
-      );
-      window.top?.postMessage(
-        { type: "TITLE_CHANGED", payload: document.title } as WindowMessage,
+        {
+          type: "LOCATION_CHANGED",
+          payload: {
+            path: location.pathname,
+            title: document.title,
+          },
+        } as WindowMessage,
         `https://${politeDomain}.polite.edu.sg`
       );
 

@@ -3,8 +3,11 @@ import { POLITEMallClient } from "./politemall";
 import { Repository } from "./repository";
 import { CREDENTIAL_HEADER_MAPPINGS, type CredentialName } from "../../shared";
 import { initUser } from "./actions/setup";
+import type { User } from "./db";
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  if (context.url.pathname === "/d2l/login") return next();
+
   // Extract credentials from headers
   const credentials: Partial<Record<CredentialName, string>> = {};
   for (const [name, header] of Object.entries(CREDENTIAL_HEADER_MAPPINGS)) {
@@ -25,7 +28,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   // Call the POLITEMall API to get this user's ID
-  const partialUser = await context.locals.polite.fetchPartialUser();
+  let partialUser: Pick<User, "id" | "name">;
+
+  try {
+    // If this fails, the session is probably expired
+    partialUser = await context.locals.polite.fetchPartialUser();
+  } catch {
+    const { pathname, search, hash } = context.url;
+    return next(`/d2l/login?sessionExpired=1&target=${encodeURIComponent(pathname + search + hash)}`);
+  }
   context.locals.repo = new Repository(partialUser.id);
 
   if (await context.locals.repo.userExists()) {

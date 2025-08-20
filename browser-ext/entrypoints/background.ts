@@ -9,47 +9,43 @@ type SessionCredential = {
 };
 
 export default defineBackground(() => {
-  // When the browser starts up, retrieve all POLITEMall session cookies and set them as declarativeNetRequest rules
-  browser.runtime.onStartup.addListener(setCookieCredentials);
-  browser.runtime.onInstalled.addListener(setCookieCredentials);
-
   // When POLITEMall session cookies change, update declarativeNetRequest rules
   browser.cookies.onChanged.addListener(async ({ cookie, removed }) => {
-    if (removed) return; // Only update our declarativeNetRequest rules when new cookies are set
+    if (removed) return; // Only update the DNR rules when new cookies are set
     if (cookie.name !== "d2lSessionVal" && cookie.name !== "d2lSecureSessionVal") return;
     if (!/^(.+\.)?polite\.edu\.sg$/.test(cookie.domain)) return;
     await setSessionCredentials([{ name: cookie.name, value: cookie.value, domain: cookie.domain }]);
   });
 
   browser.runtime.onMessage.addListener(async (msg: BackgroundMessage) => {
-    if (msg.name !== "useD2lFetchToken") return;
+    const sessionCredentials: SessionCredential[] = [];
 
-    const subdomainMatch = msg.payload.domain.match(/^([^.]+)\./);
-    const subdomain = subdomainMatch ? subdomainMatch[1] : msg.payload.domain;
+    if (msg.name === "updateFetchToken" || msg.name === "updateAllCredentials") {
+      const { d2lFetchToken, fromDomain } = msg.payload;
+      const d2lSubdomain = fromDomain.match(/^([^.]+)\./)?.at(1) ?? fromDomain;
 
-    await setSessionCredentials([
-      // Update `declarativeNetRequest` rules to include the token
-      { name: "d2lFetchToken", value: msg.payload.token, domain: msg.payload.domain },
-      // Also include the D2L subdomain
-      { name: "d2lSubdomain", value: subdomain, domain: msg.payload.domain },
-    ]);
+      sessionCredentials.push(
+        { name: "d2lFetchToken", value: d2lFetchToken, domain: fromDomain },
+        { name: "d2lSubdomain", value: d2lSubdomain, domain: fromDomain }
+      );
+    }
+
+    // Add cookies to sessionCredentials if we're supposed to "updateAllCredentials"
+    if (msg.name === "updateAllCredentials") {
+      const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
+      const cookies = (await Promise.all(cookiesToGet.map((name) => browser.cookies.getAll({ name })))).flat();
+      sessionCredentials.push(
+        ...cookies.map(({ name, value, domain }) => ({
+          name: name as (typeof cookiesToGet)[number],
+          value,
+          domain,
+        }))
+      );
+    }
+
+    await setSessionCredentials(sessionCredentials);
   });
 });
-
-async function setCookieCredentials() {
-  log(`Setting cookie credentials`);
-
-  const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
-  const cookies = (await Promise.all(cookiesToGet.map((name) => browser.cookies.getAll({ name })))).flat();
-
-  await setSessionCredentials(
-    cookies.map(({ name, value, domain }) => ({
-      name: name as (typeof cookiesToGet)[number],
-      value,
-      domain,
-    }))
-  );
-}
 
 /**
  * Update the `declarativeNetRequest` session rules to include the
