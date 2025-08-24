@@ -61,10 +61,35 @@ export const initUser = defineAction({
   },
 });
 
-const GEMINI_MODULE_RENAME_PROMPT = `Each JSON object in the array below describes the name and code of a module offered by a Polytechnic in Singapore. Output a corresponding array of JSON objects with each object containing the string fields "niceName" and "niceCode".
+async function renameModules(modules: Module[]): Promise<Module[]> {
+  const google = createGoogleGenerativeAI({
+    apiKey: GEMINI_API_KEY,
+  });
+
+  const { object } = await generateObject({
+    model: google("models/gemini-2.0-flash-lite"),
+    schema: z.array(
+      z.object({
+        niceCode: z.string(),
+        niceName: z.string(),
+      })
+    ),
+    prompt: moduleRenamePrompt(modules),
+  });
+
+  return modules.map((module, i) => ({
+    ...module,
+    niceCode: object[i].niceCode,
+    niceName: object[i].niceName,
+  }));
+}
+
+const moduleRenamePrompt = (
+  modules: Module[]
+) => `Each JSON object in the array below describes the name and code of a module offered by a Polytechnic in Singapore. Output a corresponding array of JSON objects with each object containing the string fields "niceName" and "niceCode".
 
 Step 1: For "niceName" field:
-- Convert the module name to proper title case, except for camelCased words - those should be preserved as-is
+- Convert the module name to Proper Title Case, except for camelCased words - those should be preserved as-is
 - Remove any text in parentheses including the parentheses themselves
 - Preserve acronyms like "IT", "NP", "SP" in ALL CAPS
 
@@ -86,29 +111,6 @@ Examples of "niceCode" extraction (with original code and name):
 - Code: "24S1-ICT_Stud_DipIT", Name: "Diploma in IT" → niceCode: "DipIT" (not "Stud_DipIT")
 - Code: "24S2-1_ID_009807", Name: "Interactive Development / Front End Development(1_ID_009807 / 3_FED_013851)" → niceCode: "ID/FED" (not "ID_009807/FED_013851")
 
-Focus on extracting only the most essential identifiers that directly relate to the module name, without any numeric codes or department prefixes. Output only the JSON array in a minified form, as plain text with no other text or markdown formatting.
+Focus on extracting only the most essential identifiers that directly relate to the module name, without any numeric codes or department prefixes.
 
-`;
-
-async function renameModules(modules: Module[]): Promise<Module[]> {
-  const google = createGoogleGenerativeAI({
-    apiKey: GEMINI_API_KEY,
-  });
-
-  const { object: jsonResult } = await generateObject({
-    model: google("models/gemini-1.5-flash-latest"),
-    schema: z.array(
-      z.object({
-        niceCode: z.string(),
-        niceName: z.string(),
-      })
-    ),
-    prompt: GEMINI_MODULE_RENAME_PROMPT + JSON.stringify(modules.map(({ code, name }) => ({ code, name }))),
-  });
-
-  return modules.map((module, i) => ({
-    ...module,
-    niceCode: jsonResult[i].niceCode,
-    niceName: jsonResult[i].niceName,
-  }));
-}
+${JSON.stringify(modules.map(({ code, name }) => ({ code, name })))}`;
