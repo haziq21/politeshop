@@ -5,7 +5,7 @@ import DueDateHeatmap from "../../../components/DueDateHeatmap.svelte";
 
 const repo = Astro.locals.repo;
 const organization = await repo.organization();
-const semesters = await repo.semesters();
+const semesters = (await repo.semesters()).sort((a, b) => b.name.localeCompare(a.name));
 const modules = await repo.modules();
 const defaultSemester = Astro.cookies.get("defaultSemester")?.value || "all";
 const semesterBreak = await repo.currentOrNextSemesterBreak();
