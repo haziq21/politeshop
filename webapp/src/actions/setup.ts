@@ -8,56 +8,61 @@ import { z } from "zod";
 
 export const initUser = defineAction({
   handler: async (_, context) => {
-    const { polite, repo, sessionHash } = context.locals;
+    try {
+      const { polite, repo, sessionHash } = context.locals;
 
-    // Fetch all the data in parallel
-    const [partialUser, organization, { modules, semesters }] = await Promise.all([
-      polite.fetchPartialUser(),
-      polite.fetchOrganization(),
-      polite.fetchModulesAndSemesters(),
-    ]);
+      // Fetch all the data in parallel
+      const [partialUser, organization, { modules, semesters }] = await Promise.all([
+        polite.fetchPartialUser(),
+        polite.fetchOrganization(),
+        polite.fetchModulesAndSemesters(),
+      ]);
 
-    // Update the database with the fetched data
-    await repo.upsertOrganization(organization);
-    await repo.upsertUser({ ...partialUser, sessionHash, organizationId: organization.id });
-    await repo.upsertSemesters(semesters);
-    const uglyModules = await repo.upsertAndAssociateModules(modules);
+      // Update the database with the fetched data
+      await repo.upsertOrganization(organization);
+      await repo.upsertUser({ ...partialUser, sessionHash, organizationId: organization.id });
+      await repo.upsertSemesters(semesters);
+      const uglyModules = await repo.upsertAndAssociateModules(modules);
 
-    // Rename ugly modules with GenAI
-    if (uglyModules.length > 0) {
-      logger.info(`Renaming ${uglyModules.length} modules...`);
-      const renamedModules = await renameModules(uglyModules);
-      await repo.upsertAndAssociateModules(renamedModules);
+      // Rename ugly modules with GenAI
+      if (uglyModules.length > 0) {
+        logger.info(`Renaming ${uglyModules.length} modules...`);
+        const renamedModules = await renameModules(uglyModules);
+        await repo.upsertAndAssociateModules(renamedModules);
+      }
+
+      // Fetch everything in parallel
+      const [moduleContents, quizzes, [dropboxes, userSubs]] = await Promise.all([
+        Promise.all(modules.map((m) => polite.fetchModuleContent(m.id))),
+        Promise.all(modules.map((m) => polite.fetchQuizzes(m.id))),
+        Promise.all(
+          modules.map(async (m): Promise<[SubmissionDropbox[], UserSubmission[]]> => {
+            const dropboxes = await polite.fetchSubmissionDropboxes(m.id);
+
+            const userSubs = await Promise.all(
+              dropboxes.map((d) =>
+                polite.fetchUserSubmissions(m.id, d.id, {
+                  dropboxIsClosed: (!!d.closesAt && d.closesAt < new Date()) || (!!d.opensAt && new Date() < d.opensAt),
+                  organizationId: organization.id,
+                })
+              )
+            );
+
+            return [dropboxes, userSubs.flat()];
+          })
+        ).then((res) => [res.flatMap(([d, _]) => d), res.flatMap(([_, s]) => s)] as const),
+      ]);
+
+      // Upsert the module content into the database
+      await repo.upsertQuizzes(quizzes.flat());
+      await repo.upsertSubmissionDropboxes(dropboxes);
+      await repo.upsertUserSubmissions(userSubs);
+      await repo.upsertActivityFolders(moduleContents.flatMap((m) => m.activityFolders));
+      await repo.upsertActivities(moduleContents.flatMap((m) => m.activities));
+    } catch (e) {
+      console.error(e);
+      throw e;
     }
-
-    // Fetch everything in parallel
-    const [moduleContents, quizzes, [dropboxes, userSubs]] = await Promise.all([
-      Promise.all(modules.map((m) => polite.fetchModuleContent(m.id))),
-      Promise.all(modules.map((m) => polite.fetchQuizzes(m.id))),
-      Promise.all(
-        modules.map(async (m): Promise<[SubmissionDropbox[], UserSubmission[]]> => {
-          const dropboxes = await polite.fetchSubmissionDropboxes(m.id);
-
-          const userSubs = await Promise.all(
-            dropboxes.map((d) =>
-              polite.fetchUserSubmissions(m.id, d.id, {
-                dropboxIsClosed: (!!d.closesAt && d.closesAt < new Date()) || (!!d.opensAt && new Date() < d.opensAt),
-                organizationId: organization.id,
-              })
-            )
-          );
-
-          return [dropboxes, userSubs.flat()];
-        })
-      ).then((res) => [res.flatMap(([d, _]) => d), res.flatMap(([_, s]) => s)] as const),
-    ]);
-
-    // Upsert the module content into the database
-    await repo.upsertQuizzes(quizzes.flat());
-    await repo.upsertSubmissionDropboxes(dropboxes);
-    await repo.upsertUserSubmissions(userSubs);
-    await repo.upsertActivityFolders(moduleContents.flatMap((m) => m.activityFolders));
-    await repo.upsertActivities(moduleContents.flatMap((m) => m.activities));
   },
 });
 
@@ -67,15 +72,25 @@ async function renameModules(modules: Module[]): Promise<Module[]> {
   });
 
   const { object } = await generateObject({
-    model: google("models/gemini-2.0-flash-lite"),
-    schema: z.array(
-      z.object({
-        niceCode: z.string(),
-        niceName: z.string(),
-      })
-    ),
+    model: google("models/gemini-2.5-flash-lite"),
+    output: "array",
+    schema: z.object({
+      niceCode: z.string(),
+      niceName: z.string(),
+    }),
+    temperature: 0,
     prompt: moduleRenamePrompt(modules),
+    experimental_providerMetadata: {
+      google: {
+        thinkingConfig: {
+          temperature: 0,
+          thinkingBudget: 0,
+        },
+      },
+    },
   });
+
+  logger.info(moduleRenamePrompt(modules));
 
   return modules.map((module, i) => ({
     ...module,
