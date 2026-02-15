@@ -545,14 +545,14 @@ export class POLITEMallClient {
       signal: this.abortController.signal,
     });
 
-    logger.debug(
-      {
-        status: res.status,
-        waitMs: Date.now() - start,
-        sizeKB: +(res.headers.get("content-length") ?? 0) / 1000,
-      },
-      `Fetched ${input instanceof Request ? input.url : input}`
-    );
+    // logger.debug(
+    //   {
+    //     status: res.status,
+    //     waitMs: Date.now() - start,
+    //     sizeKB: +(res.headers.get("content-length") ?? 0) / 1000,
+    //   },
+    //   `Fetched ${input instanceof Request ? input.url : input}`
+    // );
 
     return res;
   }
