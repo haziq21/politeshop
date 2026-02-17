@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: POLITEMall Brightspace Content Service API
+  title: Brightspace Content Service
   version: 1.0.0
   description: |
     API for the `content-service.api.brightspace.com` subdomain, used by the POLITEMall client.
