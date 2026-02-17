@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: POLITEMall Brightspace Sequences API
+  title: Brightspace Sequences
   version: 1.0.0
   description: |
     API for the `sequences.api.brightspace.com` subdomain, used by the POLITEMall client.

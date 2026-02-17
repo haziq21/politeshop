@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: POLITEMall D2L API
+  title: POLITEMall
   version: 1.0.0
   description: |
     API for `*.polite.edu.sg` endpoints used by the POLITEMall client.
@@ -63,7 +63,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "shared/siren.yaml#/components/schemas/SemesterListEntity"
+                $ref: "./shared/siren.yaml#/components/schemas/SemesterListEntity"
         "403":
           description: "Forbidden. The session cookies are likely invalid or expired."
 
