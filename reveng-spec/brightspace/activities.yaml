@@ -1,0 +1,209 @@
+openapi: 3.0.0
+info:
+  title: Brightspace Activities
+  version: 1.0.0
+  description: |
+    API for the `activities.api.brightspace.com` subdomain, used by the POLITEMall client.
+    This is a hypermedia API that uses the Siren format. Used for accessing submission
+    information when dropboxes are closed (past their availability end date).
+servers:
+  - url: "https://{tenantId}.activities.api.brightspace.com"
+    variables:
+      tenantId:
+        default: "746e9230-82d6-4d6b-bd68-5aa40aa19cce"
+        description: "The ID of the Brightspace tenant (e.g., 746e9230-82d6-4d6b-bd68-5aa40aa19cce)."
+tags:
+  - name: Activities
+    description: Operations related to assignment activities and submissions.
+paths:
+  /old/activities/{orgId}_{toolId}_{dropboxId}/usages/{moduleId}/users/{userId}:
+    get:
+      summary: Get submissions for closed dropbox
+      tags:
+        - Activities
+      description: |
+        Fetches submission information for a dropbox that is closed (past availability end date).
+        This endpoint is used as a fallback when the POLITEMall API returns 403 for closed dropboxes.
+        
+        Note: The toolId appears to be a constant value (2000) for dropbox activities.
+      operationId: getClosedDropboxSubmissions
+      security:
+        - brightspaceJWT: []
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          description: The organization ID (from organization info endpoint).
+          schema:
+            type: string
+            example: "6665"
+        - name: toolId
+          in: path
+          required: true
+          description: Tool ID (typically 2000 for dropbox activities).
+          schema:
+            type: string
+            example: "2000"
+        - name: dropboxId
+          in: path
+          required: true
+          description: The ID of the dropbox folder.
+          schema:
+            type: string
+            example: "12345"
+        - name: moduleId
+          in: path
+          required: true
+          description: The ID of the module (course offering).
+          schema:
+            type: string
+            example: "51409"
+        - name: userId
+          in: path
+          required: true
+          description: The ID of the user.
+          schema:
+            type: string
+            example: "490586"
+      responses:
+        "200":
+          description: "A Siren entity containing submission information."
+          content:
+            application/json:
+              schema:
+                $ref: "../shared/siren.yaml#/components/schemas/UserAssignmentActivityEntity"
+              example:
+                class:
+                  - "user-assignment-activity"
+                  - "activity"
+                  - "started"
+                entities:
+                  - class:
+                      - "assignment-submission-list"
+                    rel:
+                      - "https://assignments.api.brightspace.com/rels/assignment-submission-list"
+                    properties:
+                      downloadAll: "/d2l/api/le/1.40/468253/dropbox/folders/451456/submissions/490586/download"
+                    links:
+                      - class:
+                          - "assignment-submission"
+                          - "latest"
+                        rel:
+                          - "https://assignments.api.brightspace.com/rels/assignment-submission-list"
+                        href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.assignments.api.brightspace.com/468253/folders/submissions/4189438"
+                  - class:
+                      - "start-date"
+                      - "date"
+                    rel:
+                      - "https://api.brightspace.com/rels/date"
+                    properties:
+                      date: "2024-04-12T16:01:00.000Z"
+                  - class:
+                      - "completion"
+                      - "complete"
+                    rel:
+                      - "item"
+                    entities:
+                      - class:
+                          - "date"
+                          - "completion-date"
+                        rel:
+                          - "item"
+                        properties:
+                          date: "2024-04-16T01:49:27.480Z"
+                links:
+                  - rel:
+                      - "https://activities.api.brightspace.com/rels/user-activity-usage"
+                      - "self"
+                    href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.activities.api.brightspace.com/old/activities/6665_2000_451456/usages/468253/users/490586"
+                  - rel:
+                      - "https://api.brightspace.com/rels/assignment"
+                    href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.assignments.api.brightspace.com/468253/folders/451456"
+                actions:
+                  - class:
+                      - "my-assignment"
+                      - "submit"
+                    type: "multipart/mixed"
+                    title: "Submit to an assignment folder"
+                    href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.assignments.api.brightspace.com/468253/folders/451456/submissions/my-submission"
+                    name: "submit"
+                    method: "POST"
+        "403":
+          description: "Forbidden. The JWT is likely invalid or expired."
+        "404":
+          description: "Activity or user not found."
+
+  /submissions/{submissionId}:
+    get:
+      summary: Get submission details
+      tags:
+        - Activities
+      description: |
+        Fetches detailed information about a specific submission, including
+        submission date and comments.
+      operationId: getSubmissionDetails
+      security:
+        - brightspaceJWT: []
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          description: The ID of the submission.
+          schema:
+            type: string
+            example: "12345"
+      responses:
+        "200":
+          description: "A Siren entity containing submission details."
+          content:
+            application/json:
+              schema:
+                $ref: "../shared/siren.yaml#/components/schemas/AssignmentSubmissionEntity"
+              example:
+                class:
+                  - "assignment-submission"
+                properties:
+                  submissionNumber: 1
+                  evaluationStatus: "Evaluated"
+                entities:
+                  - class:
+                      - "attachment-list"
+                    rel:
+                      - "https://assignments.api.brightspace.com/rels/attachment-list"
+                    entities:
+                      - class:
+                          - "attachment"
+                        rel:
+                          - "https://assignments.api.brightspace.com/rels/attachment"
+                        properties:
+                          id: "48709238"
+                          name: "Tut01-09-Haziq Hairil.pdf"
+                          size: 543846
+                          extension: "pdf"
+                          flagged: false
+                          read: true
+                        links:
+                          - rel:
+                              - "alternate"
+                            type: "application/pdf"
+                            href: "https://nplms.polite.edu.sg/d2l/api/le/1.12/468253/dropbox/folders/451456/submissions/4189438/files/48709238"
+                  - class:
+                      - "date"
+                      - "submission-date"
+                    rel:
+                      - "https://api.brightspace.com/rels/date"
+                    properties:
+                      date: "2024-04-16T01:49:27.480Z"
+                links:
+                  - class:
+                      - "assignment-submission"
+                    rel:
+                      - "self"
+                    href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.assignments.api.brightspace.com/468253/folders/submissions/4189438"
+        "403":
+          description: "Forbidden. The JWT is likely invalid or expired."
+
+components:
+  securitySchemes:
+    brightspaceJWT:
+      $ref: "shared/components.yaml#/components/securitySchemes/brightspaceJWT"

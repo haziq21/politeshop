@@ -4,6 +4,7 @@ info:
   version: 1.0.0
   description: |
     API for `*.polite.edu.sg` endpoints used by the POLITEMall client.
+    All endpoints require authentication via session cookies.
 servers:
   - url: "https://{domain}.polite.edu.sg"
     variables:
@@ -11,11 +12,45 @@ servers:
         default: "nplms"
         description: "The subdomain for the POLITEMall instance (e.g., nplms, nyplms)."
 tags:
+  - name: Auth
+    description: Authentication operations.
   - name: Users
     description: Operations related to users.
+  - name: Organization
+    description: Operations related to the organization.
   - name: Courses
     description: Operations related to courses and course content.
+  - name: Content
+    description: Operations related to course content.
+  - name: Dropbox
+    description: Operations related to assignment dropboxes.
+  - name: Quizzes
+    description: Operations related to quizzes.
 paths:
+  /d2l/lp/auth/oauth2/token:
+    get:
+      summary: Get new JWT token
+      tags:
+        - Auth
+      description: |
+        Fetches a new JWT token for authentication to Brightspace APIs.
+        Returns an access token with tenant and user information.
+      operationId: getNewD2lFetchToken
+      security:
+        - d2lSession: []
+      responses:
+        "200":
+          description: "Successful response with JWT token."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrightspaceToken"
+              example:
+                access_token: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImM2YTk0MTc2LWY3MjUtNDFmNy05ZTcyLTJkMmYxNTUzMThlOSIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE3NzEzMzk3MTcsImV4cCI6MTc3MTM0MzMxNywiaXNzIjoiaHR0cHM6Ly9hcGkuYnJpZ2h0c3BhY2UuY29tL2F1dGgiLCJhdWQiOiJodHRwczovL2FwaS5icmlnaHRzcGFjZS5jb20vYXV0aC90b2tlbiIsInRlbmFudGlkIjoiNzQ2ZTkyMzAtODJkNi00ZDZiLWJkNjgtNWFhNDBhYTE5Y2NlIiwic3ViIjoiNDkwNTg2IiwiYXpwIjoiZDJsLWlhbS1sbXMiLCJzY29wZSI6Iio6KjoqIiwianRpIjoiNjQxZWQ0OWYtZGUyZS00NTUyLThkZjktNzJlODk4MDFkY2I0In0.c64NsxsGqJMrKE4YgGW2dSrduq7KLQAqIF6OaeieNtKJd0_nUMLYQ3awvzMk2s11fSULDiqhducV8iZrix9lu0mGePvpmSFbykIjmT8wZWoCqazdQVuUXyNIh3cJmF4ihmObwWhiALEsKnGPTL63Axr08UEZbj-ZFeBOMqjT1eiG4ZujBiJcgxA_1DBwqvCGp2PJ9x0htHf1RERmV6P5MqYH5mtGpgq2G1B6gBaZvlLKxzZqPGmSAbvXDUOlJ2qLj6aEHPD2aqus7Ptr5CsbHTceBp1yKa3s2qLd-nfM4_iOxsNUKW0PFeDErbwGEBYx1mKnxoWgQCa92KOrZi0EMg"
+                expires_at: 1771343317
+        "403":
+          description: "Forbidden. The session cookies are likely invalid or expired."
+
   /d2l/api/lp/1.0/users/whoami:
     get:
       summary: Get current user information
@@ -32,79 +67,490 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WhoamiResponse"
+              example:
+                Identifier: "490586"
+                FirstName: "HAZIQ DANISH BIN HAIRIL RIZAL"
+                LastName: "NP"
+                Pronouns: null
+                UniqueName: "s10266132@connect.np.edu.sg"
+                ProfileIdentifier: "TE2kIdGhDu"
         "403":
           description: "Forbidden. The session cookies are likely invalid or expired."
 
-  /d2l/api/le/manageCourses/courses-searches/{userId}/BySemester:
+  /d2l/api/lp/1.46/organization/info:
     get:
-      summary: Get semesters for a user
+      summary: Get organization information
       tags:
-        - Courses
-      description: Fetches a list of semesters for a given user.
-      operationId: getSemesters
+        - Organization
+      description: Fetches information about the organization (school/institution).
+      operationId: getOrganizationInfo
       security:
         - d2lSession: []
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          description: The ID of the user.
-          schema:
-            type: string
-        - name: desc
-          in: query
-          description: "Sort order (1 for descending)."
-          schema:
-            type: integer
-            default: 1
       responses:
         "200":
-          description: "A Siren entity containing the list of semesters in its actions."
+          description: "Successful response with organization data."
           content:
             application/json:
               schema:
-                $ref: "./shared/siren.yaml#/components/schemas/SemesterListEntity"
+                $ref: "#/components/schemas/Organization"
+              example:
+                Identifier: "6665"
+                Name: "Ngee Ann Polytechnic"
+                TimeZone: "Asia/Singapore"
         "403":
           description: "Forbidden. The session cookies are likely invalid or expired."
 
-  /d2l/api/le/1.12/{moduleId}/content/topics/{id}/file:
+  /d2l/api/lp/1.46/enrollments/myenrollments/:
     get:
-      summary: Get activity file content
+      summary: Get user enrollments
       tags:
         - Courses
-      description: Fetches the content of a file associated with an activity.
-      operationId: getActivityFile
+      description: |
+        Fetches a paginated list of the user's course enrollments.
+        Supports filtering and pagination via query parameters.
+      operationId: getMyEnrollments
+      security:
+        - d2lSession: []
+      parameters:
+        - name: bookmark
+          in: query
+          description: "Pagination bookmark from previous response."
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          description: "Number of items per page (default varies)."
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: "Paginated list of user enrollments."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedEnrollmentResult"
+              example:
+                PagingInfo:
+                  Bookmark: "856999"
+                  HasMoreItems: false
+                Items:
+                  - OrgUnit:
+                      Id: 6665
+                      Type:
+                        Id: 1
+                        Code: "Organization"
+                        Name: "Organization"
+                      Name: "Ngee Ann Polytechnic"
+                      Code: null
+                      HomeUrl: "https://nplms.polite.edu.sg/d2l/home/6665"
+                      ImageUrl: "https://nplms.polite.edu.sg/d2l/api/lp/1.9/courses/6665/image"
+                    Access:
+                      IsActive: true
+                      StartDate: null
+                      EndDate: null
+                      CanAccess: true
+                      ClasslistRoleName: "Student"
+                      LISRoles:
+                        - "urn:lti:instrole:ims/lis/Student"
+                        - "urn:lti:instrole:ims/lis/Learner"
+                      LastAccessed: "2026-02-17T14:48:37.607Z"
+                    PinDate: null
+                  - OrgUnit:
+                      Id: 51409
+                      Type:
+                        Id: 3
+                        Code: "Course Offering"
+                        Name: "Course Offering"
+                      Name: "Personalised Learning Pathway (PLP)"
+                      Code: "22S1-IS_PLP_NP"
+                      HomeUrl: "https://nplms.polite.edu.sg/d2l/home/51409"
+                      ImageUrl: "https://nplms.polite.edu.sg/d2l/api/lp/1.9/courses/51409/image"
+                    Access:
+                      IsActive: true
+                      StartDate: null
+                      EndDate: null
+                      CanAccess: true
+                      ClasslistRoleName: "Student"
+                      LISRoles:
+                        - "urn:lti:instrole:ims/lis/Student"
+                        - "urn:lti:instrole:ims/lis/Learner"
+                      LastAccessed: "2025-03-03T13:16:03.330Z"
+                    PinDate: null
+        "403":
+          description: "Forbidden. The session cookies are likely invalid or expired."
+
+  /d2l/api/lp/1.46/courses/parentorgunits:
+    get:
+      summary: Get parent organization units
+      tags:
+        - Courses
+      description: |
+        Fetches parent organization units (semesters/departments) for the given course offerings.
+        Max 25 org unit IDs per request.
+      operationId: getParentOrgUnits
+      security:
+        - d2lSession: []
+      parameters:
+        - name: orgUnitIdsCSV
+          in: query
+          required: true
+          description: "Comma-separated list of organization unit (course) IDs. Max 25."
+          schema:
+            type: string
+            example: "51409,78634,101787"
+      responses:
+        "200":
+          description: "List of parent org units for the requested courses."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourseParent"
+              example:
+                - CourseOfferingId: "51409"
+                  Semester:
+                    Identifier: "67189"
+                    Name: " Non-Term"
+                    Code: "ADHOC"
+                  Department:
+                    Identifier: "48928"
+                    Name: "IS AD HOC"
+                    Code: "IS_ADHOC"
+        "403":
+          description: "Forbidden. The session cookies are likely invalid or expired."
+
+  /d2l/api/le/1.75/{moduleId}/content/toc:
+    get:
+      summary: Get module table of contents
+      tags:
+        - Content
+      description: |
+        Fetches the table of contents (TOC) for a module, including all folders (modules) 
+        and topics (activities). This is the main content structure endpoint.
+      operationId: getModuleTOC
       security:
         - d2lSession: []
       parameters:
         - name: moduleId
           in: path
           required: true
-          description: The ID of the module.
+          description: "The ID of the module (course offering)."
           schema:
             type: string
-        - name: id
-          in: path
-          required: true
-          description: The ID of the activity (topic).
-          schema:
-            type: string
-        - name: stream
-          in: query
-          description: "Stream the file content."
-          schema:
-            type: boolean
-            default: true
+            example: "51409"
       responses:
         "200":
-          description: "The content of the file. This could be HTML or any other file type."
+          description: "Module table of contents with folders and topics."
           content:
-            text/html:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TableOfContents"
+              example:
+                Modules:
+                  - IsHidden: false
+                    SortOrder: -2807
+                    StartDateTime: null
+                    EndDateTime: null
+                    IsLocked: false
+                    PacingStartDate: null
+                    PacingEndDate: null
+                    DefaultPath: "/content/enforced/51409-22S1-IS_PLP_NP/"
+                    ModuleId: 2242122
+                    Title: "1. About Personalised Learning Pathway (PLP)"
+                    Modules: []
+                    Topics:
+                      - IsExempt: false
+                        IsHidden: false
+                        SortOrder: -2644
+                        StartDateTime: null
+                        EndDateTime: null
+                        IsLocked: false
+                        IsBroken: false
+                        ActivityId: "https://ids.brightspace.com/activities/contenttopic/927FAFEA-F39E-47A2-A004-9FE5405E0231-1877784"
+                        CompletionType: 2
+                        TopicId: 4349549
+                        Identifier: "4349549"
+                        TypeIdentifier: "File"
+                        Title: "PLP (video, infographics)"
+                        Bookmarked: false
+                        Unread: false
+                        Url: "/content/enforced/51409-22S1-IS_PLP_NP/PLP (video, infographics).html"
+                        ToolId: null
+                        ToolItemId: null
+                        ActivityType: 1
+                        GradeItemId: null
+                        LastModifiedDate: "2025-07-29T08:20:47.300Z"
+                        Description:
+                          Text: ""
+                          Html: ""
+                    LastModifiedDate: "2025-07-29T08:17:46.327Z"
+                    Description:
+                      Text: "Personalised Learning Pathway (PLP) provides a framework..."
+                      Html: "<p>Personalised Learning Pathway (PLP) provides...</p>"
+        "403":
+          description: "Forbidden. The session cookies are likely invalid or expired."
+        "404":
+          description: "Module not found or user does not have access."
+
+  /d2l/api/le/1.75/{moduleId}/dropbox/folders/:
+    get:
+      summary: Get submission dropboxes in a module
+      tags:
+        - Dropbox
+      description: |
+        Fetches all assignment dropbox folders for a module.
+        Returns an empty array if no dropboxes exist.
+      operationId: getDropboxFolders
+      security:
+        - d2lSession: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: "The ID of the module (course offering)."
+          schema:
+            type: string
+            example: "468253"
+      responses:
+        "200":
+          description: "List of dropbox folders."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DropboxFolder"
+              example:
+                - Id: 451456
+                  CategoryId: null
+                  Name: "Tutorial 1 - Sets"
+                  CustomInstructions:
+                    Text: ""
+                    Html: ""
+                  Attachments: []
+                  TotalFiles: -1
+                  UnreadFiles: -1
+                  FlaggedFiles: -1
+                  TotalUsers: -1
+                  TotalUsersWithSubmissions: -1
+                  TotalUsersWithFeedback: -1
+                  Availability:
+                    StartDate: "2024-04-12T16:01:00.000Z"
+                    EndDate: "2024-04-24T15:59:59.000Z"
+                    StartDateAvailabilityType: 0
+                    EndDateAvailabilityType: 0
+                  IsHidden: false
+                  Assessment:
+                    ScoreDenominator: 1
+                    Rubrics: []
+                  DropboxType: 2
+                  GroupTypeId: null
+                  DueDate: "2024-04-24T15:59:59.000Z"
+                  DisplayInCalendar: false
+                  NotificationEmail: null
+                  LinkAttachments: []
+                  ActivityId: "https://ids.brightspace.com/activities/dropbox/927FAFEA-F39E-47A2-A004-9FE5405E0231-3780689"
+                  IsAnonymous: false
+                  SubmissionType: 0
+                  CompletionType: 0
+                  AllowableFileType: 0
+                  CustomAllowableFileTypes: null
+                  GradeItemId: null
+                  AllowOnlyUsersWithSpecialAccess: null
+                - Id: 452669
+                  CategoryId: null
+                  Name: "Tutorial 2 - Relations & Functions"
+                  CustomInstructions:
+                    Text: ""
+                    Html: ""
+                  Attachments: []
+                  Availability: null
+                  DueDate: "2024-05-01T15:59:59.000Z"
+        "403":
+          description: "Forbidden. The session cookies are likely invalid or expired."
+
+  /d2l/api/le/1.75/{moduleId}/dropbox/folders/{dropboxId}/submissions/:
+    get:
+      summary: Get user submissions for a dropbox
+      tags:
+        - Dropbox
+      description: |
+        Fetches the user's submissions for a specific assignment dropbox.
+        Returns an empty array if no submissions exist.
+        Note: This endpoint returns 403 if the dropbox is closed (past availability end date).
+      operationId: getDropboxSubmissions
+      security:
+        - d2lSession: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: "The ID of the module (course offering)."
+          schema:
+            type: string
+            example: "468253"
+        - name: dropboxId
+          in: path
+          required: true
+          description: "The ID of the dropbox folder."
+          schema:
+            type: string
+            example: "451456"
+      responses:
+        "200":
+          description: "List of user's submissions for the dropbox."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntityDropbox"
+              example: []
+        "403":
+          description: |
+            Forbidden. Either the session cookies are invalid, or the dropbox is closed
+            (past its availability end date). Use the Brightspace activities API for closed dropboxes.
+
+  /d2l/api/le/1.75/{moduleId}/quizzes/:
+    get:
+      summary: Get quizzes in a module
+      tags:
+        - Quizzes
+      description: |
+        Fetches a paginated list of quizzes in a module.
+        Supports pagination via the returned Next URL.
+      operationId: getQuizzes
+      security:
+        - d2lSession: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: "The ID of the module (course offering)."
+          schema:
+            type: string
+            example: "468253"
+      responses:
+        "200":
+          description: "Paginated list of quizzes."
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ObjectListPage"
+                  - type: object
+                    properties:
+                      Objects:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/QuizReadData"
+              example:
+                Objects:
+                  - QuizId: 870578
+                    Name: "Quiz 5 (Probability)"
+                    AutoExportToGrades: true
+                    IsActive: true
+                    GradeItemId: 2025509
+                    IsAutoSetGraded: true
+                    Instructions:
+                      Text:
+                        Text: ""
+                        Html: ""
+                      IsDisplayed: false
+                    Description:
+                      Text:
+                        Text: "This is an open-book quiz."
+                        Html: "<p>This is an open-book quiz.</p>"
+                      IsDisplayed: true
+                    Header:
+                      Text:
+                        Text: ""
+                        Html: ""
+                      IsDisplayed: true
+                    Footer:
+                      Text:
+                        Text: ""
+                        Html: ""
+                      IsDisplayed: true
+                    StartDate: "2022-06-23T16:01:00.000Z"
+                    EndDate: "2022-08-31T15:59:59.000Z"
+                    DueDate: "2022-08-31T15:59:59.000Z"
+                    DisplayInCalendar: true
+                    SortOrder: 8
+                    SubmissionTimeLimit:
+                      IsEnforced: false
+                      ShowClock: false
+                      TimeLimitValue: 120
+                    SubmissionGracePeriod: 5
+                    LateSubmissionInfo:
+                      LateSubmissionOption: 0
+                      LateLimitMinutes: null
+                    AttemptsAllowed:
+                      IsUnlimited: false
+                      NumberOfAttemptsAllowed: 2
+                    Password: null
+                    AllowHints: false
+                    DisableRightClick: false
+                    DisablePagerAndAlerts: false
+                    RestrictIPAddressRange: []
+                    NotificationEmail: null
+                    CalcTypeId: 1
+                    CategoryId: 18239
+                    PreventMovingBackwards: false
+                    Shuffle: false
+                    ActivityId: "https://ids.brightspace.com/activities/quiz/927FAFEA-F39E-47A2-A004-9FE5405E0231-1915375"
+                    AllowOnlyUsersWithSpecialAccess: false
+                    IsRetakeIncorrectOnly: false
+                    PagingTypeId: null
+                    IsSynchronous: false
+                    DeductionPercentage: null
+                    HideQuestionPoints: false
+                Next: null
+        "403":
+          description: "Forbidden. The session cookies are likely invalid or expired."
+
+  /d2l/api/lp/1.46/courses/{moduleId}/image:
+    get:
+      summary: Get module or organization image
+      tags:
+        - Courses
+      description: |
+        Returns the banner/thumbnail image for a module or organization.
+        Supports resizing via query parameters.
+      operationId: getModuleImage
+      security:
+        - d2lSession: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: "The ID of the module or organization."
+          schema:
+            type: string
+            example: "51409"
+        - name: width
+          in: query
+          description: "Desired image width in pixels."
+          schema:
+            type: integer
+            example: 100
+        - name: height
+          in: query
+          description: "Desired image height in pixels."
+          schema:
+            type: integer
+            example: 100
+      responses:
+        "200":
+          description: "The image file."
+          content:
+            image/jpeg:
               schema:
                 type: string
-                format: html
-            application/octet-stream:
-              description: "The file content for non-HTML files."
+                format: binary
+            image/png:
               schema:
                 type: string
                 format: binary
@@ -117,7 +563,25 @@ components:
       type: apiKey
       in: cookie
       name: d2lSessionVal
+      description: |
+        Session cookie for POLITEMall authentication.
+        Must also include d2lSecureSessionVal cookie.
   schemas:
+    BrightspaceToken:
+      type: object
+      required:
+        - access_token
+        - expires_at
+      properties:
+        access_token:
+          type: string
+          description: JWT token for Brightspace API authentication
+          example: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImM2YTk0MTc2LWY3MjUtNDFmNy05ZTcyLTJkMmYxNTUzMThlOSIsInR5cCI6IkpXVCJ9..."
+        expires_at:
+          type: integer
+          description: Unix timestamp when the token expires
+          example: 1771343317
+
     WhoamiResponse:
       type: object
       required:
@@ -129,21 +593,644 @@ components:
       properties:
         Identifier:
           type: string
-          description: The user's ID.
-          example: "12345"
+          description: The user's unique ID
+          example: "490586"
         FirstName:
           type: string
-          description: The user's first name.
-          example: "John"
+          description: The user's first name
+          example: "HAZIQ DANISH BIN HAIRIL RIZAL"
         LastName:
           type: string
-          description: The user's last name.
-          example: "Doe"
+          description: The user's last name
+          example: "NP"
+        Pronouns:
+          type: string
+          nullable: true
+          description: User's preferred pronouns
+          example: null
         UniqueName:
           type: string
-          description: The user's email address.
-          format: email
-          example: "john.doe@example.com"
+          description: The user's email address
+          example: "s10266132@connect.np.edu.sg"
         ProfileIdentifier:
           type: string
-          example: "johndoe1"
+          description: Unique profile identifier
+          example: "TE2kIdGhDu"
+
+    Organization:
+      type: object
+      required:
+        - Identifier
+        - Name
+        - TimeZone
+      properties:
+        Identifier:
+          type: string
+          description: Organization ID
+          example: "6665"
+        Name:
+          type: string
+          description: Organization name
+          example: "Ngee Ann Polytechnic"
+        TimeZone:
+          type: string
+          description: Organization timezone
+          example: "Asia/Singapore"
+
+    OrgUnitType:
+      type: object
+      properties:
+        Id:
+          type: integer
+          description: Type ID (1=Organization, 3=Course Offering, 4=Group)
+          example: 3
+        Code:
+          type: string
+          description: Type code
+          example: "Course Offering"
+        Name:
+          type: string
+          description: Type name
+          example: "Course Offering"
+
+    OrgUnit:
+      type: object
+      properties:
+        Id:
+          type: integer
+          description: Organization unit ID
+          example: 51409
+        Type:
+          $ref: "#/components/schemas/OrgUnitType"
+        Name:
+          type: string
+          description: Organization unit name
+          example: "Personalised Learning Pathway (PLP)"
+        Code:
+          type: string
+          nullable: true
+          description: Course code
+          example: "22S1-IS_PLP_NP"
+        HomeUrl:
+          type: string
+          nullable: true
+          description: URL to the home page
+          example: "https://nplms.polite.edu.sg/d2l/home/51409"
+        ImageUrl:
+          type: string
+          nullable: true
+          description: URL to the course image
+          example: "https://nplms.polite.edu.sg/d2l/api/lp/1.9/courses/51409/image"
+
+    Access:
+      type: object
+      properties:
+        IsActive:
+          type: boolean
+          example: true
+        StartDate:
+          type: string
+          nullable: true
+          format: date-time
+        EndDate:
+          type: string
+          nullable: true
+          format: date-time
+        CanAccess:
+          type: boolean
+          example: true
+        ClasslistRoleName:
+          type: string
+          example: "Student"
+        LISRoles:
+          type: array
+          items:
+            type: string
+          example:
+            - "urn:lti:instrole:ims/lis/Student"
+            - "urn:lti:instrole:ims/lis/Learner"
+        LastAccessed:
+          type: string
+          nullable: true
+          format: date-time
+          example: "2025-03-03T13:16:03.330Z"
+
+    EnrollmentItem:
+      type: object
+      properties:
+        OrgUnit:
+          $ref: "#/components/schemas/OrgUnit"
+        Access:
+          $ref: "#/components/schemas/Access"
+        PinDate:
+          type: string
+          nullable: true
+          format: date-time
+
+    PagedEnrollmentResult:
+      type: object
+      properties:
+        PagingInfo:
+          type: object
+          properties:
+            Bookmark:
+              type: string
+              example: "856999"
+            HasMoreItems:
+              type: boolean
+              example: false
+        Items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnrollmentItem"
+
+    CourseParent:
+      type: object
+      required:
+        - CourseOfferingId
+        - Semester
+        - Department
+      properties:
+        CourseOfferingId:
+          type: string
+          description: ID of the course offering
+          example: "51409"
+        Semester:
+          type: object
+          properties:
+            Identifier:
+              type: string
+              example: "67189"
+            Name:
+              type: string
+              example: " Non-Term"
+            Code:
+              type: string
+              example: "ADHOC"
+        Department:
+          type: object
+          properties:
+            Identifier:
+              type: string
+              example: "48928"
+            Name:
+              type: string
+              example: "IS AD HOC"
+            Code:
+              type: string
+              example: "IS_ADHOC"
+
+    RichText:
+      type: object
+      properties:
+        Text:
+          type: string
+          example: ""
+        Html:
+          type: string
+          example: "<p>Description in HTML format</p>"
+
+    TOCTopic:
+      type: object
+      properties:
+        IsExempt:
+          type: boolean
+        IsHidden:
+          type: boolean
+        SortOrder:
+          type: integer
+        StartDateTime:
+          type: string
+          nullable: true
+          format: date-time
+        EndDateTime:
+          type: string
+          nullable: true
+          format: date-time
+        IsLocked:
+          type: boolean
+        IsBroken:
+          type: boolean
+        ActivityId:
+          type: string
+          example: "https://ids.brightspace.com/activities/contenttopic/927FAFEA-F39E-47A2-A004-9FE5405E0231-1877784"
+        CompletionType:
+          type: integer
+        TopicId:
+          type: integer
+          example: 4349549
+        Identifier:
+          type: string
+          example: "4349549"
+        TypeIdentifier:
+          type: string
+          enum: ["File", "Link", "ContentService"]
+          example: "File"
+        Title:
+          type: string
+          example: "PLP (video, infographics)"
+        Bookmarked:
+          type: boolean
+        Unread:
+          type: boolean
+        Url:
+          type: string
+          example: "/content/enforced/51409-22S1-IS_PLP_NP/PLP (video, infographics).html"
+        ToolId:
+          type: integer
+          nullable: true
+        ToolItemId:
+          type: integer
+          nullable: true
+        ActivityType:
+          type: integer
+          description: "1=File, 2=Link, 3=Submission, 4=Quiz"
+          example: 1
+        GradeItemId:
+          type: integer
+          nullable: true
+        LastModifiedDate:
+          type: string
+          format: date-time
+        Description:
+          $ref: "#/components/schemas/RichText"
+
+    TOCModule:
+      type: object
+      properties:
+        IsHidden:
+          type: boolean
+        SortOrder:
+          type: integer
+        StartDateTime:
+          type: string
+          nullable: true
+          format: date-time
+        EndDateTime:
+          type: string
+          nullable: true
+          format: date-time
+        IsLocked:
+          type: boolean
+        PacingStartDate:
+          type: string
+          nullable: true
+        PacingEndDate:
+          type: string
+          nullable: true
+        DefaultPath:
+          type: string
+        ModuleId:
+          type: integer
+          example: 2242122
+        Title:
+          type: string
+          example: "1. About Personalised Learning Pathway (PLP)"
+        Modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/TOCModule"
+        Topics:
+          type: array
+          items:
+            $ref: "#/components/schemas/TOCTopic"
+        LastModifiedDate:
+          type: string
+          format: date-time
+        Description:
+          $ref: "#/components/schemas/RichText"
+
+    TableOfContents:
+      type: object
+      properties:
+        Modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/TOCModule"
+
+    File:
+      type: object
+      properties:
+        FileId:
+          type: integer
+        FileName:
+          type: string
+        Size:
+          type: integer
+
+    EntityDropbox:
+      type: object
+      properties:
+        CompletionDate:
+          type: string
+          nullable: true
+          format: date-time
+        Submissions:
+          type: array
+          items:
+            type: object
+            properties:
+              Id:
+                type: integer
+              SubmissionDate:
+                type: string
+                nullable: true
+                format: date-time
+              Comment:
+                $ref: "#/components/schemas/RichText"
+              Files:
+                type: array
+                items:
+                  $ref: "#/components/schemas/File"
+
+    DropboxFolder:
+      type: object
+      properties:
+        Id:
+          type: integer
+          description: "Unique identifier for the dropbox folder"
+          example: 451456
+        CategoryId:
+          type: integer
+          nullable: true
+        Name:
+          type: string
+          description: "Name of the assignment/dropbox"
+          example: "Tutorial 1 - Sets"
+        CustomInstructions:
+          $ref: "#/components/schemas/RichText"
+        Attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/File"
+        TotalFiles:
+          type: integer
+          example: -1
+        UnreadFiles:
+          type: integer
+          example: -1
+        FlaggedFiles:
+          type: integer
+          example: -1
+        TotalUsers:
+          type: integer
+          example: -1
+        TotalUsersWithSubmissions:
+          type: integer
+          example: -1
+        TotalUsersWithFeedback:
+          type: integer
+          example: -1
+        Availability:
+          type: object
+          nullable: true
+          properties:
+            StartDate:
+              type: string
+              nullable: true
+              format: date-time
+              example: "2024-04-12T16:01:00.000Z"
+            EndDate:
+              type: string
+              nullable: true
+              format: date-time
+              example: "2024-04-24T15:59:59.000Z"
+            StartDateAvailabilityType:
+              type: integer
+              nullable: true
+              example: 0
+            EndDateAvailabilityType:
+              type: integer
+              nullable: true
+              example: 0
+        IsHidden:
+          type: boolean
+          example: false
+        Assessment:
+          type: object
+          properties:
+            ScoreDenominator:
+              type: integer
+              example: 1
+            Rubrics:
+              type: array
+              items:
+                type: object
+        DropboxType:
+          type: integer
+          example: 2
+        GroupTypeId:
+          type: integer
+          nullable: true
+        DueDate:
+          type: string
+          nullable: true
+          format: date-time
+          example: "2024-04-24T15:59:59.000Z"
+        DisplayInCalendar:
+          type: boolean
+          example: false
+        NotificationEmail:
+          type: string
+          nullable: true
+        LinkAttachments:
+          type: array
+          items:
+            type: object
+        ActivityId:
+          type: string
+          example: "https://ids.brightspace.com/activities/dropbox/927FAFEA-F39E-47A2-A004-9FE5405E0231-3780689"
+        IsAnonymous:
+          type: boolean
+          example: false
+        SubmissionType:
+          type: integer
+          enum: [0]
+        CompletionType:
+          type: integer
+          example: 0
+        AllowableFileType:
+          type: integer
+          example: 0
+        CustomAllowableFileTypes:
+          type: string
+          nullable: true
+        GradeItemId:
+          type: integer
+          nullable: true
+        AllowOnlyUsersWithSpecialAccess:
+          type: boolean
+          nullable: true
+
+    QuizReadData:
+      type: object
+      properties:
+        QuizId:
+          type: integer
+          example: 870578
+        Name:
+          type: string
+          example: "Quiz 5 (Probability)"
+        AutoExportToGrades:
+          type: boolean
+          example: true
+        IsActive:
+          type: boolean
+          example: true
+        GradeItemId:
+          type: integer
+          nullable: true
+          example: 2025509
+        IsAutoSetGraded:
+          type: boolean
+          example: true
+        Instructions:
+          type: object
+          properties:
+            Text:
+              $ref: "#/components/schemas/RichText"
+            IsDisplayed:
+              type: boolean
+              example: false
+        Description:
+          type: object
+          properties:
+            Text:
+              $ref: "#/components/schemas/RichText"
+            IsDisplayed:
+              type: boolean
+              example: true
+        Header:
+          type: object
+          properties:
+            Text:
+              $ref: "#/components/schemas/RichText"
+            IsDisplayed:
+              type: boolean
+              example: true
+        Footer:
+          type: object
+          properties:
+            Text:
+              $ref: "#/components/schemas/RichText"
+            IsDisplayed:
+              type: boolean
+              example: true
+        StartDate:
+          type: string
+          format: date-time
+          example: "2022-06-23T16:01:00.000Z"
+        EndDate:
+          type: string
+          format: date-time
+          example: "2022-08-31T15:59:59.000Z"
+        DueDate:
+          type: string
+          nullable: true
+          format: date-time
+          example: "2022-08-31T15:59:59.000Z"
+        DisplayInCalendar:
+          type: boolean
+          example: true
+        SortOrder:
+          type: integer
+          example: 8
+        SubmissionTimeLimit:
+          type: object
+          properties:
+            IsEnforced:
+              type: boolean
+              example: false
+            ShowClock:
+              type: boolean
+              example: false
+            TimeLimitValue:
+              type: integer
+              example: 120
+        SubmissionGracePeriod:
+          type: integer
+          example: 5
+        LateSubmissionInfo:
+          type: object
+          properties:
+            LateSubmissionOption:
+              type: integer
+              example: 0
+            LateLimitMinutes:
+              type: integer
+              nullable: true
+        AttemptsAllowed:
+          type: object
+          properties:
+            IsUnlimited:
+              type: boolean
+              example: false
+            NumberOfAttemptsAllowed:
+              type: integer
+              nullable: true
+              example: 2
+        Password:
+          type: string
+          nullable: true
+        AllowHints:
+          type: boolean
+          example: false
+        DisableRightClick:
+          type: boolean
+          example: false
+        DisablePagerAndAlerts:
+          type: boolean
+          example: false
+        RestrictIPAddressRange:
+          type: array
+          items:
+            type: object
+        NotificationEmail:
+          type: string
+          nullable: true
+        CalcTypeId:
+          type: integer
+          example: 1
+        CategoryId:
+          type: integer
+          nullable: true
+          example: 18239
+        PreventMovingBackwards:
+          type: boolean
+          example: false
+        Shuffle:
+          type: boolean
+          example: false
+        ActivityId:
+          type: string
+          example: "https://ids.brightspace.com/activities/quiz/927FAFEA-F39E-47A2-A004-9FE5405E0231-1915375"
+        AllowOnlyUsersWithSpecialAccess:
+          type: boolean
+          example: false
+        IsRetakeIncorrectOnly:
+          type: boolean
+          example: false
+        PagingTypeId:
+          type: integer
+          nullable: true
+          example: null
+        IsSynchronous:
+          type: boolean
+          example: false
+        DeductionPercentage:
+          type: integer
+          nullable: true
+        HideQuestionPoints:
+          type: boolean
+          example: false
+
+    ObjectListPage:
+      type: object
+      properties:
+        Objects:
+          type: array
+          items:
+            type: object
+        Next:
+          type: string
+          nullable: true

@@ -9,13 +9,13 @@ servers:
   - url: "https://{tenantId}.sequences.api.brightspace.com"
     variables:
       tenantId:
-        default: "example-tenant"
-        description: The ID of the Brightspace tenant.
+        default: "746e9230-82d6-4d6b-bd68-5aa40aa19cce"
+        description: "The ID of the Brightspace tenant (e.g., 746e9230-82d6-4d6b-bd68-5aa40aa19cce)."
 tags:
   - name: Sequences
     description: Operations related to course content sequences (table of contents).
 paths:
-  /sequences/{moduleId}:
+  /{moduleId}:
     get:
       summary: Get module content sequence
       tags:
@@ -31,6 +31,7 @@ paths:
           description: The ID of the module (organization unit).
           schema:
             type: string
+            example: "51409"
         - name: deepEmbedEntities
           in: query
           schema:
@@ -46,6 +47,7 @@ paths:
           schema:
             type: integer
             default: 0
+          description: Whether to filter based on availability dates (0 = no filter)
       responses:
         "200":
           description: "A Siren entity representing the module's content sequence."
@@ -53,6 +55,136 @@ paths:
             application/json:
               schema:
                 $ref: "../shared/siren.yaml#/components/schemas/ModuleSequenceEntity"
+        "403":
+          description: "Forbidden. The JWT is likely invalid or expired."
+
+  /{moduleId}/activity/{activityId}:
+    get:
+      summary: Get activity entity
+      tags:
+        - Sequences
+      description: |
+        Fetches detailed information about a specific activity (topic) in Siren format.
+        Used for document embeds and other file activities.
+      operationId: getActivity
+      security:
+        - brightspaceJWT: []
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: The ID of the module (organization unit).
+          schema:
+            type: string
+            example: "51409"
+        - name: activityId
+          in: path
+          required: true
+          description: The ID of the activity (topic ID).
+          schema:
+            type: string
+            example: "4349549"
+        - name: filterOnDatesAndDepth
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Whether to filter based on availability dates
+      responses:
+        "200":
+          description: "A Siren entity representing the activity."
+          content:
+            application/json:
+              schema:
+                $ref: "../shared/siren.yaml#/components/schemas/ActivityEntity"
+              example:
+                class:
+                  - "release-condition-fix"
+                  - "sequenced-activity"
+                properties:
+                  title: "PLP (video, infographics)"
+                  courseName: "Personalised Learning Pathway (PLP)"
+                  canDownload: true
+                  canPrint: true
+                  enableManualCompletionComponent: true
+                entities:
+                  - class:
+                      - "icon"
+                      - "tier1"
+                    rel:
+                      - "icon"
+                    properties:
+                      iconSetKey: "tier1:browser"
+                      imagePath: "https://s.brightspace.com/lib/bsi/2026.1.213/images/tier1/browser.svg"
+                  - class:
+                      - "activity"
+                      - "file-activity"
+                    rel:
+                      - "about"
+                    properties:
+                      name: "PLP (video, infographics).html"
+                      title: "PLP (video, infographics).html"
+                      canDownload: true
+                      canPrint: true
+                    entities:
+                      - class:
+                          - "file"
+                        rel:
+                          - "about"
+                        properties:
+                          name: "PLP (video, infographics).html"
+                          title: "PLP (video, infographics).html"
+                          type: "text/html"
+                          canDownload: true
+                          canPrint: true
+                        entities:
+                          - class:
+                              - "last-modified"
+                              - "date"
+                            rel:
+                              - "item"
+                            properties:
+                              date: "2025-07-29T08:20:47.300Z"
+                        links:
+                          - rel:
+                              - "alternate"
+                            type: "text/html"
+                            href: "https://nplms.polite.edu.sg/d2l/api/le/1.12/51409/content/topics/4349549/file?stream=true"
+                          - class:
+                              - "embed"
+                            rel:
+                              - "alternate"
+                            type: "text/html"
+                            href: "https://nplms.polite.edu.sg/content/enforced/51409-22S1-IS_PLP_NP/PLP%20(video,%20infographics).html"
+                          - class:
+                              - "view"
+                            rel:
+                              - "alternate"
+                            type: "text/html"
+                            href: "https://nplms.polite.edu.sg/d2l/le/content/51409/viewContent/4349549/View"
+                    actions:
+                      - href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/51409/activity/4349549/view"
+                        name: "view-activity"
+                        method: "POST"
+                links:
+                  - rel:
+                      - "https://api.brightspace.com/rels/organization"
+                    href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.organizations.api.brightspace.com/51409"
+                  - rel:
+                      - "https://sequences.api.brightspace.com/rels/sequence-root"
+                    href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/51409/activity/2242122"
+                  - rel:
+                      - "alternate"
+                    type: "text/html"
+                    href: "https://nplms.polite.edu.sg/d2l/le/content/51409/viewContent/4349549/View"
+                  - class:
+                      - "sequenced-activity"
+                    rel:
+                      - "self"
+                      - "describes"
+                    href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/51409/activity/4349549"
+                rel:
+                  - "item"
         "403":
           description: "Forbidden. The JWT is likely invalid or expired."
 
