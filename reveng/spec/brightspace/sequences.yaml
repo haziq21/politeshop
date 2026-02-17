@@ -52,11 +52,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "siren-schemas.yaml#/components/schemas/ModuleSequenceEntity"
+                $ref: "../shared/siren.yaml#/components/schemas/ModuleSequenceEntity"
         "403":
           description: "Forbidden. The JWT is likely invalid or expired."
 
 components:
   securitySchemes:
     brightspaceJWT:
-      $ref: "components.yaml#/components/securitySchemes/brightspaceJWT"
+      $ref: "shared/components.yaml#/components/securitySchemes/brightspaceJWT"

@@ -9,7 +9,7 @@ servers:
     variables:
       domain:
         default: "nplms"
-        description: "The subdomain for the POLITEMall instance (e.g., nplms, nyp-politemall)."
+        description: "The subdomain for the POLITEMall instance (e.g., nplms, nyplms)."
 tags:
   - name: Users
     description: Operations related to users.
@@ -63,7 +63,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "siren-schemas.yaml#/components/schemas/SemesterListEntity"
+                $ref: "shared/siren.yaml#/components/schemas/SemesterListEntity"
         "403":
           description: "Forbidden. The session cookies are likely invalid or expired."
 
