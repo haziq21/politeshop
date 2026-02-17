@@ -131,7 +131,7 @@ paths:
         "403":
           description: "Forbidden. The JWT is likely invalid or expired."
         "404":
-          description: "Activity or user not found."
+          description: "Not found. The activity or user does not exist."
 
   /submissions/{submissionId}:
     get:
@@ -202,6 +202,8 @@ paths:
                     href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.assignments.api.brightspace.com/468253/folders/submissions/4189438"
         "403":
           description: "Forbidden. The JWT is likely invalid or expired."
+        "404":
+          description: "Not found. The submission does not exist."
 
 components:
   securitySchemes:

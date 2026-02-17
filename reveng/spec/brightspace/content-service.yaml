@@ -66,6 +66,8 @@ paths:
                     href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.content-service.api.brightspace.com/topics/51409/4349549"
         "403":
           description: "Forbidden. The JWT is likely invalid or expired."
+        "404":
+          description: "Not found. The topic does not exist."
 
   /topics/{moduleId}/{activityId}/media:
     get:
@@ -112,6 +114,8 @@ paths:
                     href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.content-service.api.brightspace.com/topics/51409/4349549/media"
         "403":
           description: "Forbidden. The JWT is likely invalid or expired."
+        "404":
+          description: "Not found. The media does not exist."
 
 components:
   securitySchemes:

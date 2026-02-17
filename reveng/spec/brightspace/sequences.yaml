@@ -185,6 +185,8 @@ paths:
                     href: "https://746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com/51409/activity/4349549"
                 rel:
                   - "item"
+        "400":
+          description: "Bad request. The activity ID may be invalid or malformed."
         "403":
           description: "Forbidden. The JWT is likely invalid or expired."
 

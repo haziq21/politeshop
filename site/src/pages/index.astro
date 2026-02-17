@@ -7,7 +7,7 @@ import { glob } from "fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const specDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../../reveng-spec");
+const specDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../../reveng/spec");
 const fileIter = glob("**/*.yaml", { cwd: specDir, exclude: ["**/shared/**/*"] });
 const sources = [];
 

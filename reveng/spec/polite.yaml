@@ -38,6 +38,14 @@ paths:
       operationId: getNewD2lFetchToken
       security:
         - d2lSession: []
+          d2lSecureSession: []
+      parameters:
+        - name: X-Csrf-Token
+          in: header
+          required: true
+          description: "CSRF token for request authentication."
+          schema:
+            type: string
       responses:
         "200":
           description: "Successful response with JWT token."
@@ -48,6 +56,8 @@ paths:
               example:
                 access_token: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImM2YTk0MTc2LWY3MjUtNDFmNy05ZTcyLTJkMmYxNTUzMThlOSIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE3NzEzMzk3MTcsImV4cCI6MTc3MTM0MzMxNywiaXNzIjoiaHR0cHM6Ly9hcGkuYnJpZ2h0c3BhY2UuY29tL2F1dGgiLCJhdWQiOiJodHRwczovL2FwaS5icmlnaHRzcGFjZS5jb20vYXV0aC90b2tlbiIsInRlbmFudGlkIjoiNzQ2ZTkyMzAtODJkNi00ZDZiLWJkNjgtNWFhNDBhYTE5Y2NlIiwic3ViIjoiNDkwNTg2IiwiYXpwIjoiZDJsLWlhbS1sbXMiLCJzY29wZSI6Iio6KjoqIiwianRpIjoiNjQxZWQ0OWYtZGUyZS00NTUyLThkZjktNzJlODk4MDFkY2I0In0.c64NsxsGqJMrKE4YgGW2dSrduq7KLQAqIF6OaeieNtKJd0_nUMLYQ3awvzMk2s11fSULDiqhducV8iZrix9lu0mGePvpmSFbykIjmT8wZWoCqazdQVuUXyNIh3cJmF4ihmObwWhiALEsKnGPTL63Axr08UEZbj-ZFeBOMqjT1eiG4ZujBiJcgxA_1DBwqvCGp2PJ9x0htHf1RERmV6P5MqYH5mtGpgq2G1B6gBaZvlLKxzZqPGmSAbvXDUOlJ2qLj6aEHPD2aqus7Ptr5CsbHTceBp1yKa3s2qLd-nfM4_iOxsNUKW0PFeDErbwGEBYx1mKnxoWgQCa92KOrZi0EMg"
                 expires_at: 1771343317
+        "302":
+          description: "Redirect. May occur during authentication flow."
         "403":
           description: "Forbidden. The session cookies are likely invalid or expired."
 
@@ -60,6 +70,7 @@ paths:
       operationId: whoami
       security:
         - d2lSession: []
+          d2lSecureSession: []
       responses:
         "200":
           description: "Successful response with user data."
@@ -86,6 +97,7 @@ paths:
       operationId: getOrganizationInfo
       security:
         - d2lSession: []
+          d2lSecureSession: []
       responses:
         "200":
           description: "Successful response with organization data."
@@ -111,6 +123,7 @@ paths:
       operationId: getMyEnrollments
       security:
         - d2lSession: []
+          d2lSecureSession: []
       parameters:
         - name: bookmark
           in: query
@@ -177,6 +190,8 @@ paths:
                         - "urn:lti:instrole:ims/lis/Learner"
                       LastAccessed: "2025-03-03T13:16:03.330Z"
                     PinDate: null
+        "400":
+          description: "Bad request. Invalid parameters or query string."
         "403":
           description: "Forbidden. The session cookies are likely invalid or expired."
 
@@ -191,6 +206,7 @@ paths:
       operationId: getParentOrgUnits
       security:
         - d2lSession: []
+          d2lSecureSession: []
       parameters:
         - name: orgUnitIdsCSV
           in: query
@@ -232,6 +248,7 @@ paths:
       operationId: getModuleTOC
       security:
         - d2lSession: []
+          d2lSecureSession: []
       parameters:
         - name: moduleId
           in: path
@@ -305,6 +322,7 @@ paths:
       operationId: getDropboxFolders
       security:
         - d2lSession: []
+          d2lSecureSession: []
       parameters:
         - name: moduleId
           in: path
@@ -383,6 +401,7 @@ paths:
       operationId: getDropboxSubmissions
       security:
         - d2lSession: []
+          d2lSecureSession: []
       parameters:
         - name: moduleId
           in: path
@@ -424,6 +443,7 @@ paths:
       operationId: getQuizzes
       security:
         - d2lSession: []
+          d2lSecureSession: []
       parameters:
         - name: moduleId
           in: path
@@ -522,6 +542,7 @@ paths:
       operationId: getModuleImage
       security:
         - d2lSession: []
+          d2lSecureSession: []
       parameters:
         - name: moduleId
           in: path
@@ -566,6 +587,13 @@ components:
       description: |
         Session cookie for POLITEMall authentication.
         Must also include d2lSecureSessionVal cookie.
+    d2lSecureSession:
+      type: apiKey
+      in: cookie
+      name: d2lSecureSessionVal
+      description: |
+        Secure session cookie for POLITEMall authentication.
+        Must be used together with d2lSessionVal cookie.
   schemas:
     BrightspaceToken:
       type: object
@@ -813,6 +841,7 @@ components:
           type: boolean
         ActivityId:
           type: string
+          nullable: true
           example: "https://ids.brightspace.com/activities/contenttopic/927FAFEA-F39E-47A2-A004-9FE5405E0231-1877784"
         CompletionType:
           type: integer
@@ -835,6 +864,7 @@ components:
           type: boolean
         Url:
           type: string
+          nullable: true
           example: "/content/enforced/51409-22S1-IS_PLP_NP/PLP (video, infographics).html"
         ToolId:
           type: integer
@@ -1010,7 +1040,8 @@ components:
           type: object
           properties:
             ScoreDenominator:
-              type: integer
+              type: number
+              nullable: true
               example: 1
             Rubrics:
               type: array
@@ -1118,10 +1149,12 @@ components:
               example: true
         StartDate:
           type: string
+          nullable: true
           format: date-time
           example: "2022-06-23T16:01:00.000Z"
         EndDate:
           type: string
+          nullable: true
           format: date-time
           example: "2022-08-31T15:59:59.000Z"
         DueDate:
