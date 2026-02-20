@@ -25,7 +25,7 @@ import {
 } from "./utils";
 import { parse as parseDate, addSeconds } from "date-fns";
 import { z } from "zod";
-import { logger } from "../utils";
+import { logger } from "$lib/utils";
 
 /**
  * Client for interacting with POLITEMall. This client calls both `*.polite.edu.sg`
