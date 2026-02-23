@@ -1,7 +1,0 @@
-components:
-  securitySchemes:
-    brightspaceJWT:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: "JWT for authentication to Brightspace APIs."
