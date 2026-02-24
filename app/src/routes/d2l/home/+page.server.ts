@@ -2,8 +2,7 @@ import type { PageServerLoad } from "./$types";
 import * as queries from "$lib/server/db/queries";
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-  const sessionHash = locals.sessionHash;
-  const user = await queries.getUserFromSessionHash(sessionHash);
+  const user = await queries.getUserFromSessionHash(locals.sessionHash);
   const userId = user!.id;
 
   const [organization, semesters, modules, semesterBreak] = await Promise.all([
