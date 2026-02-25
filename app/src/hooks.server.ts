@@ -1,6 +1,6 @@
 import { redirect, type Handle } from "@sveltejs/kit";
 import { CREDENTIAL_HEADER_MAPPINGS, type CredentialName } from "../../shared";
-import { POLITEMallClient } from "$lib/politemall";
+import { POLITEShop } from "politeshop";
 import * as queries from "$lib/server/db/queries";
 import type { User } from "$lib/server/db";
 import { initUser } from "$lib/initUser.remote";
@@ -20,7 +20,12 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   const fullCredentials = credentials as Record<CredentialName, string>;
-  event.locals.pm = new POLITEMallClient(fullCredentials);
+  event.locals.pm = new POLITEShop({
+    d2lSessionVal: fullCredentials.d2lSessionVal,
+    d2lSecureSessionVal: fullCredentials.d2lSecureSessionVal,
+    domain: fullCredentials.d2lSubdomain,
+    d2lFetchToken: fullCredentials.d2lFetchToken,
+  });
 
   event.locals.sessionHash = await queries.getSessionHash(fullCredentials);
   const user = await queries.getUserFromSessionHash(event.locals.sessionHash);
@@ -34,9 +39,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   try {
     // If this fails, the session is probably expired
-    partialUser = await event.locals.pm.fetchPartialUser();
-  } catch {
-    console.log("failed to fetch partial user");
+    partialUser = await event.locals.pm.getUser();
+  } catch (error) {
+    console.log(`failed to fetch partial user: ${error}`);
     const { pathname, search, hash } = event.url;
     const loginURL = `/d2l/login?sessionExpired=1&target=${encodeURIComponent(pathname + search + hash)}`;
     redirect(302, loginURL);

@@ -1,7 +1,13 @@
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ locals }) => {
-  return {
-    domain: locals.pm?.domain ?? null,
-  };
+  // POLITEShop exposes polite.baseURL (e.g. "https://nplms.polite.edu.sg").
+  // Extract just the subdomain so the rest of the app can construct URLs the
+  // same way it always has.
+  const baseURL = locals.pm?.polite.baseURL;
+  const domain = baseURL
+    ? (new URL(baseURL).hostname.split(".")[0] ?? null)
+    : null;
+
+  return { domain };
 };

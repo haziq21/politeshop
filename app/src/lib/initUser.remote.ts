@@ -1,33 +1,42 @@
 import { logger } from "$lib/utils";
-import type { Module, SubmissionDropbox, UserSubmission } from "$lib/server/db";
+import type {
+  Module,
+  SubmissionDropbox,
+  UserSubmission,
+  ActivityFolder as DBActivityFolder,
+  AnyActivity as DBAnyActivity,
+} from "$lib/server/db";
 import { OPENROUTER_API_KEY } from "$env/static/private";
 import { OpenRouter } from "@openrouter/sdk";
 import { z } from "zod";
 import { getRequestEvent, query } from "$app/server";
 import * as queries from "$lib/server/db/queries";
+import type { ActivityFolder, AnyActivity } from "politeshop";
 
 export const initUser = query(async () => {
   const { pm, sessionHash } = getRequestEvent().locals;
 
   // Fetch all the data in parallel
-  const [partialUser, organization, { modules, semesters }] = await Promise.all(
-    [
-      pm.fetchPartialUser(),
-      pm.fetchOrganization(),
-      pm.fetchModulesAndSemesters(),
-    ],
-  );
+  const [partialUser, institution, { modules, semesters }] = await Promise.all([
+    pm.getUser(),
+    pm.getInstitution(),
+    pm.getModulesAndSemesters(),
+  ]);
 
   // Update the database with the fetched data
-  await queries.upsertOrganization(organization);
+  await queries.upsertOrganization({
+    id: institution.id,
+    name: institution.name,
+  });
   await queries.upsertUser({
-    ...partialUser,
+    id: partialUser.id,
+    name: partialUser.name,
     sessionHash,
-    organizationId: organization.id,
+    organizationId: institution.id,
   });
   await queries.upsertSemesters(semesters);
   const uglyModules = await queries.upsertAndAssociateModules(
-    pm.userId,
+    partialUser.id,
     modules,
   );
 
@@ -35,26 +44,29 @@ export const initUser = query(async () => {
   if (uglyModules.length > 0) {
     logger.info(`Renaming ${uglyModules.length} modules...`);
     const renamedModules = await renameModules(uglyModules);
-    await queries.upsertAndAssociateModules(pm.userId, renamedModules);
+    await queries.upsertAndAssociateModules(partialUser.id, renamedModules);
   }
 
   // Fetch everything in parallel
   const [moduleContents, quizzes, [dropboxes, userSubs]] = await Promise.all([
-    Promise.all(modules.map((m) => pm.fetchModuleContent(m.id))),
-    Promise.all(modules.map((m) => pm.fetchQuizzes(m.id))),
+    Promise.all(modules.map((m) => pm.getModuleContent({ moduleId: m.id }))),
+    Promise.all(modules.map((m) => pm.getQuizzes({ moduleId: m.id }))),
     Promise.all(
       modules.map(
         async (m): Promise<[SubmissionDropbox[], UserSubmission[]]> => {
-          const dropboxes = await pm.fetchSubmissionDropboxes(m.id);
+          const dropboxes = await pm.getSubmissionDropboxes({ moduleId: m.id });
 
           const userSubs = await Promise.all(
             dropboxes.map((d) =>
-              pm.fetchUserSubmissions(m.id, d.id, {
-                dropboxIsClosed:
-                  (!!d.closesAt && d.closesAt < new Date()) ||
-                  (!!d.opensAt && new Date() < d.opensAt),
-                organizationId: organization.id,
-              }),
+              pm
+                .getSubmissions({
+                  moduleId: m.id,
+                  dropboxId: d.id,
+                  organizationId: institution.id,
+                })
+                .then((subs) =>
+                  subs.map((s) => ({ ...s, userId: partialUser.id })),
+                ),
             ),
           );
 
@@ -67,15 +79,67 @@ export const initUser = query(async () => {
     ),
   ]);
 
+  // Flatten the recursive ActivityFolder[] structures from each module into DB-ready records
+  const allFolders: DBActivityFolder[] = [];
+  const allActivities: DBAnyActivity[] = [];
+
+  moduleContents.forEach((folders, i) => {
+    const { folders: flat, activities } = flattenActivityFolders(
+      folders,
+      modules[i]!.id,
+      null,
+    );
+    allFolders.push(...flat);
+    allActivities.push(...activities);
+  });
+
   // Upsert the module content into the database
   await queries.upsertQuizzes(quizzes.flat());
   await queries.upsertSubmissionDropboxes(dropboxes);
   await queries.upsertUserSubmissions(userSubs);
-  await queries.upsertActivityFolders(
-    moduleContents.flatMap((m) => m.activityFolders),
-  );
-  await queries.upsertActivities(moduleContents.flatMap((m) => m.activities));
+  await queries.upsertActivityFolders(allFolders);
+  await queries.upsertActivities(allActivities);
 });
+
+/**
+ * Recursively flatten a tree of {@link ActivityFolder}s (as returned by
+ * `POLITEShop.getModuleContent`) into the flat arrays that the DB expects.
+ */
+function flattenActivityFolders(
+  folders: ActivityFolder[],
+  moduleId: string,
+  parentId: string | null,
+  result: { folders: DBActivityFolder[]; activities: DBAnyActivity[] } = {
+    folders: [],
+    activities: [],
+  },
+): { folders: DBActivityFolder[]; activities: DBAnyActivity[] } {
+  for (const folder of folders) {
+    result.folders.push({
+      id: folder.id,
+      name: folder.name,
+      description: folder.description,
+      parentId,
+      moduleId,
+      sortOrder: folder.sortOrder,
+    });
+
+    for (const item of folder.contents) {
+      if (item.type === "folder") {
+        flattenActivityFolders([item], moduleId, folder.id, result);
+      } else {
+        // Cast is safe: library's AnyActivity fields are a structural subset of
+        // DB's AnyActivity fields; we just add the required folderId.
+        result.activities.push({
+          ...(item as AnyActivity),
+          folderId: folder.id,
+        } as DBAnyActivity);
+      }
+    }
+  }
+
+  return result;
+}
 
 async function renameModules(modules: Module[]): Promise<Module[]> {
   logger.info(moduleRenamePrompt(modules));

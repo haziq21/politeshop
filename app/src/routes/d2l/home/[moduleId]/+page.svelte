@@ -4,14 +4,14 @@
 
     let { data }: PageProps = $props();
 
-    const { module, activityFolders, activities } = $derived(data);
+    const { module, contentFolders } = $derived(data);
 </script>
 
 <svelte:head>
     <title>{module.niceName ?? module.name} — POLITEShop</title>
 </svelte:head>
 
-<WithSidebar {module} {activities} {activityFolders}>
+<WithSidebar {module} {contentFolders}>
     <main class="p-6">
         <h1 class="text-2xl font-semibold">{module.niceName ?? module.name}</h1>
     </main>
