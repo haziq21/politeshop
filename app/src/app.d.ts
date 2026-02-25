@@ -1,13 +1,13 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 
-import type { POLITEShop } from "politeshop";
+import type { POLITELib } from "@politeshop/lib";
 
 // for information about these interfaces
 declare global {
   namespace App {
     // interface Error {}
     interface Locals {
-      pm: POLITEShop;
+      pl: POLITELib;
       sessionHash: number;
     }
     // interface PageData {}

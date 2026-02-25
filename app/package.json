@@ -1,5 +1,5 @@
 {
-  "name": "politeshop",
+  "name": "@politeshop/app",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -35,7 +35,8 @@
     "drizzle-orm": "^0.45.1",
     "jose": "^6.1.3",
     "pino": "^10.3.1",
-    "politeshop": "^0.0.2",
+    "@politeshop/lib": "workspace:*",
+    "@politeshop/shared": "workspace:*",
     "tailwind-merge": "^3.3.1",
     "tailwind-variants": "^2.1.0",
     "tw-animate-css": "^1.3.7",

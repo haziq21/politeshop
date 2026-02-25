@@ -1,9 +1,13 @@
-import { WindowMessage } from "../../shared";
+import { WindowMessage } from "@politeshop/shared";
 
-const POLITESHOP_ORIGIN: string = import.meta.env.WXT_POLITESHOP_ORIGIN ?? "https://localhost:4321";
+const POLITESHOP_ORIGIN: string =
+  import.meta.env.WXT_POLITESHOP_ORIGIN ?? "http://localhost:5173";
 
 export default defineContentScript({
-  matches: ["https://*.polite.edu.sg/d2l/home", "https://*.polite.edu.sg/d2l/home/*"],
+  matches: [
+    "https://*.polite.edu.sg/d2l/home",
+    "https://*.polite.edu.sg/d2l/home/*",
+  ],
   runAt: "document_start",
   async main() {
     log("POLITEShop is running");
@@ -52,9 +56,13 @@ export default defineContentScript({
 
       if (event.data.type === "REDIRECT_LOGIN") {
         log("Redirecting to POLITEMall login");
-        const sessionExpired = encodeURIComponent(event.data.payload.sessionExpired);
+        const sessionExpired = encodeURIComponent(
+          event.data.payload.sessionExpired,
+        );
         const target = encodeURIComponent(event.data.payload.target);
-        window.location.replace(`/d2l/login?sessionExpired=${sessionExpired}&target=${target}`);
+        window.location.replace(
+          `/d2l/login?sessionExpired=${sessionExpired}&target=${target}`,
+        );
       }
     });
 
@@ -67,7 +75,7 @@ export default defineContentScript({
 
       // Remove all attributes from <html>
       Array.from(document.documentElement.attributes).forEach((attr) =>
-        document.documentElement.removeAttribute(attr.name)
+        document.documentElement.removeAttribute(attr.name),
       );
 
       // Clear the <head> and <body>
@@ -89,10 +97,15 @@ function getD2lFetchToken(): { token?: string; expiry?: Date } {
 }
 
 /** Retrieve a new d2lFetchToken from the POLITEMall API and store it in `localStorage`. */
-async function newD2lFetchToken(xsrfToken: string): Promise<{ token?: string; expiry?: Date }> {
+async function newD2lFetchToken(
+  xsrfToken: string,
+): Promise<{ token?: string; expiry?: Date }> {
   const res = await fetch("/d2l/lp/auth/oauth2/token", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Csrf-Token": xsrfToken },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Csrf-Token": xsrfToken,
+    },
     body: "scope=*:*:*",
   });
 
@@ -106,12 +119,17 @@ async function newD2lFetchToken(xsrfToken: string): Promise<{ token?: string; ex
 
   localStorage.setItem(
     "D2L.Fetch.Tokens",
-    JSON.stringify({ "*:*:*": { expires_at: expiry.getTime() / 1000, access_token: token } })
+    JSON.stringify({
+      "*:*:*": { expires_at: expiry.getTime() / 1000, access_token: token },
+    }),
   );
   return { token, expiry };
 }
 
-function parseD2lFetchTokenJSON(json: string): { token?: string; expiry?: Date } {
+function parseD2lFetchTokenJSON(json: string): {
+  token?: string;
+  expiry?: Date;
+} {
   try {
     const obj = JSON.parse(json);
     let expires_at, access_token;
@@ -122,7 +140,8 @@ function parseD2lFetchTokenJSON(json: string): { token?: string; expiry?: Date }
       ({ expires_at, access_token } = obj);
     }
 
-    if (typeof expires_at !== "number" || typeof access_token !== "string") return {};
+    if (typeof expires_at !== "number" || typeof access_token !== "string")
+      return {};
     return { token: access_token, expiry: new Date(expires_at * 1000) };
   } catch {
     return {};

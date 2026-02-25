@@ -11,16 +11,16 @@ import { OpenRouter } from "@openrouter/sdk";
 import { z } from "zod";
 import { getRequestEvent, query } from "$app/server";
 import * as queries from "$lib/server/db/queries";
-import type { ActivityFolder, AnyActivity } from "politeshop";
+import type { ActivityFolder, AnyActivity } from "@politeshop/lib";
 
 export const initUser = query(async () => {
-  const { pm, sessionHash } = getRequestEvent().locals;
+  const { pl, sessionHash } = getRequestEvent().locals;
 
   // Fetch all the data in parallel
   const [partialUser, institution, { modules, semesters }] = await Promise.all([
-    pm.getUser(),
-    pm.getInstitution(),
-    pm.getModulesAndSemesters(),
+    pl.getUser(),
+    pl.getInstitution(),
+    pl.getModulesAndSemesters(),
   ]);
 
   // Update the database with the fetched data
@@ -49,12 +49,12 @@ export const initUser = query(async () => {
 
   // Fetch everything in parallel
   const [moduleContents, quizzes, [dropboxes, userSubs]] = await Promise.all([
-    Promise.all(modules.map((m) => pm.getModuleContent({ moduleId: m.id }))),
-    Promise.all(modules.map((m) => pm.getQuizzes({ moduleId: m.id }))),
+    Promise.all(modules.map((m) => pl.getModuleContent({ moduleId: m.id }))),
+    Promise.all(modules.map((m) => pl.getQuizzes({ moduleId: m.id }))),
     Promise.all(
       modules.map(
         async (m): Promise<[SubmissionDropbox[], UserSubmission[]]> => {
-          const dropboxes = await pm.getSubmissionDropboxes({ moduleId: m.id });
+          const dropboxes = await pl.getSubmissionDropboxes({ moduleId: m.id });
 
           const userSubs = await Promise.all(
             dropboxes.map((d) =>

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
     import { onMount } from "svelte";
-    import type { WindowMessage } from "../../../../../shared";
+    import type { WindowMessage } from "@politeshop/shared";
 
     const targetEncoded = page.url.searchParams.get("target");
     const target = targetEncoded

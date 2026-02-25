@@ -1,5 +1,5 @@
 {
-  "name": "politelib",
+  "name": "@politeshop/lib",
   "version": "0.0.2",
   "type": "module",
   "description": "Reverse-engineered POLITEMall client",
@@ -8,12 +8,22 @@
     "type": "git",
     "url": "https://github.com/haziq21/politeshop"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./index.ts",
+  "types": "./index.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./index.ts",
+      "types": "./index.ts"
+    }
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      }
     }
   },
   "files": [
