@@ -3,7 +3,7 @@
 JS/TS library for interacting with reverse-engineered [POLITEMall](https://politemall.polite.edu.sg/) APIs (`*.polite.edu.sg` and `*.api.brightspace.com`). Made for the [POLITEShop browser extension](https://github.com/haziq21/politeshop).
 
 ```typescript
-import { POLITELib } from "politelib";
+import { POLITELib } from "@politeshop/lib";
 
 const ps = new POLITELib({
   d2lSessionVal: "sNtnzd...",
