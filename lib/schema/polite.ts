@@ -1,7 +1,7 @@
 /**
  * Zod schemas for POLITE API (*.polite.edu.sg) responses.
  * Adapted from https://docs.valence.desire2learn.com/reference.html.
- * These schemas only cover the parts of the API used by POLITEShop.
+ * These schemas only cover the parts of the API used by POLITELib.
  */
 
 import { z } from "zod";
@@ -112,7 +112,7 @@ export const tocTopic = z
   .and(
     z
       .object({ IsBroken: z.literal(false), Url: z.string() })
-      .or(z.object({ IsBroken: z.literal(true), Url: z.string().nullable() }))
+      .or(z.object({ IsBroken: z.literal(true), Url: z.string().nullable() })),
   );
 
 export type TOCTopic = z.infer<typeof tocTopic>;
@@ -128,7 +128,7 @@ const baseModule = z.object({
 export type TOCModule = z.infer<typeof baseModule> & { Modules: TOCModule[] };
 
 /**
- * Brightspace calls these "Module" objects but POLITEShop calls them "activity folders".
+ * Brightspace calls these "Module" objects but POLITELib calls them "activity folders".
  * `ToC.Module` of https://docs.valence.desire2learn.com/res/content.html#ToC.TableOfContents
  */
 export const tocModule: z.ZodType<TOCModule> = baseModule.extend({

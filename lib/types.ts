@@ -1,5 +1,5 @@
 /**
- * Domain types returned by the {@link POLITEShop} client. These are plain
+ * Domain types returned by the {@link POLITELib} client. These are plain
  * TypeScript interfaces, independent of any ORM or database schema.
  */
 
