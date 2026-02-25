@@ -1,7 +1,7 @@
 import pLimit from "p-limit";
 import { useState, useEffect } from "react";
 import { render, Box, Text } from "ink";
-import { POLITEShop } from "../clients/politeshop";
+import { POLITELib } from "../clients/politelib";
 import type {
   AnyActivity,
   ActivityFolder,
@@ -36,9 +36,9 @@ function List({ items, max = 5 }: { items: string[]; max?: number }) {
   );
 }
 
-// ── POLITEShop client ─────────────────────────────────────────────────────────
+// ── POLITELib client ─────────────────────────────────────────────────────────
 
-const ps = new POLITEShop({
+const pl = new POLITELib({
   d2lSessionVal: process.env.D2L_SESSION_VAL!,
   d2lSecureSessionVal: process.env.D2L_SECURE_SESSION_VAL!,
   domain: process.env.DOMAIN!,
@@ -65,7 +65,7 @@ async function getAllActivitiesBatched({
   await Promise.all(
     moduleIds.map((moduleId) =>
       limit(async () => {
-        const content = await ps.getModuleContent({ moduleId });
+        const content = await pl.getModuleContent({ moduleId });
         onUpdate({
           activities: content.flatMap((folder) =>
             collectActivities(folder.contents),
@@ -103,7 +103,7 @@ async function getAllDropboxesBatched({
   await Promise.all(
     moduleIds.map((moduleId) =>
       limit(async () => {
-        const dropboxes = await ps.getSubmissionDropboxes({ moduleId });
+        const dropboxes = await pl.getSubmissionDropboxes({ moduleId });
         onUpdate({ moduleId, dropboxes });
       }),
     ),
@@ -128,7 +128,7 @@ async function getModuleSubmissionsBatched({
   await Promise.all(
     dropboxIds.map((dropboxId) =>
       limit(async () => {
-        const submissions = await ps.getSubmissions({
+        const submissions = await pl.getSubmissions({
           moduleId,
           dropboxId,
           organizationId,
@@ -152,14 +152,14 @@ function App() {
 
   useEffect(() => {
     async function run() {
-      ps.getUser().then(setUser);
-      const fetchedInstitution = ps.getInstitution().then((inst) => {
+      pl.getUser().then(setUser);
+      const fetchedInstitution = pl.getInstitution().then((inst) => {
         setInstitution(inst);
         return inst;
       });
 
       const { modules: mods, semesters: sems } =
-        await ps.getModulesAndSemesters();
+        await pl.getModulesAndSemesters();
       setModules(mods);
       setSemesters(sems);
 

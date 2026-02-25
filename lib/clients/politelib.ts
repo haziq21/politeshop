@@ -26,7 +26,7 @@ import { SirenEntity } from "../schema/siren";
  * Both lower-level clients are accessible so callers can reach endpoints not
  * covered by the high-level methods.
  */
-export class POLITEShop {
+export class POLITELib {
   /** Client for `*.polite.edu.sg` APIs. */
   readonly polite: POLITE;
 
@@ -241,7 +241,7 @@ export class POLITEShop {
   }
 
   /**
-   * Parse a Brightspace "Module" (what POLITEShop calls an activity folder)
+   * Parse a Brightspace "Module" (what POLITELib calls an activity folder)
    * and all of its children recursively.
    *
    * This may issue additional network requests for nested folders and topics.
@@ -282,7 +282,7 @@ export class POLITEShop {
   }
 
   /**
-   * Parse a Brightspace "Topic" (what POLITEShop calls an activity).
+   * Parse a Brightspace "Topic" (what POLITELib calls an activity).
    *
    * This may issue additional network requests to the POLITE or Brightspace
    * APIs depending on the activity type.
