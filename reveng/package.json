@@ -21,7 +21,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "vite build",
     "prepublishOnly": "npm run build",
     "validate": "tsx scripts/validate.tsx"
   },
@@ -38,6 +38,8 @@
     "p-limit": "^7.3.0",
     "react": "^19.2.4",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vite-plugin-dts": "^4.5.4"
   }
 }
