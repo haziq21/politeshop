@@ -1,0 +1,8 @@
+packages:
+  - "app"
+  - "ext"
+  - "lib"
+  - "shared"
+
+onlyBuiltDependencies:
+  - esbuild

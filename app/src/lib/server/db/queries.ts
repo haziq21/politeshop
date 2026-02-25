@@ -42,7 +42,7 @@ import {
   type AnyActivityWithName,
 } from ".";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
-import type { CredentialName } from "../../../../../shared";
+import type { CredentialName } from "@politeshop/shared";
 
 const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
 

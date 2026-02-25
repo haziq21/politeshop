@@ -1,6 +1,8 @@
-import { CREDENTIAL_HEADER_MAPPINGS } from "../../shared";
+import { CREDENTIAL_HEADER_MAPPINGS } from "@politeshop/shared";
 
-const POLITESHOP_DOMAIN: string = new URL(import.meta.env.WXT_POLITESHOP_ORIGIN ?? "http://localhost:4321").hostname;
+const POLITESHOP_DOMAIN: string = new URL(
+  import.meta.env.WXT_POLITESHOP_ORIGIN ?? "http://localhost:5173",
+).hostname;
 
 type SessionCredential = {
   name: keyof typeof CREDENTIAL_HEADER_MAPPINGS;
@@ -12,34 +14,50 @@ export default defineBackground(() => {
   // When POLITEMall session cookies change, update declarativeNetRequest rules
   browser.cookies.onChanged.addListener(async ({ cookie, removed }) => {
     if (removed) return; // Only update the DNR rules when new cookies are set
-    if (cookie.name !== "d2lSessionVal" && cookie.name !== "d2lSecureSessionVal") return;
+    if (
+      cookie.name !== "d2lSessionVal" &&
+      cookie.name !== "d2lSecureSessionVal"
+    )
+      return;
     if (!/^(.+\.)?polite\.edu\.sg$/.test(cookie.domain)) return;
-    await setSessionCredentials([{ name: cookie.name, value: cookie.value, domain: cookie.domain }]);
+    await setSessionCredentials([
+      { name: cookie.name, value: cookie.value, domain: cookie.domain },
+    ]);
   });
 
   browser.runtime.onMessage.addListener(async (msg: BackgroundMessage) => {
     const sessionCredentials: SessionCredential[] = [];
 
-    if (msg.name === "updateFetchToken" || msg.name === "updateAllCredentials") {
+    if (
+      msg.name === "updateFetchToken" ||
+      msg.name === "updateAllCredentials"
+    ) {
       const { d2lFetchToken, fromDomain } = msg.payload;
       const d2lSubdomain = fromDomain.match(/^([^.]+)\./)?.at(1) ?? fromDomain;
 
       sessionCredentials.push(
         { name: "d2lFetchToken", value: d2lFetchToken, domain: fromDomain },
-        { name: "d2lSubdomain", value: d2lSubdomain, domain: fromDomain }
+        { name: "d2lSubdomain", value: d2lSubdomain, domain: fromDomain },
       );
     }
 
     // Add cookies to sessionCredentials if we're supposed to "updateAllCredentials"
     if (msg.name === "updateAllCredentials") {
-      const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
-      const cookies = (await Promise.all(cookiesToGet.map((name) => browser.cookies.getAll({ name })))).flat();
+      const cookiesToGet: SessionCredential["name"][] = [
+        "d2lSessionVal",
+        "d2lSecureSessionVal",
+      ];
+      const cookies = (
+        await Promise.all(
+          cookiesToGet.map((name) => browser.cookies.getAll({ name })),
+        )
+      ).flat();
       sessionCredentials.push(
         ...cookies.map(({ name, value, domain }) => ({
           name: name as (typeof cookiesToGet)[number],
           value,
           domain,
-        }))
+        })),
       );
     }
 
@@ -53,22 +71,24 @@ export default defineBackground(() => {
  * Existing credentials are left unchanged if not specified.
  */
 async function setSessionCredentials(credentials: SessionCredential[]) {
-  const newRules = credentials.map(({ name, value, domain }): Browser.declarativeNetRequest.Rule => {
-    const header = CREDENTIAL_HEADER_MAPPINGS[name];
-    return {
-      // Key the rules based on their domain and header name
-      id: hash(`${domain},${header}`),
-      action: {
-        type: "modifyHeaders",
-        requestHeaders: [{ header, value, operation: "set" }],
-      },
-      condition: {
-        initiatorDomains: [domain, POLITESHOP_DOMAIN],
-        requestDomains: [POLITESHOP_DOMAIN],
-        resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest"],
-      },
-    };
-  });
+  const newRules = credentials.map(
+    ({ name, value, domain }): Browser.declarativeNetRequest.Rule => {
+      const header = CREDENTIAL_HEADER_MAPPINGS[name];
+      return {
+        // Key the rules based on their domain and header name
+        id: hash(`${domain},${header}`),
+        action: {
+          type: "modifyHeaders",
+          requestHeaders: [{ header, value, operation: "set" }],
+        },
+        condition: {
+          initiatorDomains: [domain, POLITESHOP_DOMAIN],
+          requestDomains: [POLITESHOP_DOMAIN],
+          resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest"],
+        },
+      };
+    },
+  );
 
   log(`Setting session rules:`, newRules);
 
