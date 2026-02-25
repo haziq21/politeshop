@@ -3,7 +3,7 @@ name: Publish lib to NPM
 on:
   push:
     tags:
-      - "ext@*"
+      - "lib@*"
 
 jobs:
   publish:
