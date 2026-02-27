@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        {
+          "header": "X-Content-Type-Options",
+          "operation": "remove"
+        }
+      ]
+    },
+    "condition": {
+      "regexFilter": "/d2l/api/lp/[^/]+/courses/[^/]+/image",
+      "requestDomains": ["polite.edu.sg"],
+      "resourceTypes": ["image"]
+    }
+  }
+]
