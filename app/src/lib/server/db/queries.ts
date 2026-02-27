@@ -105,7 +105,6 @@ export async function getSessionHash(
     credentials.d2lSessionVal,
     credentials.d2lSecureSessionVal,
     credentials.d2lFetchToken,
-    credentials.d2lSubdomain,
   ].join(":");
 
   const encoded = new TextEncoder().encode(input);

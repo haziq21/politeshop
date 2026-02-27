@@ -1,8 +1,5 @@
 import { WindowMessage } from "@politeshop/shared";
 
-const POLITESHOP_ORIGIN: string =
-  import.meta.env.WXT_POLITESHOP_ORIGIN ?? "http://localhost:5173";
-
 export default defineContentScript({
   matches: [
     "https://*.polite.edu.sg/d2l/home",
@@ -10,6 +7,9 @@ export default defineContentScript({
   ],
   runAt: "document_start",
   async main() {
+    const subdomain = window.location.hostname.split(".")[0];
+    const iframeOrigin = `${POLITESHOP_BASE_URL.protocol}//${subdomain}.${POLITESHOP_BASE_URL.host}`;
+
     log("POLITEShop is running");
 
     let { token: d2lFetchToken, expiry } = getD2lFetchToken();
@@ -38,16 +38,21 @@ export default defineContentScript({
       return;
     }
 
-    // Send the D2L fetch token to the background script
-    const payload: BackgroundMessage = {
-      name: "updateAllCredentials",
-      payload: { d2lFetchToken, fromDomain: window.location.hostname },
-    };
-    browser.runtime.sendMessage(payload);
+    // Update the credentials we're sending to the POLITEShop server
+    await Promise.all([
+      browser.runtime.sendMessage<BackgroundMessage>({
+        name: "refreshPOLITECredentials",
+        payload: { subdomain },
+      }),
+      browser.runtime.sendMessage<BackgroundMessage>({
+        name: "setBrightspaceCredentials",
+        payload: { d2lFetchToken, subdomain },
+      }),
+    ]);
 
     // Listen for messages from the POLITEShop iframe
     window.addEventListener("message", (event: MessageEvent<WindowMessage>) => {
-      if (event.origin !== POLITESHOP_ORIGIN) return;
+      if (event.origin !== iframeOrigin) return;
 
       if (event.data.type === "LOCATION_CHANGED") {
         window.history.replaceState(null, "", event.data.payload.path);
@@ -84,7 +89,9 @@ export default defineContentScript({
       else document.documentElement.appendChild(document.createElement("body"));
 
       // Create the POLITEShop iframe
-      document.body.appendChild(createPOLITEShopIframe());
+      document.body.appendChild(
+        createIframe(`${iframeOrigin}${window.location.pathname}`),
+      );
     });
   },
 });
@@ -148,9 +155,9 @@ function parseD2lFetchTokenJSON(json: string): {
   }
 }
 
-function createPOLITEShopIframe(): HTMLIFrameElement {
+function createIframe(url: string): HTMLIFrameElement {
   const iframe = document.createElement("iframe");
-  iframe.src = `${POLITESHOP_ORIGIN}${window.location.pathname}`;
+  iframe.src = url;
   iframe.style.position = "fixed";
   iframe.style.top = "0";
   iframe.style.left = "0";

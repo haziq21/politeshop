@@ -24,10 +24,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   const fullCredentials = credentials as Record<CredentialName, string>;
   event.locals.pl = new POLITELib({
-    d2lSessionVal: fullCredentials.d2lSessionVal,
-    d2lSecureSessionVal: fullCredentials.d2lSecureSessionVal,
-    domain: fullCredentials.d2lSubdomain,
-    d2lFetchToken: fullCredentials.d2lFetchToken,
+    ...fullCredentials,
+    domain: new URL(event.request.url).hostname.split(".")[0],
   });
 
   event.locals.sessionHash = await queries.getSessionHash(fullCredentials);
