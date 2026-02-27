@@ -58,7 +58,7 @@ export const initUser = query(async () => {
 
           const userSubs = await Promise.all(
             dropboxes.map((d) =>
-              pm
+              pl
                 .getSubmissions({
                   moduleId: m.id,
                   dropboxId: d.id,
