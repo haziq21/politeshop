@@ -2,7 +2,7 @@
     import * as Sidebar from "$lib/components/ui/sidebar";
     import * as Collapsible from "$lib/components/ui/collapsible";
     import type { Module, AnyActivityWithName } from "$lib/server/db";
-    import type { ContentFolder } from "$lib/content";
+    import type { ContentFolder } from "$lib/activityTree";
 
     interface Props {
         module: Module;
