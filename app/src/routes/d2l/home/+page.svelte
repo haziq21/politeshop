@@ -1,9 +1,22 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import type { PageProps } from "./$types";
     import ModuleSelector from "$lib/components/module-selector.svelte";
     import DueDateHeatmap from "$lib/components/due-date-heatmap.svelte";
+    import { sync } from "./sync.remote";
 
     let { data }: PageProps = $props();
+
+    type SyncedData = Awaited<ReturnType<typeof sync>>;
+    let synced = $state<SyncedData | null>(null);
+
+    let organization = $derived(synced?.organization ?? data.organization);
+    let semesters = $derived(synced?.semesters ?? data.semesters);
+    let modules = $derived(synced?.modules ?? data.modules);
+
+    onMount(async () => {
+        synced = await sync();
+    });
 </script>
 
 <svelte:head>
@@ -11,17 +24,17 @@
 </svelte:head>
 
 <img
-    src={data.organization.bannerImageURL}
+    src={organization.bannerImageURL}
     alt="Banner"
     class="w-full h-50 mt-15 object-cover"
     draggable="false"
 />
-<h1 class="text-3xl font-semibold mx-35 mt-10">{data.organization.name}</h1>
+<h1 class="text-3xl font-semibold mx-35 mt-10">{organization.name}</h1>
 
 <a
-    href={data.organization.academicCalendarLink ?? undefined}
+    href={organization.academicCalendarLink ?? undefined}
     target="_blank"
-    class:hover:text-stone-400={!!data.organization.academicCalendarLink}
+    class:hover:text-stone-400={!!organization.academicCalendarLink}
     class="mx-35 font-medium text-xs text-stone-500"
 >
     {#if data.semesterBreak}
@@ -31,7 +44,7 @@
             {data.semesterBreak.daysToStart} days until semester {data
                 .semesterBreak.name} starts
         {/if}
-    {:else if data.organization.academicCalendarLink}
+    {:else if organization.academicCalendarLink}
         View academic calendar
     {/if}
 </a>
@@ -39,10 +52,10 @@
 <div class="grid grid-cols-[auto_1fr] justify-items-center mt-10 ml-5 pb-60">
     <ModuleSelector
         filteredSemesterId={data.defaultSemester}
-        semesters={data.semesters}
-        modules={data.modules}
+        {semesters}
+        {modules}
     />
     <div class="sticky top-10 h-fit">
-        <DueDateHeatmap modules={data.modules} />
+        <DueDateHeatmap {modules} />
     </div>
 </div>
