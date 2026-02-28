@@ -11,7 +11,11 @@ import type {
   User,
   Submission,
 } from "../types";
-import { getURLExpiry, lastPathComponent } from "../utils/url";
+import {
+  defaultToBaseURL,
+  getURLExpiry,
+  lastPathComponent,
+} from "../utils/url";
 import { chunk } from "../utils/array";
 import { Brightspace } from "./brightspace";
 import { POLITE } from "./polite";
@@ -343,7 +347,7 @@ export class POLITELib {
         ...base,
         type: "doc_embed",
         name,
-        sourceURL: activity.Url,
+        sourceURL: defaultToBaseURL(activity.Url, this.polite.baseURL).href,
         previewURL,
         previewURLExpiry,
       };
