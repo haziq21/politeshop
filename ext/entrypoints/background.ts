@@ -1,10 +1,6 @@
 import { AUTH_HEADER_NAMES } from "@politeshop/shared";
-
-type SessionCredential = {
-  name: keyof typeof AUTH_HEADER_NAMES;
-  value: string;
-  subdomain: string;
-};
+import type { SessionCredential } from "../utils";
+import { onMessage } from "../utils/messaging";
 
 export default defineBackground(() => {
   // When POLITEMall session cookies change, update declarativeNetRequest rules
@@ -24,47 +20,40 @@ export default defineBackground(() => {
     ]);
   });
 
-  browser.runtime.onMessage.addListener(async (msg: BackgroundMessage) => {
-    const sessionCredentials: SessionCredential[] = [];
+  onMessage("setBrightspaceCredentials", async ({ data }) => {
+    const { d2lFetchToken, subdomain } = data;
+    await setSessionCredentials([
+      { name: "d2lFetchToken", value: d2lFetchToken, subdomain },
+    ]);
+  });
 
-    if (msg.name === "setBrightspaceCredentials") {
-      const { d2lFetchToken, subdomain } = msg.payload;
+  onMessage("refreshPOLITECredentials", async ({ data: { subdomain } }) => {
+    const cookiesToGet: SessionCredential["name"][] = [
+      "d2lSessionVal",
+      "d2lSecureSessionVal",
+    ];
 
-      sessionCredentials.push({
-        name: "d2lFetchToken",
-        value: d2lFetchToken,
+    const cookies = (
+      await Promise.all(
+        cookiesToGet.map((name) =>
+          browser.cookies.getAll({
+            name,
+            domain: `${subdomain}.${POLITEMALL_BASE_URL.hostname}`,
+          }),
+        ),
+      )
+    ).flat();
+
+    const sessionCredentials: SessionCredential[] = cookies.map(
+      ({ name, value }) => ({
+        name: name as (typeof cookiesToGet)[number],
+        value,
         subdomain,
-      });
-    }
-
-    if (msg.name === "refreshPOLITECredentials") {
-      const subdomain = msg.payload.subdomain;
-      const cookiesToGet: SessionCredential["name"][] = [
-        "d2lSessionVal",
-        "d2lSecureSessionVal",
-      ];
-
-      const cookies = (
-        await Promise.all(
-          cookiesToGet.map((name) =>
-            browser.cookies.getAll({
-              name,
-              domain: `${subdomain}.${POLITEMALL_BASE_URL.hostname}`,
-            }),
-          ),
-        )
-      ).flat();
-
-      sessionCredentials.push(
-        ...cookies.map(({ name, value }) => ({
-          name: name as (typeof cookiesToGet)[number],
-          value,
-          subdomain,
-        })),
-      );
-    }
+      }),
+    );
 
     await setSessionCredentials(sessionCredentials);
+    return sessionCredentials;
   });
 });
 

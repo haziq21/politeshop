@@ -1,4 +1,5 @@
 import { WindowMessage } from "@politeshop/shared";
+import { sendMessage } from "../utils/messaging";
 
 export default defineContentScript({
   matches: [
@@ -16,7 +17,6 @@ export default defineContentScript({
 
     if (expiry && expiry < new Date()) {
       log("D2L.Fetch.Tokens expired");
-      log("Extracting POLITEMall XSRF token");
       const xsrfToken = await extractXsrfToken();
 
       // If we can't get a new d2lFetchToken, it's probably because the xsrf
@@ -31,18 +31,21 @@ export default defineContentScript({
     } else if (!d2lFetchToken) log("Failed to retrieve D2L.Fetch.Tokens");
 
     // Update the credentials we're sending to the POLITEShop server
-    const politePromise = browser.runtime.sendMessage<BackgroundMessage>({
-      name: "refreshPOLITECredentials",
-      payload: { subdomain },
+    const politeCredentials = await sendMessage("refreshPOLITECredentials", {
+      subdomain,
     });
-    const brightspacePromise = d2lFetchToken
-      ? browser.runtime.sendMessage<BackgroundMessage>({
-          name: "setBrightspaceCredentials",
-          payload: { d2lFetchToken, subdomain },
-        })
-      : null;
 
-    await Promise.all([politePromise, brightspacePromise]);
+    if (politeCredentials.length < 2) {
+      log(`Required POLITEMall session credentials not found, aborting`);
+      return;
+    }
+
+    if (d2lFetchToken) {
+      await sendMessage("setBrightspaceCredentials", {
+        d2lFetchToken,
+        subdomain,
+      });
+    }
 
     // Listen for messages from the POLITEShop iframe
     window.addEventListener("message", (event: MessageEvent<WindowMessage>) => {

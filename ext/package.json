@@ -16,8 +16,11 @@
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
+    "@politeshop/shared": "workspace:*",
     "typescript": "^5.8.3",
-    "wxt": "^0.20.6",
-    "@politeshop/shared": "workspace:*"
+    "wxt": "^0.20.6"
+  },
+  "dependencies": {
+    "@webext-core/messaging": "^2.3.0"
   }
 }
