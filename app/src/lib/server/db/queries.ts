@@ -307,6 +307,53 @@ export async function getActivities(
   }) as AnyActivityWithName[];
 }
 
+/** Get a single activity by ID, with its type-specific details and name. */
+export async function getActivity(
+  activityId: string,
+): Promise<AnyActivityWithName | null> {
+  const rows = await db
+    .select()
+    .from(activity)
+    .innerJoin(activityFolder, eq(activityFolder.id, activity.folderId))
+    .leftJoin(htmlActivity, eq(htmlActivity.id, activity.id))
+    .leftJoin(webEmbedActivity, eq(webEmbedActivity.id, activity.id))
+    .leftJoin(docEmbedActivity, eq(docEmbedActivity.id, activity.id))
+    .leftJoin(videoEmbedActivity, eq(videoEmbedActivity.id, activity.id))
+    .leftJoin(submissionActivity, eq(submissionActivity.id, activity.id))
+    .leftJoin(
+      submissionDropbox,
+      eq(submissionDropbox.id, submissionActivity.dropboxId),
+    )
+    .leftJoin(quizActivity, eq(quizActivity.id, activity.id))
+    .leftJoin(quiz, eq(quiz.id, quizActivity.quizId))
+    .where(eq(activity.id, activityId));
+
+  const a = rows[0];
+  if (!a) return null;
+
+  if (a.activity.type === "html")
+    return { ...a.activity, ...a.html_activity } as AnyActivityWithName;
+  if (a.activity.type === "web_embed")
+    return { ...a.activity, ...a.web_embed_activity } as AnyActivityWithName;
+  if (a.activity.type === "doc_embed")
+    return { ...a.activity, ...a.doc_embed_activity } as AnyActivityWithName;
+  if (a.activity.type === "video_embed")
+    return { ...a.activity, ...a.video_embed_activity } as AnyActivityWithName;
+  if (a.activity.type === "submission")
+    return {
+      ...a.activity,
+      ...a.submission_activity,
+      name: a.submission_dropbox!.name,
+    } as AnyActivityWithName;
+  if (a.activity.type === "quiz")
+    return {
+      ...a.activity,
+      ...a.quiz_activity,
+      name: a.quiz!.name,
+    } as AnyActivityWithName;
+  return a.activity as AnyActivityWithName;
+}
+
 /** Upsert the given activities. */
 export async function upsertActivities(acts: AnyActivity[]) {
   if (!acts.length) return;

@@ -108,8 +108,18 @@
             <!-- Activity leaf -->
             <Sidebar.MenuItem>
                 <Sidebar.MenuButton class="w-full justify-start gap-2 text-sm">
-                    <span class="shrink-0">{getActivityIcon(item)}</span>
-                    <span class="truncate">{item.name}</span>
+                    {#snippet child({ props })}
+                        <a
+                            href="/d2l/le/enhancedSequenceViewer/{module.id}?url={encodeURIComponent(
+                                `https://sequences.api.brightspace.com/${module.id}/activity/${item.id}`,
+                            )}"
+                            {...props}
+                        >
+                            <span class="shrink-0">{getActivityIcon(item)}</span
+                            >
+                            <span class="truncate">{item.name}</span>
+                        </a>
+                    {/snippet}
                 </Sidebar.MenuButton>
             </Sidebar.MenuItem>
         {/if}

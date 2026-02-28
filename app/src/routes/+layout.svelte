@@ -9,10 +9,10 @@
     let { children, data }: LayoutProps = $props();
 
     onMount(() => {
-        overrideInternalLinks(document.body, `${data.domain}.polite.edu.sg`);
+        overrideInternalLinks(document.body, `${data.subdomain}.polite.edu.sg`);
 
         const observer = createLinkObserver((a) => {
-            overrideInternalLinks(a, `${data.domain}.polite.edu.sg`);
+            overrideInternalLinks(a, `${data.subdomain}.polite.edu.sg`);
         });
         observer.observe(document.body, {
             childList: true,
@@ -21,15 +21,16 @@
         });
 
         afterNavigate((navigation) => {
+            if (!navigation.to) return;
+
+            const { pathname, search, hash } = navigation.to.url;
+            const path = pathname + search + hash;
             window.top?.postMessage(
                 {
                     type: "LOCATION_CHANGED",
-                    payload: {
-                        path: navigation.to?.url.pathname,
-                        title: document.title,
-                    },
+                    payload: { path, title: document.title },
                 },
-                `https://${data.domain}.polite.edu.sg`,
+                `https://${data.subdomain}.polite.edu.sg`,
             );
         });
 
@@ -47,10 +48,10 @@
         if (!e.target) return;
 
         const a = (e.target as HTMLElement).closest("a");
-        if (!a || a.hostname !== `${data.domain}.polite.edu.sg`) return;
+        if (!a || a.hostname !== `${data.subdomain}.polite.edu.sg`) return;
 
         e.preventDefault();
-        goto(a.pathname);
+        goto(a.pathname + a.search + a.hash);
     }}
 />
 

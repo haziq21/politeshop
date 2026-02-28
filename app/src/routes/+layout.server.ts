@@ -5,9 +5,9 @@ export const load: LayoutServerLoad = async ({ locals }) => {
   // Extract just the subdomain so the rest of the app can construct URLs the
   // same way it always has.
   const baseURL = locals.pl?.polite.baseURL;
-  const domain = baseURL
+  const subdomain = baseURL
     ? (new URL(baseURL).hostname.split(".")[0] ?? null)
     : null;
 
-  return { domain };
+  return { subdomain };
 };

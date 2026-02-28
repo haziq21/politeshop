@@ -1,8 +1,8 @@
-import type { PageServerLoad } from "./$types";
+import type { LayoutServerLoad } from "./$types";
 import * as queries from "$lib/server/db/queries";
 import { unflattenActivityTree } from "$lib/activityTree";
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: LayoutServerLoad = async ({ params }) => {
   const { moduleId } = params;
   const [module, activityFolders, activities] = await Promise.all([
     queries.getModule(moduleId),

@@ -2,10 +2,7 @@ import { WindowMessage } from "@politeshop/shared";
 import { sendMessage } from "../utils/messaging";
 
 export default defineContentScript({
-  matches: [
-    "https://*.polite.edu.sg/d2l/home",
-    "https://*.polite.edu.sg/d2l/home/*",
-  ],
+  matches: ["https://*.polite.edu.sg/d2l/*"],
   runAt: "document_start",
   async main() {
     const subdomain = window.location.hostname.split(".")[0];
@@ -86,8 +83,9 @@ export default defineContentScript({
       else document.documentElement.appendChild(document.createElement("body"));
 
       // Create the POLITEShop iframe
+      const { pathname, search, hash } = window.location;
       document.body.appendChild(
-        createIframe(`${iframeOrigin}${window.location.pathname}`),
+        createIframe(iframeOrigin + pathname + search + hash),
       );
     });
   },
