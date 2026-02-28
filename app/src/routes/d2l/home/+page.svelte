@@ -14,6 +14,17 @@
     let semesters = $derived(synced?.semesters ?? data.semesters);
     let modules = $derived(synced?.modules ?? data.modules);
 
+    let institutionSubText = $derived.by(() => {
+        if (!data.semesterBreak) return "View academic calendar";
+
+        const { daysToEnd, daysToStart, isCurrent, name } = data.semesterBreak;
+        if (!isCurrent) {
+            return `${daysToStart} day${daysToStart > 1 ? "s" : ""} until semester ${name} starts`;
+        }
+
+        return `${daysToEnd} day${daysToEnd > 1 ? "s" : ""} until semester resumes`;
+    });
+
     onMount(async () => {
         synced = await sync();
     });
@@ -37,16 +48,7 @@
     class:hover:text-stone-400={!!organization.academicCalendarLink}
     class="mx-35 font-medium text-xs text-stone-500"
 >
-    {#if data.semesterBreak}
-        {#if data.semesterBreak.isCurrent}
-            {data.semesterBreak.daysToEnd} days until semester resumes
-        {:else}
-            {data.semesterBreak.daysToStart} days until semester {data
-                .semesterBreak.name} starts
-        {/if}
-    {:else if organization.academicCalendarLink}
-        View academic calendar
-    {/if}
+    {institutionSubText}
 </a>
 
 <div class="grid grid-cols-[auto_1fr] justify-items-center mt-10 ml-5 pb-60">
