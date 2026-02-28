@@ -3,7 +3,7 @@
     import * as Sidebar from "$lib/components/ui/sidebar";
     import AppSidebar from "$lib/components/app-sidebar.svelte";
     import type { Module } from "$lib/server/db";
-    import type { ContentFolder } from "$lib/content";
+    import type { ContentFolder } from "$lib/activityTree";
 
     interface Props {
         module: Module;
