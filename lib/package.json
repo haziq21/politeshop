@@ -1,6 +1,6 @@
 {
   "name": "@politeshop/lib",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Reverse-engineered POLITEMall client",
   "license": "MIT",
