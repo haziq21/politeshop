@@ -1,8 +1,5 @@
 import { redirect, type Handle } from "@sveltejs/kit";
-import {
-  CREDENTIAL_HEADER_MAPPINGS,
-  type CredentialName,
-} from "@politeshop/shared";
+import { AUTH_HEADER_NAMES } from "@politeshop/shared";
 import { POLITELib } from "@politeshop/lib";
 import * as queries from "$lib/server/db/queries";
 import type { User } from "$lib/server/db";
@@ -11,24 +8,19 @@ import { initUser } from "$lib/initUser.remote";
 export const handle: Handle = async ({ event, resolve }) => {
   if (event.url.pathname === "/d2l/login") return await resolve(event);
 
-  // Extract credentials from headers
-  const credentials: Partial<Record<CredentialName, string>> = {};
-  for (const [name, header] of Object.entries(CREDENTIAL_HEADER_MAPPINGS)) {
-    const value = event.request.headers.get(header);
-    if (value === null)
-      return new Response(`Missing credentials: ${header} header`, {
-        status: 401,
-      });
-    credentials[name as CredentialName] = value;
-  }
+  const credentials = getCredentialsFromHeaders(event.request.headers);
+  if (!credentials)
+    return new Response(
+      "Missing credentials: X-D2l-Session-Val and X-D2l-Secure-Session-Val are required",
+      { status: 401 },
+    );
 
-  const fullCredentials = credentials as Record<CredentialName, string>;
   event.locals.pl = new POLITELib({
-    ...fullCredentials,
+    ...credentials,
     domain: new URL(event.request.url).hostname.split(".")[0],
   });
 
-  event.locals.sessionHash = await queries.getSessionHash(fullCredentials);
+  event.locals.sessionHash = await queries.getSessionHash(credentials);
   const user = await queries.getUserFromSessionHash(event.locals.sessionHash);
 
   if (user) {
@@ -59,3 +51,24 @@ export const handle: Handle = async ({ event, resolve }) => {
   await initUser();
   return await resolve(event);
 };
+
+function getCredentialsFromHeaders(headers: Headers): {
+  d2lSessionVal: string;
+  d2lSecureSessionVal: string;
+  d2lFetchToken?: string;
+} | null {
+  const d2lSessionVal = headers.get(AUTH_HEADER_NAMES.d2lSessionVal);
+  const d2lSecureSessionVal = headers.get(
+    AUTH_HEADER_NAMES.d2lSecureSessionVal,
+  );
+  const d2lFetchToken =
+    headers.get(AUTH_HEADER_NAMES.d2lFetchToken) ?? undefined;
+
+  if (!d2lSessionVal || !d2lSecureSessionVal) return null;
+
+  return {
+    d2lSessionVal,
+    d2lSecureSessionVal,
+    d2lFetchToken,
+  };
+}

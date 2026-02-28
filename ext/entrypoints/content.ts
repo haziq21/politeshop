@@ -30,25 +30,19 @@ export default defineContentScript({
       }
     } else if (!d2lFetchToken) log("Failed to retrieve D2L.Fetch.Tokens");
 
-    if (!d2lFetchToken) {
-      const { pathname, search, hash } = window.location;
-      const loginURL = `/d2l/login?sessionExpired=1&target=${encodeURIComponent(pathname + search + hash)}`;
-      log(`Redirecting to POLITEMall login: ${loginURL}`);
-      window.location.replace(loginURL);
-      return;
-    }
-
     // Update the credentials we're sending to the POLITEShop server
-    await Promise.all([
-      browser.runtime.sendMessage<BackgroundMessage>({
-        name: "refreshPOLITECredentials",
-        payload: { subdomain },
-      }),
-      browser.runtime.sendMessage<BackgroundMessage>({
-        name: "setBrightspaceCredentials",
-        payload: { d2lFetchToken, subdomain },
-      }),
-    ]);
+    const politePromise = browser.runtime.sendMessage<BackgroundMessage>({
+      name: "refreshPOLITECredentials",
+      payload: { subdomain },
+    });
+    const brightspacePromise = d2lFetchToken
+      ? browser.runtime.sendMessage<BackgroundMessage>({
+          name: "setBrightspaceCredentials",
+          payload: { d2lFetchToken, subdomain },
+        })
+      : null;
+
+    await Promise.all([politePromise, brightspacePromise]);
 
     // Listen for messages from the POLITEShop iframe
     window.addEventListener("message", (event: MessageEvent<WindowMessage>) => {

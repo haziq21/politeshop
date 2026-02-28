@@ -1,7 +1,7 @@
-import { CREDENTIAL_HEADER_MAPPINGS } from "@politeshop/shared";
+import { AUTH_HEADER_NAMES } from "@politeshop/shared";
 
 type SessionCredential = {
-  name: keyof typeof CREDENTIAL_HEADER_MAPPINGS;
+  name: keyof typeof AUTH_HEADER_NAMES;
   value: string;
   subdomain: string;
 };
@@ -76,7 +76,7 @@ export default defineBackground(() => {
 async function setSessionCredentials(credentials: SessionCredential[]) {
   const newRules = credentials.map(
     ({ name, value, subdomain }): Browser.declarativeNetRequest.Rule => {
-      const header = CREDENTIAL_HEADER_MAPPINGS[name];
+      const header = AUTH_HEADER_NAMES[name];
       return {
         // Key the rules based on their subdomain and header name
         id: hash(`${subdomain},${header}`),

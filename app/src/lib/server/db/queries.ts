@@ -42,7 +42,6 @@ import {
   type AnyActivityWithName,
 } from ".";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
-import type { CredentialName } from "@politeshop/shared";
 
 const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
 
@@ -98,14 +97,11 @@ export async function updateUser(
 /**
  * Generate the user's session hash using their session credentials.
  */
-export async function getSessionHash(
-  credentials: Record<CredentialName, string>,
-): Promise<number> {
-  const input = [
-    credentials.d2lSessionVal,
-    credentials.d2lSecureSessionVal,
-    credentials.d2lFetchToken,
-  ].join(":");
+export async function getSessionHash(credentials: {
+  d2lSessionVal: string;
+  d2lSecureSessionVal: string;
+}): Promise<number> {
+  const input = `${credentials.d2lSessionVal},${credentials.d2lSecureSessionVal}`;
 
   const encoded = new TextEncoder().encode(input);
   const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);

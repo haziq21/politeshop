@@ -6,10 +6,10 @@ export type WindowMessage =
   | Message<"REDIRECT_LOGIN", { target: string; sessionExpired: string }>;
 
 /** Maps credential names to the header names that POLITEShop expects. */
-export const CREDENTIAL_HEADER_MAPPINGS = {
+export const AUTH_HEADER_NAMES = {
   d2lSessionVal: "X-D2l-Session-Val",
   d2lSecureSessionVal: "X-D2l-Secure-Session-Val",
   d2lFetchToken: "X-D2l-Fetch-Token",
 } as const;
 
-export type CredentialName = keyof typeof CREDENTIAL_HEADER_MAPPINGS;
+export type AuthTokenName = keyof typeof AUTH_HEADER_NAMES;
