@@ -7,31 +7,29 @@ description: Run the POLITEShop app and extension live with hot-reload.
 
 ```bash
 tmux new-session -d -s politeshop-app 'pnpm --filter @politeshop/app dev'
-tmux new-session -d -s politeshop-ext 'pnpm --filter @politeshop/ext dev'
-playwright-cli -s=politeshop-browser open "https://nplms.polite.edu.sg/d2l/home" \
-  --headed --persistent --profile=ext/.wxt/chrome-data
+tmux new-session -d -s politeshop-ext 'OPEN_BROWSER=0 pnpm --filter @politeshop/ext dev'
+playwright-cli -s=politeshop open "https://nplms.polite.edu.sg/d2l/home" \
+  --headed --persistent --profile=/path/to/politeshop/ext/.wxt/chrome-data \
+  --config=/path/to/politeshop/.playwright/cli.config.json
 ```
 
-WXT dev mode auto-reloads the extension on changes, so no manual rebuild needed.
-
-The `open` command may exceed the default tool timeout (30s) — the browser is still opening successfully in the background. Retry or use a longer timeout.
-
-The extension must be loaded via `.playwright/cli.config.json`. If missing, create it at the workspace root:
+Replace `/path/to/politeshop` with the absolute workspace root path. The extension must be loaded via `.playwright/cli.config.json`. If missing, create it at the workspace root:
 
 ```json
 {
   "browser": {
+    "browserName": "chromium",
     "launchOptions": {
       "args": [
-        "--disable-extensions-except=<absolute-path>/ext/.output/chrome-mv3-dev",
-        "--load-extension=<absolute-path>/ext/.output/chrome-mv3-dev"
+        "--disable-extensions-except=/path/to/politeshop/ext/.output/chrome-mv3-dev",
+        "--load-extension=/path/to/politeshop/ext/.output/chrome-mv3-dev"
       ]
     }
   }
 }
 ```
 
-Replace `<absolute-path>` with the workspace root.
+Replace `/path/to/politeshop` with the workspace root.
 
 ## Auth
 
@@ -40,6 +38,15 @@ The extension needs valid POLITEMall cookies + `D2L.Fetch.Tokens` in localStorag
 If the session has expired, the content script logs `Required POLITEMall session credentials not found, aborting`. In many cases, refreshing the page is enough — the app redirects to `/d2l/login`, POLITEMall detects the existing session and immediately redirects back with refreshed credentials.
 
 When credentials are missing, the server returns `401` with body `Missing credentials: X-D2l-Session-Val and X-D2l-Secure-Session-Val are required`. When credentials are present but expired, the server redirects to `/d2l/login?sessionExpired=1`, which triggers a `REDIRECT_LOGIN` message to the extension, navigating the top-level page to POLITEMall's login page.
+
+## Navigating to D2L pages
+
+`playwright-cli goto` can hang on D2L pages because `window.stop()` in the content script prevents the `load` event from firing. Use a shell `timeout` to cap the wait, then confirm the iframe appeared:
+
+```bash
+timeout 3 playwright-cli -s=politeshop goto "https://nplms.polite.edu.sg/d2l/home"
+playwright-cli -s=politeshop run-code "async page => { await page.locator('iframe').waitFor(); }"
+```
 
 ## Interacting with the app
 
@@ -80,7 +87,7 @@ Sometimes the app gets stuck in a redirect loop (e.g. auth → POLITEMall → ba
 For long verification flows, write a script and save it to a file, then run it via `run-code --filename`:
 
 ```bash
-playwright-cli -s=politeshop-browser run-code --filename /tmp/test-script.js
+playwright-cli -s=politeshop run-code --filename /tmp/test-script.js
 ```
 
 Inline `run-code` scripts must use this pattern:
@@ -95,7 +102,7 @@ async () => {
 ## Cleanup
 
 ```bash
-playwright-cli -s=politeshop-browser close
+playwright-cli -s=politeshop close
 playwright-cli kill-all
 tmux kill-session -t politeshop-app
 tmux kill-session -t politeshop-ext
