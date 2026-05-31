@@ -1,4 +1,4 @@
-import { and, count, eq, getTableColumns, gt, isNull, lt, or, SQL, sql } from "drizzle-orm";
+import { and, count, eq, getTableColumns, gt, isNull, lt, notInArray, or, SQL, sql } from "drizzle-orm";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
 import {
@@ -31,6 +31,8 @@ import {
   type Quiz,
   quiz,
   type AnyActivityWithName,
+  userActivityAccess,
+  userFolderAccess,
 } from ".";
 
 const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
@@ -428,4 +430,26 @@ export async function currentOrNextSemesterBreak(userId: string): Promise<
       .orderBy(semesterBreak.startDate)
       .limit(1)
   ).at(0);
+}
+
+export async function setUserActivityAccess(userId: string, activityIds: string[]) {
+  await db
+    .insert(userActivityAccess)
+    .values(activityIds.map((activityId) => ({ userId, activityId })))
+    .onConflictDoNothing();
+
+  await db
+    .delete(userActivityAccess)
+    .where(and(eq(userActivityAccess.userId, userId), notInArray(userActivityAccess.activityId, activityIds)));
+}
+
+export async function setUserFolderAccess(userId: string, folderIds: string[]) {
+  await db
+    .insert(userFolderAccess)
+    .values(folderIds.map((folderId) => ({ userId, folderId })))
+    .onConflictDoNothing();
+
+  await db
+    .delete(userFolderAccess)
+    .where(and(eq(userFolderAccess.userId, userId), notInArray(userFolderAccess.folderId, folderIds)));
 }
