@@ -1,6 +1,7 @@
-import type { PageServerLoad } from "./$types";
 import * as queries from "$lib/server/db/queries";
 import { error } from "@sveltejs/kit";
+
+import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params }) => {
   const activity = await queries.getActivity(params.activityId);

@@ -1,7 +1,7 @@
+import { render, Box, Text } from "ink";
 import pLimit from "p-limit";
 import { useState, useEffect } from "react";
-import { render, Box, Text } from "ink";
-import { POLITELib } from "../clients/politelib";
+
 import type {
   AnyActivity,
   ActivityFolder,
@@ -12,15 +12,15 @@ import type {
   SubmissionDropbox,
   Submission,
 } from "../types";
+
+import { POLITELib } from "../clients/politelib";
 import "dotenv/config";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Recursively collect all activities from a list of content tree nodes. */
 function collectActivities(items: ActivityFolder["contents"]): AnyActivity[] {
-  return items.flatMap((item) =>
-    item.type === "folder" ? collectActivities(item.contents) : [item],
-  );
+  return items.flatMap((item) => (item.type === "folder" ? collectActivities(item.contents) : [item]));
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -67,9 +67,7 @@ async function getAllActivitiesBatched({
       limit(async () => {
         const content = await pl.getModuleContent({ moduleId });
         onUpdate({
-          activities: content.flatMap((folder) =>
-            collectActivities(folder.contents),
-          ),
+          activities: content.flatMap((folder) => collectActivities(folder.contents)),
         });
       }),
     ),
@@ -95,10 +93,7 @@ async function getAllDropboxesBatched({
   onUpdate,
 }: {
   moduleIds: string[];
-  onUpdate: (result: {
-    moduleId: string;
-    dropboxes: SubmissionDropbox[];
-  }) => void;
+  onUpdate: (result: { moduleId: string; dropboxes: SubmissionDropbox[] }) => void;
 }): Promise<void> {
   await Promise.all(
     moduleIds.map((moduleId) =>
@@ -158,15 +153,13 @@ function App() {
         return inst;
       });
 
-      const { modules: mods, semesters: sems } =
-        await pl.getModulesAndSemesters();
+      const { modules: mods, semesters: sems } = await pl.getModulesAndSemesters();
       setModules(mods);
       setSemesters(sems);
 
       await getAllActivitiesBatched({
         moduleIds: mods.map((m) => m.id),
-        onUpdate: ({ activities }) =>
-          setByType((prev) => mergeActivities(prev ?? new Map(), activities)),
+        onUpdate: ({ activities }) => setByType((prev) => mergeActivities(prev ?? new Map(), activities)),
       });
 
       const orgId = (await fetchedInstitution).id;
@@ -181,8 +174,7 @@ function App() {
               moduleId,
               dropboxIds: dropboxes.map((d) => d.id),
               organizationId: orgId,
-              onUpdate: ({ submissions }) =>
-                setTotalSubmissions((prev) => (prev ?? 0) + submissions.length),
+              onUpdate: ({ submissions }) => setTotalSubmissions((prev) => (prev ?? 0) + submissions.length),
             }),
           );
         },
@@ -194,8 +186,7 @@ function App() {
     run();
   }, []);
 
-  const totalActivities =
-    byType && Array.from(byType.values()).reduce((a, b) => a + b, 0);
+  const totalActivities = byType && Array.from(byType.values()).reduce((a, b) => a + b, 0);
 
   return (
     <Box flexDirection="column" gap={1}>
@@ -232,8 +223,8 @@ function App() {
       {totalDropboxes !== undefined && totalSubmissions !== undefined && (
         <Text>
           Found {totalDropboxes} submission dropbox
-          {totalDropboxes !== 1 ? "es" : ""} with {totalSubmissions} total
-          submission{totalSubmissions !== 1 ? "s" : ""}
+          {totalDropboxes !== 1 ? "es" : ""} with {totalSubmissions} total submission
+          {totalSubmissions !== 1 ? "s" : ""}
         </Text>
       )}
     </Box>

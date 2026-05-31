@@ -1,6 +1,7 @@
-import { sirenEntity, type SirenEntity } from "../schema/siren";
 import { decodeJwt } from "jose";
 import z from "zod";
+
+import { sirenEntity, type SirenEntity } from "../schema/siren";
 
 /**
  * Client for `*.api.brightspace.com`.
@@ -43,17 +44,8 @@ export class Brightspace {
    * Fetches a Siren entity representing a single activity (topic) in a module.
    * Used for document-embed activities to discover the preview PDF URL.
    */
-  async getActivity({
-    moduleId,
-    topicId,
-  }: {
-    moduleId: string;
-    topicId: string | number;
-  }): Promise<SirenEntity> {
-    return this.#fetchSiren(
-      `/${moduleId}/activity/${topicId}?filterOnDatesAndDepth=0`,
-      "sequences",
-    );
+  async getActivity({ moduleId, topicId }: { moduleId: string; topicId: string | number }): Promise<SirenEntity> {
+    return this.#fetchSiren(`/${moduleId}/activity/${topicId}?filterOnDatesAndDepth=0`, "sequences");
   }
 
   // ── Activities API (activities.api.brightspace.com) ──────────────────────────
@@ -102,17 +94,8 @@ export class Brightspace {
    * The returned entity contains a `thumbnail` sub-entity whose `properties.src`
    * is a time-limited thumbnail image URL.
    */
-  async getTopicThumbnail({
-    moduleId,
-    activityId,
-  }: {
-    moduleId: string;
-    activityId: string;
-  }): Promise<SirenEntity> {
-    return this.#fetchSiren(
-      `/topics/${moduleId}/${activityId}`,
-      "content-service",
-    );
+  async getTopicThumbnail({ moduleId, activityId }: { moduleId: string; activityId: string }): Promise<SirenEntity> {
+    return this.#fetchSiren(`/topics/${moduleId}/${activityId}`, "content-service");
   }
 
   /**
@@ -122,17 +105,8 @@ export class Brightspace {
    * The returned entity's `properties.src` is a time-limited URL for the
    * video file itself.
    */
-  async getTopicMedia({
-    moduleId,
-    activityId,
-  }: {
-    moduleId: string;
-    activityId: string;
-  }): Promise<SirenEntity> {
-    return this.#fetchSiren(
-      `/topics/${moduleId}/${activityId}/media`,
-      "content-service",
-    );
+  async getTopicMedia({ moduleId, activityId }: { moduleId: string; activityId: string }): Promise<SirenEntity> {
+    return this.#fetchSiren(`/topics/${moduleId}/${activityId}/media`, "content-service");
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -155,12 +129,7 @@ export class Brightspace {
   async #fetchSiren(path: string, api: string): Promise<SirenEntity>;
   async #fetchSiren(absoluteURL: string): Promise<SirenEntity>;
   async #fetchSiren(pathOrURL: string, api?: string): Promise<SirenEntity> {
-    const url = api
-      ? new URL(
-          pathOrURL,
-          `https://${this.tenantId}.${api}.api.brightspace.com`,
-        )
-      : new URL(pathOrURL);
+    const url = api ? new URL(pathOrURL, `https://${this.tenantId}.${api}.api.brightspace.com`) : new URL(pathOrURL);
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${this.#d2lFetchToken}` },

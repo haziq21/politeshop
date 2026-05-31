@@ -1,19 +1,19 @@
-import { redirect, type Handle } from "@sveltejs/kit";
-import { AUTH_HEADER_NAMES } from "@politeshop/shared";
-import { POLITELib } from "@politeshop/lib";
-import * as queries from "$lib/server/db/queries";
 import type { User } from "$lib/server/db";
+
 import { initUser } from "$lib/initUser.remote";
+import * as queries from "$lib/server/db/queries";
+import { POLITELib } from "@politeshop/lib";
+import { AUTH_HEADER_NAMES } from "@politeshop/shared";
+import { redirect, type Handle } from "@sveltejs/kit";
 
 export const handle: Handle = async ({ event, resolve }) => {
   if (event.url.pathname === "/d2l/login") return await resolve(event);
 
   const credentials = getCredentialsFromHeaders(event.request.headers);
   if (!credentials)
-    return new Response(
-      "Missing credentials: X-D2l-Session-Val and X-D2l-Secure-Session-Val are required",
-      { status: 401 },
-    );
+    return new Response("Missing credentials: X-D2l-Session-Val and X-D2l-Secure-Session-Val are required", {
+      status: 401,
+    });
 
   event.locals.pl = new POLITELib({
     ...credentials,
@@ -58,11 +58,8 @@ function getCredentialsFromHeaders(headers: Headers): {
   d2lFetchToken?: string;
 } | null {
   const d2lSessionVal = headers.get(AUTH_HEADER_NAMES.d2lSessionVal);
-  const d2lSecureSessionVal = headers.get(
-    AUTH_HEADER_NAMES.d2lSecureSessionVal,
-  );
-  const d2lFetchToken =
-    headers.get(AUTH_HEADER_NAMES.d2lFetchToken) ?? undefined;
+  const d2lSecureSessionVal = headers.get(AUTH_HEADER_NAMES.d2lSecureSessionVal);
+  const d2lFetchToken = headers.get(AUTH_HEADER_NAMES.d2lFetchToken) ?? undefined;
 
   if (!d2lSessionVal || !d2lSecureSessionVal) return null;
 

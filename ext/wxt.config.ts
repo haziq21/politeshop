@@ -4,11 +4,7 @@ import { defineConfig } from "wxt";
 export default defineConfig({
   manifest: {
     name: "POLITEShop Extension",
-    permissions: [
-      "cookies",
-      "declarativeNetRequest",
-      "declarativeNetRequestWithHostAccess",
-    ],
+    permissions: ["cookies", "declarativeNetRequest", "declarativeNetRequestWithHostAccess"],
     host_permissions: ["https://*.polite.edu.sg/", "http://*.localhost/*"],
     declarative_net_request: {
       rule_resources: [

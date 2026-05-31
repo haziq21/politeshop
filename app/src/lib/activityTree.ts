@@ -1,8 +1,4 @@
-import type {
-  ActivityFolder,
-  AnyActivity,
-  AnyActivityWithName,
-} from "$lib/server/db";
+import type { ActivityFolder, AnyActivity, AnyActivityWithName } from "$lib/server/db";
 import type * as politelib from "@politeshop/lib";
 
 /**

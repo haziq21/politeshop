@@ -1,5 +1,6 @@
-import type { PageServerLoad } from "./$types";
 import * as queries from "$lib/server/db/queries";
+
+import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
   const user = await queries.getUserFromSessionHash(locals.sessionHash);

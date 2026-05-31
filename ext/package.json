@@ -1,9 +1,9 @@
 {
   "name": "@politeshop/ext",
   "displayName": "POLITEShop Extension",
-  "description": "The web extension for POLITEShop.",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
+  "description": "The web extension for POLITEShop.",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -15,12 +15,12 @@
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare"
   },
+  "dependencies": {
+    "@webext-core/messaging": "^2.3.0"
+  },
   "devDependencies": {
     "@politeshop/shared": "workspace:*",
     "typescript": "^5.8.3",
     "wxt": "^0.20.6"
-  },
-  "dependencies": {
-    "@webext-core/messaging": "^2.3.0"
   }
 }

@@ -1,4 +1,5 @@
 import { WindowMessage } from "@politeshop/shared";
+
 import { sendMessage } from "../utils/messaging";
 
 export default defineContentScript({
@@ -55,13 +56,9 @@ export default defineContentScript({
 
       if (event.data.type === "REDIRECT_LOGIN") {
         log("Redirecting to POLITEMall login");
-        const sessionExpired = encodeURIComponent(
-          event.data.payload.sessionExpired,
-        );
+        const sessionExpired = encodeURIComponent(event.data.payload.sessionExpired);
         const target = encodeURIComponent(event.data.payload.target);
-        window.location.replace(
-          `/d2l/login?sessionExpired=${sessionExpired}&target=${target}`,
-        );
+        window.location.replace(`/d2l/login?sessionExpired=${sessionExpired}&target=${target}`);
       }
     });
 
@@ -84,9 +81,7 @@ export default defineContentScript({
 
       // Create the POLITEShop iframe
       const { pathname, search, hash } = window.location;
-      document.body.appendChild(
-        createIframe(iframeOrigin + pathname + search + hash),
-      );
+      document.body.appendChild(createIframe(iframeOrigin + pathname + search + hash));
     });
   },
 });
@@ -99,9 +94,7 @@ function getD2lFetchToken(): { token?: string; expiry?: Date } {
 }
 
 /** Retrieve a new d2lFetchToken from the POLITEMall API and store it in `localStorage`. */
-async function newD2lFetchToken(
-  xsrfToken: string,
-): Promise<{ token?: string; expiry?: Date }> {
+async function newD2lFetchToken(xsrfToken: string): Promise<{ token?: string; expiry?: Date }> {
   const res = await fetch("/d2l/lp/auth/oauth2/token", {
     method: "POST",
     headers: {
@@ -142,8 +135,7 @@ function parseD2lFetchTokenJSON(json: string): {
       ({ expires_at, access_token } = obj);
     }
 
-    if (typeof expires_at !== "number" || typeof access_token !== "string")
-      return {};
+    if (typeof expires_at !== "number" || typeof access_token !== "string") return {};
     return { token: access_token, expiry: new Date(expires_at * 1000) };
   } catch {
     return {};

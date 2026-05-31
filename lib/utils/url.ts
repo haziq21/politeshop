@@ -30,10 +30,7 @@ export function getURLExpiry(url: string): Date | undefined {
     const startDate = urlObj.searchParams.get("X-Amz-Date");
     if (!startDate) return undefined;
 
-    return addSeconds(
-      parse(startDate, "yyyyMMdd'T'HHmmssX", new Date()),
-      +expiresIn,
-    );
+    return addSeconds(parse(startDate, "yyyyMMdd'T'HHmmssX", new Date()), +expiresIn);
   }
 
   if (urlObj.hostname.endsWith("content-service.brightspace.com")) {
@@ -49,10 +46,7 @@ export function getURLExpiry(url: string): Date | undefined {
  * If `url` is a string with no base URL, this returns `url` with
  * the given `baseURL`. Otherwise, this returns `url` as-is.
  */
-export function defaultToBaseURL(
-  url: string | URL,
-  baseURL: string | URL,
-): URL {
+export function defaultToBaseURL(url: string | URL, baseURL: string | URL): URL {
   try {
     return new URL(url);
   } catch {

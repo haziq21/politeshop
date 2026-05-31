@@ -1,7 +1,8 @@
 import { z } from "zod";
+
+import { UnexpectedResponseError } from "../errors";
 import * as schema from "../schema/polite";
 import { defaultToBaseURL } from "../utils/url";
-import { UnexpectedResponseError } from "../errors";
 
 // TODO: /d2l/api/le/manageCourses/courses-searches/490586/BySemester
 
@@ -46,9 +47,7 @@ export class POLITE {
   async getNewFetchToken(): Promise<schema.BrightspaceToken> {
     // Fetch the homepage HTML to extract the XSRF token from it
     const homepage = await this.#fetchText("/d2l/home");
-    const xsrfToken = homepage.match(
-      /\.setItem\(['"]XSRF.Token['"],\s*['"](.+?)['"]\)/,
-    )?.[1];
+    const xsrfToken = homepage.match(/\.setItem\(['"]XSRF.Token['"],\s*['"](.+?)['"]\)/)?.[1];
 
     if (!xsrfToken) {
       throw new UnexpectedResponseError("No XSRF token found in homepage");
@@ -100,10 +99,9 @@ export class POLITE {
     schema.PagedResultSet<schema.MyOrgUnitInfo>
   > {
     const query = bookmark ? `?bookmark=${encodeURIComponent(bookmark)}` : "";
-    return this.#fetchJSON(
-      `/d2l/api/lp/1.46/enrollments/myenrollments/${query}`,
-      { schema: schema.pagedResultSet(schema.myOrgUnitInfo) },
-    );
+    return this.#fetchJSON(`/d2l/api/lp/1.46/enrollments/myenrollments/${query}`, {
+      schema: schema.pagedResultSet(schema.myOrgUnitInfo),
+    });
   }
 
   /**
@@ -112,11 +110,7 @@ export class POLITE {
    * Returns semester/department parent information for up to 25 course-offering
    * org units at a time.
    */
-  async getParentOrgUnits({
-    orgUnitIdsCSV,
-  }: {
-    orgUnitIdsCSV: string;
-  }): Promise<schema.CourseParent[]> {
+  async getParentOrgUnits({ orgUnitIdsCSV }: { orgUnitIdsCSV: string }): Promise<schema.CourseParent[]> {
     return this.#fetchJSON(
       `/d2l/api/lp/1.46/courses/parentorgunits?orgUnitIdsCSV=${encodeURIComponent(orgUnitIdsCSV)}`,
       { schema: schema.courseParent.array() },
@@ -131,11 +125,7 @@ export class POLITE {
    * Returns the table of contents for a module, including all nested folders
    * (Modules) and topics (Activities).
    */
-  async getModuleTOC({
-    moduleId,
-  }: {
-    moduleId: string;
-  }): Promise<schema.TableOfContents> {
+  async getModuleTOC({ moduleId }: { moduleId: string }): Promise<schema.TableOfContents> {
     return this.#fetchJSON(`/d2l/api/le/1.75/${moduleId}/content/toc`, {
       schema: schema.tableOfContents,
     });
@@ -166,11 +156,7 @@ export class POLITE {
    *
    * Returns all submission dropbox folders in a module.
    */
-  async getDropboxFolders({
-    moduleId,
-  }: {
-    moduleId: string;
-  }): Promise<schema.DropboxFolder[]> {
+  async getDropboxFolders({ moduleId }: { moduleId: string }): Promise<schema.DropboxFolder[]> {
     return this.#fetchJSON(`/d2l/api/le/1.75/${moduleId}/dropbox/folders/`, {
       schema: schema.dropboxFolder.array(),
     });
@@ -193,10 +179,9 @@ export class POLITE {
     moduleId: string;
     dropboxId: string;
   }): Promise<schema.EntityDropbox[]> {
-    return this.#fetchJSON(
-      `/d2l/api/le/1.75/${moduleId}/dropbox/folders/${dropboxId}/submissions/`,
-      { schema: schema.entityDropbox.array().max(1) },
-    );
+    return this.#fetchJSON(`/d2l/api/le/1.75/${moduleId}/dropbox/folders/${dropboxId}/submissions/`, {
+      schema: schema.entityDropbox.array().max(1),
+    });
   }
 
   // ── Quizzes ──────────────────────────────────────────────────────────────────
@@ -208,11 +193,7 @@ export class POLITE {
    * The `Next` field of the returned object is the URL for the next page
    * (or `null` if there are no more pages).
    */
-  async getQuizzesPage({
-    urlOrPath,
-  }: {
-    urlOrPath: string;
-  }): Promise<schema.ObjectListPage<schema.QuizReadData>> {
+  async getQuizzesPage({ urlOrPath }: { urlOrPath: string }): Promise<schema.ObjectListPage<schema.QuizReadData>> {
     return this.#fetchJSON(urlOrPath, {
       schema: schema.objectListPage(schema.quizReadData),
     });
@@ -227,25 +208,15 @@ export class POLITE {
 
   // ── Private helpers ──────────────────────────────────────────────────────────
 
-  async #fetchJSON<T extends z.ZodTypeAny>(
-    input: string | URL,
-    init: RequestInit & { schema: T },
-  ): Promise<z.infer<T>>;
-  async #fetchJSON<T extends z.ZodTypeAny>(
-    input: string | URL,
-    init?: RequestInit,
-  ): Promise<any>;
-  async #fetchJSON<T extends z.ZodTypeAny>(
-    input: string | URL,
-    init?: RequestInit & { schema?: T },
-  ): Promise<any> {
+  async #fetchJSON<T extends z.ZodTypeAny>(input: string | URL, init: RequestInit & { schema: T }): Promise<z.infer<T>>;
+  async #fetchJSON<T extends z.ZodTypeAny>(input: string | URL, init?: RequestInit): Promise<any>;
+  async #fetchJSON<T extends z.ZodTypeAny>(input: string | URL, init?: RequestInit & { schema?: T }): Promise<any> {
     const res = await this.#fetch(input, init);
 
     if (!res.ok) {
-      throw new UnexpectedResponseError(
-        `Received ${res.status} for ${defaultToBaseURL(input, this.baseURL)}`,
-        { response: res },
-      );
+      throw new UnexpectedResponseError(`Received ${res.status} for ${defaultToBaseURL(input, this.baseURL)}`, {
+        response: res,
+      });
     }
 
     const data = await res.json();
@@ -270,10 +241,7 @@ export class POLITE {
    */
   async #fetch(input: string | URL, init?: RequestInit): Promise<Response> {
     const headers = new Headers(init?.headers);
-    headers.set(
-      "Cookie",
-      `d2lSessionVal=${this.#d2lSessionVal}; d2lSecureSessionVal=${this.#d2lSecureSessionVal}`,
-    );
+    headers.set("Cookie", `d2lSessionVal=${this.#d2lSessionVal}; d2lSecureSessionVal=${this.#d2lSecureSessionVal}`);
 
     return fetch(defaultToBaseURL(input, this.baseURL), {
       ...init,

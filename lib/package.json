@@ -1,13 +1,17 @@
 {
   "name": "@politeshop/lib",
   "version": "1.0.1",
-  "type": "module",
   "description": "Reverse-engineered POLITEMall client",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/haziq21/politeshop"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
   "main": "./index.ts",
   "types": "./index.ts",
   "exports": {
@@ -26,10 +30,6 @@
       }
     }
   },
-  "files": [
-    "dist"
-  ],
-  "sideEffects": false,
   "scripts": {
     "build": "vite build",
     "prepublishOnly": "npm run build",

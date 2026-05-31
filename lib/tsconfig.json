@@ -8,8 +8,8 @@
     "strict": true,
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true,
-    "noEmit": true,
+    "noEmit": true
   },
   "include": ["./**/*.ts", "./**/*.tsx"],
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist", "node_modules"]
 }

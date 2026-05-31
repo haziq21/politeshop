@@ -1,15 +1,6 @@
-import {
-  and,
-  count,
-  eq,
-  getTableColumns,
-  gt,
-  isNull,
-  lt,
-  or,
-  SQL,
-  sql,
-} from "drizzle-orm";
+import { and, count, eq, getTableColumns, gt, isNull, lt, or, SQL, sql } from "drizzle-orm";
+import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
+
 import {
   db,
   organization,
@@ -41,16 +32,11 @@ import {
   quiz,
   type AnyActivityWithName,
 } from ".";
-import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
 const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
 
-export async function getUserFromSessionHash(
-  sessionHash: number,
-): Promise<User | null> {
-  const u = (
-    await db.select().from(user).where(eq(user.sessionHash, sessionHash))
-  ).at(0);
+export async function getUserFromSessionHash(sessionHash: number): Promise<User | null> {
+  const u = (await db.select().from(user).where(eq(user.sessionHash, sessionHash))).at(0);
   return u ?? null;
 }
 
@@ -61,11 +47,7 @@ export async function getUser(userId: string): Promise<User> {
 
 /** Whether the user exists in the database. */
 export async function userExists(userId: string): Promise<boolean> {
-  return (
-    (
-      await db.select({ count: count() }).from(user).where(eq(user.id, userId))
-    )[0].count > 0
-  );
+  return (await db.select({ count: count() }).from(user).where(eq(user.id, userId)))[0].count > 0;
 }
 
 /**
@@ -87,9 +69,7 @@ export async function upsertUser(u: User): Promise<boolean> {
  * Update the specified user.
  * Return `true` if a row was updated, and `false` otherwise.
  */
-export async function updateUser(
-  u: Partial<User> & { id: string },
-): Promise<boolean> {
+export async function updateUser(u: Partial<User> & { id: string }): Promise<boolean> {
   const res = await db.update(user).set(u).where(eq(user.id, u.id));
   return res.rowCount === 1;
 }
@@ -121,10 +101,7 @@ export async function getOrganization(userId: string): Promise<Organization> {
 
 /** Upsert the organization. */
 export async function upsertOrganization(o: Organization) {
-  await db
-    .insert(organization)
-    .values(o)
-    .onConflictDoUpdate({ target: organization.id, set: o });
+  await db.insert(organization).values(o).onConflictDoUpdate({ target: organization.id, set: o });
 }
 
 /** Get semesters the user is in. */
@@ -168,10 +145,7 @@ export async function getModules(userId: string): Promise<Module[]> {
  * specify a `niceName` or `niceCode`, the existing `niceName` and `niceCode` in the database
  * will be retained. Returns the upserted modules with outdated or missing "nice text".
  */
-export async function upsertAndAssociateModules(
-  userId: string,
-  mods: Module[],
-): Promise<Module[]> {
+export async function upsertAndAssociateModules(userId: string, mods: Module[]): Promise<Module[]> {
   const sq = db.$with("sq").as(
     db
       .insert(module)
@@ -218,13 +192,7 @@ export async function upsertAndAssociateModules(
     .with(sq)
     .select()
     .from(sq)
-    .where(
-      or(
-        gt(sq.textUpdatedAt, sq.niceTextUpdatedAt),
-        isNull(sq.niceName),
-        isNull(sq.niceCode),
-      ),
-    );
+    .where(or(gt(sq.textUpdatedAt, sq.niceTextUpdatedAt), isNull(sq.niceName), isNull(sq.niceCode)));
 
   await db
     .insert(userModule)
@@ -235,9 +203,7 @@ export async function upsertAndAssociateModules(
 }
 
 /** Get the folders from the specified module. */
-export async function getActivityFolders(
-  moduleId: string,
-): Promise<ActivityFolder[]> {
+export async function getActivityFolders(moduleId: string): Promise<ActivityFolder[]> {
   return db
     .select()
     .from(activityFolder)
@@ -265,9 +231,7 @@ export async function upsertActivityFolders(folders: ActivityFolder[]) {
 }
 
 /** Get the activities with the specified `moduleId`. */
-export async function getActivities(
-  moduleId: string,
-): Promise<AnyActivityWithName[]> {
+export async function getActivities(moduleId: string): Promise<AnyActivityWithName[]> {
   return (
     await db
       .select()
@@ -278,39 +242,29 @@ export async function getActivities(
       .leftJoin(docEmbedActivity, eq(docEmbedActivity.id, activity.id))
       .leftJoin(videoEmbedActivity, eq(videoEmbedActivity.id, activity.id))
       .leftJoin(submissionActivity, eq(submissionActivity.id, activity.id))
-      .leftJoin(
-        submissionDropbox,
-        eq(submissionDropbox.id, submissionActivity.dropboxId),
-      )
+      .leftJoin(submissionDropbox, eq(submissionDropbox.id, submissionActivity.dropboxId))
       .leftJoin(quizActivity, eq(quizActivity.id, activity.id))
       .leftJoin(quiz, eq(quiz.id, quizActivity.quizId))
       .where(eq(activityFolder.moduleId, moduleId))
       .orderBy(activity.sortOrder)
   ).map((a) => {
-    if (a.activity.type === "html")
-      return { ...a.activity, ...a.html_activity };
-    if (a.activity.type === "web_embed")
-      return { ...a.activity, ...a.web_embed_activity };
-    if (a.activity.type === "doc_embed")
-      return { ...a.activity, ...a.doc_embed_activity };
-    if (a.activity.type === "video_embed")
-      return { ...a.activity, ...a.video_embed_activity };
+    if (a.activity.type === "html") return { ...a.activity, ...a.html_activity };
+    if (a.activity.type === "web_embed") return { ...a.activity, ...a.web_embed_activity };
+    if (a.activity.type === "doc_embed") return { ...a.activity, ...a.doc_embed_activity };
+    if (a.activity.type === "video_embed") return { ...a.activity, ...a.video_embed_activity };
     if (a.activity.type === "submission")
       return {
         ...a.activity,
         ...a.submission_activity,
         name: a.submission_dropbox!.name,
       };
-    if (a.activity.type === "quiz")
-      return { ...a.activity, ...a.quiz_activity, name: a.quiz!.name };
+    if (a.activity.type === "quiz") return { ...a.activity, ...a.quiz_activity, name: a.quiz!.name };
     return a.activity;
   }) as AnyActivityWithName[];
 }
 
 /** Get a single activity by ID, with its type-specific details and name. */
-export async function getActivity(
-  activityId: string,
-): Promise<AnyActivityWithName | null> {
+export async function getActivity(activityId: string): Promise<AnyActivityWithName | null> {
   const rows = await db
     .select()
     .from(activity)
@@ -320,10 +274,7 @@ export async function getActivity(
     .leftJoin(docEmbedActivity, eq(docEmbedActivity.id, activity.id))
     .leftJoin(videoEmbedActivity, eq(videoEmbedActivity.id, activity.id))
     .leftJoin(submissionActivity, eq(submissionActivity.id, activity.id))
-    .leftJoin(
-      submissionDropbox,
-      eq(submissionDropbox.id, submissionActivity.dropboxId),
-    )
+    .leftJoin(submissionDropbox, eq(submissionDropbox.id, submissionActivity.dropboxId))
     .leftJoin(quizActivity, eq(quizActivity.id, activity.id))
     .leftJoin(quiz, eq(quiz.id, quizActivity.quizId))
     .where(eq(activity.id, activityId));
@@ -331,14 +282,10 @@ export async function getActivity(
   const a = rows[0];
   if (!a) return null;
 
-  if (a.activity.type === "html")
-    return { ...a.activity, ...a.html_activity } as AnyActivityWithName;
-  if (a.activity.type === "web_embed")
-    return { ...a.activity, ...a.web_embed_activity } as AnyActivityWithName;
-  if (a.activity.type === "doc_embed")
-    return { ...a.activity, ...a.doc_embed_activity } as AnyActivityWithName;
-  if (a.activity.type === "video_embed")
-    return { ...a.activity, ...a.video_embed_activity } as AnyActivityWithName;
+  if (a.activity.type === "html") return { ...a.activity, ...a.html_activity } as AnyActivityWithName;
+  if (a.activity.type === "web_embed") return { ...a.activity, ...a.web_embed_activity } as AnyActivityWithName;
+  if (a.activity.type === "doc_embed") return { ...a.activity, ...a.doc_embed_activity } as AnyActivityWithName;
+  if (a.activity.type === "video_embed") return { ...a.activity, ...a.video_embed_activity } as AnyActivityWithName;
   if (a.activity.type === "submission")
     return {
       ...a.activity,
@@ -384,33 +331,17 @@ export async function upsertActivities(acts: AnyActivity[]) {
 
   await Promise.all(
     acts.map((a) => {
-      if (a.type === "html")
-        return upsertActivityDetails(htmlActivity, htmlActivity.id, a);
-      if (a.type === "web_embed")
-        return upsertActivityDetails(webEmbedActivity, webEmbedActivity.id, a);
-      if (a.type === "doc_embed")
-        return upsertActivityDetails(docEmbedActivity, docEmbedActivity.id, a);
-      if (a.type === "video_embed")
-        return upsertActivityDetails(
-          videoEmbedActivity,
-          videoEmbedActivity.id,
-          a,
-        );
-      if (a.type === "submission")
-        return upsertActivityDetails(
-          submissionActivity,
-          submissionActivity.id,
-          a,
-        );
-      if (a.type === "quiz")
-        return upsertActivityDetails(quizActivity, quizActivity.id, a);
+      if (a.type === "html") return upsertActivityDetails(htmlActivity, htmlActivity.id, a);
+      if (a.type === "web_embed") return upsertActivityDetails(webEmbedActivity, webEmbedActivity.id, a);
+      if (a.type === "doc_embed") return upsertActivityDetails(docEmbedActivity, docEmbedActivity.id, a);
+      if (a.type === "video_embed") return upsertActivityDetails(videoEmbedActivity, videoEmbedActivity.id, a);
+      if (a.type === "submission") return upsertActivityDetails(submissionActivity, submissionActivity.id, a);
+      if (a.type === "quiz") return upsertActivityDetails(quizActivity, quizActivity.id, a);
     }),
   );
 }
 
-export async function upsertSubmissionDropboxes(
-  dropboxes: SubmissionDropbox[],
-) {
+export async function upsertSubmissionDropboxes(dropboxes: SubmissionDropbox[]) {
   if (!dropboxes.length) return;
 
   await db
@@ -483,19 +414,13 @@ export async function currentOrNextSemesterBreak(userId: string): Promise<
         daysToEnd: sql<number>`extract(day from ${semesterBreak.endDate} - now()) + 1`,
       })
       .from(semesterBreak)
-      .innerJoin(
-        organization,
-        eq(organization.id, semesterBreak.organizationId),
-      )
+      .innerJoin(organization, eq(organization.id, semesterBreak.organizationId))
       .innerJoin(user, eq(user.organizationId, organization.id))
       .where(
         and(
           eq(user.id, userId),
           or(
-            and(
-              lt(semesterBreak.startDate, sql`now()`),
-              lt(sql`now()`, semesterBreak.endDate),
-            ),
+            and(lt(semesterBreak.startDate, sql`now()`), lt(sql`now()`, semesterBreak.endDate)),
             lt(sql`now()`, semesterBreak.startDate),
           ),
         ),
