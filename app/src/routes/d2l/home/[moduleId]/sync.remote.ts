@@ -1,15 +1,15 @@
-import { getRequestEvent, query } from "$app/server";
-import * as queries from "$lib/server/db/queries";
 import type { SubmissionDropbox, UserSubmission } from "$lib/server/db";
-import { flattenActivityTree, unflattenActivityTree } from "$lib/activityTree";
 
-export const sync = query(async () => {
+import { getRequestEvent, query } from "$app/server";
+import { flattenActivityTree, unflattenActivityTree } from "$lib/activityTree";
+import * as queries from "$lib/server/db/queries";
+import { z } from "zod";
+
+export const syncModule = query(z.object({ moduleId: z.string() }), async ({ moduleId }) => {
   const { pl, sessionHash } = getRequestEvent().locals;
 
   const user = await queries.getUserFromSessionHash(sessionHash);
   const userId = user!.id;
-
-  const moduleId = getRequestEvent().params.moduleId!;
 
   const organization = await queries.getOrganization(userId);
 
@@ -28,15 +28,11 @@ export const sync = query(async () => {
             .then((subs) => subs.map((s) => ({ ...s, userId }))),
         ),
       );
-      return [dropboxes, userSubs.flat()] as [
-        SubmissionDropbox[],
-        UserSubmission[],
-      ];
+      return [dropboxes, userSubs.flat()] as [SubmissionDropbox[], UserSubmission[]];
     }),
   ]);
 
-  const { folders: allFolders, activities: allActivities } =
-    flattenActivityTree(moduleContents, moduleId);
+  const { folders: allFolders, activities: allActivities } = flattenActivityTree(moduleContents, moduleId);
 
   await queries.upsertQuizzes(quizzes);
   await queries.upsertSubmissionDropboxes(dropboxes);
