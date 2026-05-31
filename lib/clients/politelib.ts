@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import type { TOCModule, TOCTopic } from "../schema/polite";
 import type {
   AnyActivity,
@@ -11,15 +12,12 @@ import type {
   User,
   Submission,
 } from "../types";
-import {
-  defaultToBaseURL,
-  getURLExpiry,
-  lastPathComponent,
-} from "../utils/url";
+
+import { SirenEntity } from "../schema/siren";
 import { chunk } from "../utils/array";
+import { defaultToBaseURL, getURLExpiry, lastPathComponent } from "../utils/url";
 import { Brightspace } from "./brightspace";
 import { POLITE } from "./polite";
-import { SirenEntity } from "../schema/siren";
 
 /**
  * High-level POLITEMall client.
@@ -76,10 +74,7 @@ export class POLITELib {
    * requiring an asynchronous network request to obtain a fresh one.
    */
   get brightspace(): Promise<Brightspace> {
-    if (
-      this.#brightspaceInstance !== null &&
-      this.#brightspaceInstance.tokenExpiry > new Date()
-    ) {
+    if (this.#brightspaceInstance !== null && this.#brightspaceInstance.tokenExpiry > new Date()) {
       return Promise.resolve(this.#brightspaceInstance);
     }
     return this.polite.getNewFetchToken().then(({ access_token }) => {
@@ -111,27 +106,14 @@ export class POLITELib {
    * Return the URL of the institution's image. The institution's ID is needed to
    * construct the URL, so if not provided, this calls {@link getInstitution}.
    * The URL construction itself is synchronous. */
-  getInstitutionImageURL(config: {
-    width: number;
-    height: number;
-  }): Promise<string>;
-  getInstitutionImageURL(config: {
-    width: number;
-    height: number;
-    institutionId: string;
-  }): string;
-  getInstitutionImageURL(config: {
-    width: number;
-    height: number;
-    institutionId?: string;
-  }): Promise<string> | string {
+  getInstitutionImageURL(config: { width: number; height: number }): Promise<string>;
+  getInstitutionImageURL(config: { width: number; height: number; institutionId: string }): string;
+  getInstitutionImageURL(config: { width: number; height: number; institutionId?: string }): Promise<string> | string {
     if (config.institutionId) {
       return this.polite.getImageURL(config.institutionId, config);
     }
 
-    return this.getInstitution().then(({ id }) =>
-      this.polite.getImageURL(id, config),
-    );
+    return this.getInstitution().then(({ id }) => this.polite.getImageURL(id, config));
   }
 
   // ── Modules & Semesters ───────────────────────────────────────────────────────
@@ -148,18 +130,14 @@ export class POLITELib {
 
       // Modules ("course offerings") are those with OrgUnit.Type.Id === 3
       modules.push(
-        ...page.Items.filter((item) => item.OrgUnit.Type.Id === 3).map(
-          (item) => ({
-            id: item.OrgUnit.Id.toString(),
-            name: item.OrgUnit.Name,
-            code: item.OrgUnit.Code ?? "",
-          }),
-        ),
+        ...page.Items.filter((item) => item.OrgUnit.Type.Id === 3).map((item) => ({
+          id: item.OrgUnit.Id.toString(),
+          name: item.OrgUnit.Name,
+          code: item.OrgUnit.Code ?? "",
+        })),
       );
 
-      bookmark = page.PagingInfo.HasMoreItems
-        ? page.PagingInfo.Bookmark
-        : undefined;
+      bookmark = page.PagingInfo.HasMoreItems ? page.PagingInfo.Bookmark : undefined;
     } while (bookmark !== undefined);
 
     return modules;
@@ -202,11 +180,7 @@ export class POLITELib {
    * index corresponds to the module at the same index (i.e. `moduleIds[i]`'s
    * semester is `semesters[i]`).
    */
-  async #getSemestersBatched({
-    moduleIds,
-  }: {
-    moduleIds: string[];
-  }): Promise<Semester[]> {
+  async #getSemestersBatched({ moduleIds }: { moduleIds: string[] }): Promise<Semester[]> {
     // Fetch batches of parentOrgUnits in parallel
     // (they contain semester information)
     return await Promise.all(
@@ -230,18 +204,10 @@ export class POLITELib {
    * Retrieves the table of contents then recursively parses every folder and
    * topic, making additional requests as needed to resolve activity details.
    */
-  async getModuleContent({
-    moduleId,
-  }: {
-    moduleId: string;
-  }): Promise<ActivityFolder[]> {
+  async getModuleContent({ moduleId }: { moduleId: string }): Promise<ActivityFolder[]> {
     const toc = await this.polite.getModuleTOC({ moduleId });
 
-    return Promise.all(
-      toc.Modules.map((m: TOCModule) =>
-        this.#parseActivityFolder({ folder: m, moduleId }),
-      ),
-    );
+    return Promise.all(toc.Modules.map((m: TOCModule) => this.#parseActivityFolder({ folder: m, moduleId })));
   }
 
   /**
@@ -250,13 +216,7 @@ export class POLITELib {
    *
    * This may issue additional network requests for nested folders and topics.
    */
-  async #parseActivityFolder({
-    folder,
-    moduleId,
-  }: {
-    folder: TOCModule;
-    moduleId: string;
-  }): Promise<ActivityFolder> {
+  async #parseActivityFolder({ folder, moduleId }: { folder: TOCModule; moduleId: string }): Promise<ActivityFolder> {
     const folderId = folder.ModuleId.toString();
 
     // Parse activities and sub-folders in parallel.
@@ -266,11 +226,7 @@ export class POLITELib {
           this.#parseActivity({ activity: t, moduleId }),
         ),
       ),
-      Promise.all(
-        folder.Modules.map((m: TOCModule) =>
-          this.#parseActivityFolder({ folder: m, moduleId }),
-        ),
-      ),
+      Promise.all(folder.Modules.map((m: TOCModule) => this.#parseActivityFolder({ folder: m, moduleId }))),
     ]);
 
     return {
@@ -279,9 +235,7 @@ export class POLITELib {
       name: folder.Title,
       description: folder.Description.Html,
       sortOrder: folder.SortOrder,
-      contents: [...activities, ...activityFolders].sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      ),
+      contents: [...activities, ...activityFolders].sort((a, b) => a.sortOrder - b.sortOrder),
     };
   }
 
@@ -293,15 +247,8 @@ export class POLITELib {
    *
    * @throws if `activity.IsBroken` is `true`.
    */
-  async #parseActivity({
-    activity,
-    moduleId,
-  }: {
-    activity: TOCTopic;
-    moduleId: string;
-  }): Promise<AnyActivity> {
-    if (activity.IsBroken)
-      throw new Error("parseActivity() cannot handle broken activities");
+  async #parseActivity({ activity, moduleId }: { activity: TOCTopic; moduleId: string }): Promise<AnyActivity> {
+    if (activity.IsBroken) throw new Error("parseActivity() cannot handle broken activities");
 
     const base = {
       id: activity.Identifier,
@@ -310,11 +257,7 @@ export class POLITELib {
     const name = activity.Title;
 
     // ── HTML activity (ActivityType 1, File, *.html) ──────────────────────────
-    if (
-      activity.ActivityType === 1 &&
-      activity.TypeIdentifier === "File" &&
-      activity.Url.endsWith(".html")
-    ) {
+    if (activity.ActivityType === 1 && activity.TypeIdentifier === "File" && activity.Url.endsWith(".html")) {
       const content = await this.polite.getContentHTML({
         urlOrPath: activity.Url,
       });
@@ -339,9 +282,7 @@ export class POLITELib {
       const previewURL = fileEnt.findLink({
         class: ["pdf", "d2l-converted-doc"],
       })?.href;
-      const previewURLExpiry = previewURL
-        ? getURLExpiry(previewURL)
-        : undefined;
+      const previewURLExpiry = previewURL ? getURLExpiry(previewURL) : undefined;
 
       return {
         ...base,
@@ -354,10 +295,7 @@ export class POLITELib {
     }
 
     // ── Video embed (ActivityType 1, ContentService) ──────────────────────────
-    if (
-      activity.ActivityType === 1 &&
-      activity.TypeIdentifier === "ContentService"
-    ) {
+    if (activity.ActivityType === 1 && activity.TypeIdentifier === "ContentService") {
       const [source, thumbnail] = await Promise.all([
         this.#getContentServiceMediaURL({
           moduleId,
@@ -387,8 +325,7 @@ export class POLITELib {
 
     // ── Submission activity (ActivityType 3) ──────────────────────────────────
     if (activity.ActivityType === 3) {
-      if (!activity.ToolItemId)
-        throw new Error("Missing ToolItemId in submission activity");
+      if (!activity.ToolItemId) throw new Error("Missing ToolItemId in submission activity");
       return {
         ...base,
         type: "submission",
@@ -398,8 +335,7 @@ export class POLITELib {
 
     // ── Quiz activity (ActivityType 4) ────────────────────────────────────────
     if (activity.ActivityType === 4) {
-      if (!activity.ToolItemId)
-        throw new Error("Missing ToolItemId in quiz activity");
+      if (!activity.ToolItemId) throw new Error("Missing ToolItemId in quiz activity");
       return { ...base, type: "quiz", quizId: activity.ToolItemId.toString() };
     }
 
@@ -409,11 +345,7 @@ export class POLITELib {
   // ── Dropboxes & Submissions ───────────────────────────────────────────────────
 
   /** Fetch all submission dropbox folders in a module. */
-  async getSubmissionDropboxes({
-    moduleId,
-  }: {
-    moduleId: string;
-  }): Promise<SubmissionDropbox[]> {
+  async getSubmissionDropboxes({ moduleId }: { moduleId: string }): Promise<SubmissionDropbox[]> {
     const data = await this.polite.getDropboxFolders({ moduleId });
     return data.map((d) => ({
       id: d.Id.toString(),
@@ -500,9 +432,7 @@ export class POLITELib {
     submittedAt: Date;
     comment?: string;
   } {
-    const submittedAt = new Date(
-      ent.findChild({ class: "submission-date" })?.properties?.date,
-    );
+    const submittedAt = new Date(ent.findChild({ class: "submission-date" })?.properties?.date);
 
     const comment = z
       .string()

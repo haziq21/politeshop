@@ -1,10 +1,11 @@
+import type { Module } from "$lib/server/db";
+
 import { getRequestEvent, query } from "$app/server";
-import { logger } from "$lib/utils";
 import { OPENROUTER_API_KEY } from "$env/static/private";
+import * as queries from "$lib/server/db/queries";
+import { logger } from "$lib/utils";
 import { OpenRouter } from "@openrouter/sdk";
 import { z } from "zod";
-import * as queries from "$lib/server/db/queries";
-import type { Module } from "$lib/server/db";
 
 export const sync = query(async () => {
   const { pl, sessionHash } = getRequestEvent().locals;
@@ -12,12 +13,11 @@ export const sync = query(async () => {
   const user = await queries.getUserFromSessionHash(sessionHash);
   const userId = user!.id;
 
-  const [partialUser, institution, { modules: partialModules, semesters }] =
-    await Promise.all([
-      pl.getUser(),
-      pl.getInstitution(),
-      pl.getModulesAndSemesters(),
-    ]);
+  const [partialUser, institution, { modules: partialModules, semesters }] = await Promise.all([
+    pl.getUser(),
+    pl.getInstitution(),
+    pl.getModulesAndSemesters(),
+  ]);
 
   const modules = partialModules.map((m) => ({
     ...m,
@@ -39,10 +39,7 @@ export const sync = query(async () => {
     organizationId: institution.id,
   });
   await queries.upsertSemesters(semesters);
-  const uglyModules = await queries.upsertAndAssociateModules(
-    partialUser.id,
-    modules,
-  );
+  const uglyModules = await queries.upsertAndAssociateModules(partialUser.id, modules);
 
   if (uglyModules.length > 0) {
     logger.info(`Renaming ${uglyModules.length} modules...`);

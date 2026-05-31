@@ -1,6 +1,4 @@
-export type Message<T, P = void> = P extends void
-  ? { type: T }
-  : { type: T; payload: P };
+export type Message<T, P = void> = P extends void ? { type: T } : { type: T; payload: P };
 export type WindowMessage =
   | Message<"LOCATION_CHANGED", { path: string; title: string }>
   | Message<"REDIRECT_LOGIN", { target: string; sessionExpired: string }>;

@@ -1,37 +1,28 @@
 import { AUTH_HEADER_NAMES } from "@politeshop/shared";
+
 import type { SessionCredential } from "../utils";
+
 import { onMessage } from "../utils/messaging";
 
 export default defineBackground(() => {
   // When POLITEMall session cookies change, update declarativeNetRequest rules
   browser.cookies.onChanged.addListener(async ({ cookie, removed }) => {
     if (removed) return; // Only update the DNR rules when new cookies are set
-    if (
-      cookie.name !== "d2lSessionVal" &&
-      cookie.name !== "d2lSecureSessionVal"
-    )
-      return;
+    if (cookie.name !== "d2lSessionVal" && cookie.name !== "d2lSecureSessionVal") return;
 
     const subdomain = cookie.domain.match(/^([^.]+)\.polite\.edu\.sg$/)?.[1];
     if (!subdomain) return;
 
-    await setSessionCredentials([
-      { name: cookie.name, value: cookie.value, subdomain },
-    ]);
+    await setSessionCredentials([{ name: cookie.name, value: cookie.value, subdomain }]);
   });
 
   onMessage("setBrightspaceCredentials", async ({ data }) => {
     const { d2lFetchToken, subdomain } = data;
-    await setSessionCredentials([
-      { name: "d2lFetchToken", value: d2lFetchToken, subdomain },
-    ]);
+    await setSessionCredentials([{ name: "d2lFetchToken", value: d2lFetchToken, subdomain }]);
   });
 
   onMessage("refreshPOLITECredentials", async ({ data: { subdomain } }) => {
-    const cookiesToGet: SessionCredential["name"][] = [
-      "d2lSessionVal",
-      "d2lSecureSessionVal",
-    ];
+    const cookiesToGet: SessionCredential["name"][] = ["d2lSessionVal", "d2lSecureSessionVal"];
 
     const cookies = (
       await Promise.all(
@@ -44,13 +35,11 @@ export default defineBackground(() => {
       )
     ).flat();
 
-    const sessionCredentials: SessionCredential[] = cookies.map(
-      ({ name, value }) => ({
-        name: name as (typeof cookiesToGet)[number],
-        value,
-        subdomain,
-      }),
-    );
+    const sessionCredentials: SessionCredential[] = cookies.map(({ name, value }) => ({
+      name: name as (typeof cookiesToGet)[number],
+      value,
+      subdomain,
+    }));
 
     await setSessionCredentials(sessionCredentials);
     return sessionCredentials;
@@ -63,27 +52,25 @@ export default defineBackground(() => {
  * Existing credentials are left unchanged if not specified.
  */
 async function setSessionCredentials(credentials: SessionCredential[]) {
-  const newRules = credentials.map(
-    ({ name, value, subdomain }): Browser.declarativeNetRequest.Rule => {
-      const header = AUTH_HEADER_NAMES[name];
-      return {
-        // Key the rules based on their subdomain and header name
-        id: hash(`${subdomain},${header}`),
-        action: {
-          type: "modifyHeaders",
-          requestHeaders: [{ header, value, operation: "set" }],
-        },
-        condition: {
-          initiatorDomains: [
-            `${subdomain}.${POLITEMALL_BASE_URL.hostname}`,
-            `${subdomain}.${POLITESHOP_BASE_URL.hostname}`,
-          ],
-          requestDomains: [`${subdomain}.${POLITESHOP_BASE_URL.hostname}`],
-          resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest"],
-        },
-      };
-    },
-  );
+  const newRules = credentials.map(({ name, value, subdomain }): Browser.declarativeNetRequest.Rule => {
+    const header = AUTH_HEADER_NAMES[name];
+    return {
+      // Key the rules based on their subdomain and header name
+      id: hash(`${subdomain},${header}`),
+      action: {
+        type: "modifyHeaders",
+        requestHeaders: [{ header, value, operation: "set" }],
+      },
+      condition: {
+        initiatorDomains: [
+          `${subdomain}.${POLITEMALL_BASE_URL.hostname}`,
+          `${subdomain}.${POLITESHOP_BASE_URL.hostname}`,
+        ],
+        requestDomains: [`${subdomain}.${POLITESHOP_BASE_URL.hostname}`],
+        resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest"],
+      },
+    };
+  });
 
   log(`Setting session rules:`, newRules);
 

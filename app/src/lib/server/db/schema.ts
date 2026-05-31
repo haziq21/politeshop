@@ -27,7 +27,7 @@ export const user = pgTable(
       .references(() => organization.id),
     sessionHash: integer("session_hash").notNull(),
   },
-  (table) => [uniqueIndex().on(table.sessionHash)]
+  (table) => [uniqueIndex().on(table.sessionHash)],
 );
 
 export const semester = pgTable("semester", {
@@ -69,7 +69,7 @@ export const userModule = pgTable(
       .notNull()
       .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.moduleId] })]
+  (table) => [primaryKey({ columns: [table.userId, table.moduleId] })],
 );
 
 export const activityFolder = pgTable("activity_folder", {

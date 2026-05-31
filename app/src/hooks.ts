@@ -5,9 +5,7 @@ import { error, type Reroute } from "@sveltejs/kit";
 // https://nplms.polite.edu.sg/d2l/le/enhancedSequenceViewer/803172
 // ?url=https%3A%2F%2F746e9230-82d6-4d6b-bd68-5aa40aa19cce.sequences.api.brightspace.com%2F803172%2Factivity%2F12156618%3FfilterOnDatesAndDepth%3D1
 export const reroute: Reroute = ({ url }) => {
-  const match = url.pathname.match(
-    /^\/d2l\/le\/enhancedSequenceViewer\/(\d+)\/?$/,
-  );
+  const match = url.pathname.match(/^\/d2l\/le\/enhancedSequenceViewer\/(\d+)\/?$/);
   if (!match) return;
 
   const moduleId = match[1];

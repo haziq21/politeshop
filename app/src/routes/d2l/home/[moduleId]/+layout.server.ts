@@ -1,6 +1,7 @@
-import type { LayoutServerLoad } from "./$types";
-import * as queries from "$lib/server/db/queries";
 import { unflattenActivityTree } from "$lib/activityTree";
+import * as queries from "$lib/server/db/queries";
+
+import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ params }) => {
   const { moduleId } = params;

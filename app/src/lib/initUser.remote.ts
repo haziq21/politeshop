@@ -4,10 +4,7 @@ import * as queries from "$lib/server/db/queries";
 export const initUser = query(async () => {
   const { pl, sessionHash } = getRequestEvent().locals;
 
-  const [partialUser, institution] = await Promise.all([
-    pl.getUser(),
-    pl.getInstitution(),
-  ]);
+  const [partialUser, institution] = await Promise.all([pl.getUser(), pl.getInstitution()]);
 
   await queries.upsertOrganization({
     id: institution.id,

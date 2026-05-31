@@ -5,7 +5,7 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "."
   },
-  "exclude": ["dist", "node_modules", "scripts"],
+  "exclude": ["dist", "node_modules", "scripts"]
 }
