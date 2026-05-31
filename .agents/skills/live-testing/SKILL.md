@@ -1,16 +1,18 @@
 ---
-name: manual-testing
-description: Manually test the POLITEShop app / extension live.
+name: live-testing
+description: Run the POLITEShop app and extension live with hot-reload.
 ---
 
 ## Start everything
 
 ```bash
 tmux new-session -d -s politeshop-app 'pnpm --filter @politeshop/app dev'
-pnpm --filter @politeshop/ext build
+tmux new-session -d -s politeshop-ext 'pnpm --filter @politeshop/ext dev'
 playwright-cli -s=politeshop-browser open "https://nplms.polite.edu.sg/d2l/home" \
   --headed --persistent --profile=ext/.wxt/chrome-data
 ```
+
+WXT dev mode auto-reloads the extension on changes, so no manual rebuild needed.
 
 The `open` command may exceed the default tool timeout (30s) — the browser is still opening successfully in the background. Retry or use a longer timeout.
 
@@ -21,8 +23,8 @@ The extension must be loaded via `.playwright/cli.config.json`. If missing, crea
   "browser": {
     "launchOptions": {
       "args": [
-        "--disable-extensions-except=<absolute-path>/ext/.output/chrome-mv3",
-        "--load-extension=<absolute-path>/ext/.output/chrome-mv3"
+        "--disable-extensions-except=<absolute-path>/ext/.output/chrome-mv3-dev",
+        "--load-extension=<absolute-path>/ext/.output/chrome-mv3-dev"
       ]
     }
   }
@@ -96,4 +98,5 @@ async () => {
 playwright-cli -s=politeshop-browser close
 playwright-cli kill-all
 tmux kill-session -t politeshop-app
+tmux kill-session -t politeshop-ext
 ```
