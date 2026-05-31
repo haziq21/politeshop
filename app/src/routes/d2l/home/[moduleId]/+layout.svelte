@@ -1,11 +1,11 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import WithSidebar from "$lib/components/with-sidebar.svelte";
-    import { sync } from "./sync.remote";
+    import { syncModule } from "./sync.remote";
 
     let { children, data } = $props();
 
-    type SyncedData = Awaited<ReturnType<typeof sync>>;
+    type SyncedData = Awaited<ReturnType<typeof syncModule>>;
     let synced = $state<SyncedData | null>(null);
 
     let contentFolders = $derived(
@@ -13,7 +13,7 @@
     );
 
     onMount(async () => {
-        synced = await sync();
+        synced = await syncModule({ moduleId: data.module.id });
     });
 </script>
 
