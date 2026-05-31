@@ -212,3 +212,29 @@ export const semesterBreak = pgTable("semester_break", {
   endDate: date("end_date").notNull(),
   name: text().notNull(),
 });
+
+export const userActivityAccess = pgTable(
+  "user_activity_access",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    activityId: text("activity_id")
+      .notNull()
+      .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.activityId] })],
+);
+
+export const userFolderAccess = pgTable(
+  "user_folder_access",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    folderId: text("folder_id")
+      .notNull()
+      .references(() => activityFolder.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.folderId] })],
+);

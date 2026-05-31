@@ -40,6 +40,15 @@ export const syncModule = query(z.object({ moduleId: z.string() }), async ({ mod
   await queries.upsertActivityFolders(allFolders);
   await queries.upsertActivities(allActivities);
 
+  await queries.setUserActivityAccess(
+    userId,
+    allActivities.map((a) => a.id),
+  );
+  await queries.setUserFolderAccess(
+    userId,
+    allFolders.map((f) => f.id),
+  );
+
   const [activityFolders, activities] = await Promise.all([
     queries.getActivityFolders(moduleId),
     queries.getActivities(moduleId),
