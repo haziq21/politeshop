@@ -2,6 +2,7 @@ import { defineConfig } from "wxt";
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
+  webExt: process.env.OPEN_BROWSER === "0" ? { disabled: true } : undefined,
   manifest: {
     name: "POLITEShop Extension",
     permissions: ["cookies", "declarativeNetRequest", "declarativeNetRequestWithHostAccess"],
