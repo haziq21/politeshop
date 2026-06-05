@@ -9,13 +9,14 @@
   interface Props {
     module: Module;
     contentFolders: ContentFolder[];
+    openFolderIds: string[];
     children: Snippet;
   }
 
-  const { module, contentFolders, children }: Props = $props();
+  const { module, contentFolders, openFolderIds, children }: Props = $props();
 </script>
 
 <Sidebar.Provider style="--sidebar-width: 18rem;">
-  <AppSidebar {module} {contentFolders} />
+  <AppSidebar {module} {contentFolders} {openFolderIds} />
   {@render children?.()}
 </Sidebar.Provider>

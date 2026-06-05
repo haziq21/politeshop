@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Module, Semester } from "$lib/server/db";
 
+  import { setPreference } from "$lib/preferences";
+
   import ModuleList from "./module-list.svelte";
   import SemesterFilter from "./semester-filter.svelte";
 
@@ -12,14 +14,8 @@
 
   let { filteredSemesterId = "all", semesters, modules }: Props = $props();
 
-  let firstRun = true;
   $effect(() => {
-    filteredSemesterId;
-    if (firstRun) {
-      firstRun = false;
-      return;
-    }
-    document.cookie = `defaultSemester=${filteredSemesterId}; SameSite=None; Secure; Max-Age=31536000`;
+    setPreference("semester", filteredSemesterId);
   });
 </script>
 
