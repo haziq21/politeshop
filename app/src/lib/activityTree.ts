@@ -76,3 +76,10 @@ export function unflattenActivityTree(
     }))
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
+
+/**
+ * Collect all folder IDs from a {@link ContentFolder} tree (including nested).
+ */
+export function collectFolderIds(folders: ContentFolder[]): Set<string> {
+  return new Set(folders.flatMap((f) => [f.id, ...collectFolderIds(f.contents.filter((c) => c.type === "folder"))]));
+}

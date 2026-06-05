@@ -2,7 +2,7 @@ import * as queries from "$lib/server/db/queries";
 
 import type { PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async ({ locals, cookies }) => {
+export const load: PageServerLoad = async ({ locals }) => {
   const user = await queries.getUserFromSessionHash(locals.sessionHash);
   const userId = user!.id;
 
@@ -13,13 +13,10 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
     queries.currentOrNextSemesterBreak(userId),
   ]);
 
-  const defaultSemester = cookies.get("defaultSemester") ?? "all";
-
   return {
     organization,
     semesters: semesters.sort((a, b) => b.name.localeCompare(a.name)),
     modules,
-    defaultSemester,
     semesterBreak,
   };
 };

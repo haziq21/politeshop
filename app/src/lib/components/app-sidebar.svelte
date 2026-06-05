@@ -2,15 +2,32 @@
   import type { ContentFolder } from "$lib/activityTree";
   import type { Module, AnyActivityWithName } from "$lib/server/db";
 
+  import { collectFolderIds } from "$lib/activityTree";
   import * as Collapsible from "$lib/components/ui/collapsible";
   import * as Sidebar from "$lib/components/ui/sidebar";
+  import { setPreference } from "$lib/preferences";
 
   interface Props {
     module: Module;
     contentFolders: ContentFolder[];
+    openFolderIds: string[];
   }
 
-  const { module, contentFolders }: Props = $props();
+  const { module, contentFolders, openFolderIds = [] }: Props = $props();
+
+  let openFolders = $derived(new Set(openFolderIds));
+  let validFolderIds = $derived(collectFolderIds(contentFolders));
+
+  async function toggleFolder(folderId: string, open: boolean) {
+    if (open) {
+      openFolders.add(folderId);
+    } else {
+      openFolders.delete(folderId);
+    }
+
+    const ids = [...openFolders].filter((id) => validFolderIds.has(id));
+    await setPreference(["openFolders", module.id], ids);
+  }
 
   function getActivityIcon(activity: AnyActivityWithName): string {
     return (
@@ -62,16 +79,10 @@
   </svg>
 {/snippet}
 
-<!--
-  Recursive snippet.
-  `items` is the already-sorted `contents` of a ContentFolder, or the top-level
-  `contentFolders` array (which satisfies the same union type).
--->
 {#snippet tree(items: (AnyActivityWithName | ContentFolder)[])}
   {#each items as item}
     {#if item.type === "folder"}
       {#if item.contents.length === 0}
-        <!-- Empty folder: non-interactive label -->
         <Sidebar.MenuItem>
           <Sidebar.MenuButton class="w-full justify-start gap-2 text-sm">
             {@render folderIcon()}
@@ -79,9 +90,12 @@
           </Sidebar.MenuButton>
         </Sidebar.MenuItem>
       {:else}
-        <!-- Non-empty folder: collapsible with recursive children -->
         <Sidebar.MenuItem>
-          <Collapsible.Root class="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90">
+          <Collapsible.Root
+            class="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
+            open={openFolders.has(item.id)}
+            onOpenChange={async (open) => await toggleFolder(item.id, open)}
+          >
             <Collapsible.Trigger>
               {#snippet child({ props })}
                 <Sidebar.MenuButton {...props} class="w-full justify-start gap-2 text-sm">
@@ -99,7 +113,6 @@
         </Sidebar.MenuItem>
       {/if}
     {:else}
-      <!-- Activity leaf -->
       <Sidebar.MenuItem>
         <Sidebar.MenuButton class="w-full justify-start gap-2 text-sm">
           {#snippet child({ props })}

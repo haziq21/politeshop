@@ -1,6 +1,7 @@
 <script lang="ts">
   import DueDateHeatmap from "$lib/components/due-date-heatmap.svelte";
   import ModuleSelector from "$lib/components/module-selector.svelte";
+  import { getPreferences, type Preferences } from "$lib/preferences";
   import { onMount } from "svelte";
 
   import type { PageProps } from "./$types";
@@ -15,6 +16,7 @@
   let organization = $derived(synced?.organization ?? data.organization);
   let semesters = $derived(synced?.semesters ?? data.semesters);
   let modules = $derived(synced?.modules ?? data.modules);
+  let prefs = $state<Preferences | null>(null);
 
   let institutionSubText = $derived.by(() => {
     if (!data.semesterBreak) return "View academic calendar";
@@ -28,6 +30,7 @@
   });
 
   onMount(async () => {
+    prefs = await getPreferences();
     synced = await sync();
   });
 </script>
@@ -49,7 +52,7 @@
 </a>
 
 <div class="grid grid-cols-[auto_1fr] justify-items-center mt-10 ml-5 pb-60">
-  <ModuleSelector filteredSemesterId={data.defaultSemester} {semesters} {modules} />
+  <ModuleSelector filteredSemesterId={prefs?.semester ?? "all"} {semesters} {modules} />
   <div class="sticky top-10 h-fit">
     <DueDateHeatmap {modules} />
   </div>
