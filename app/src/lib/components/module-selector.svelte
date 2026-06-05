@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Module, Semester } from "$lib/server/db";
+
   import ModuleList from "./module-list.svelte";
   import SemesterFilter from "./semester-filter.svelte";
 
