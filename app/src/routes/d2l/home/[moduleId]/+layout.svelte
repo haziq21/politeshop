@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from "$app/stores";
   import WithSidebar from "$lib/components/with-sidebar.svelte";
   import { getPreferences, type Preferences } from "$lib/preferences.js";
   import { onMount } from "svelte";
@@ -20,6 +21,6 @@
   });
 </script>
 
-<WithSidebar module={data.module} {contentFolders} {openFolderIds}>
+<WithSidebar module={data.module} {contentFolders} {openFolderIds} currentActivityId={$page.params.activityId}>
   {@render children()}
 </WithSidebar>

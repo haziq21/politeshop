@@ -115,6 +115,15 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@keyframes nudge-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-2px);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

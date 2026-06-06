@@ -10,13 +10,14 @@
     module: Module;
     contentFolders: ContentFolder[];
     openFolderIds: string[];
+    currentActivityId?: string;
     children: Snippet;
   }
 
-  const { module, contentFolders, openFolderIds, children }: Props = $props();
+  const { module, contentFolders, openFolderIds, currentActivityId, children }: Props = $props();
 </script>
 
 <Sidebar.Provider style="--sidebar-width: 18rem;">
-  <AppSidebar {module} {contentFolders} {openFolderIds} />
+  <AppSidebar {module} {contentFolders} {openFolderIds} {currentActivityId} />
   {@render children?.()}
 </Sidebar.Provider>

@@ -78,6 +78,30 @@ export function unflattenActivityTree(
 }
 
 /**
+ * Find the ordered list of folders from root to the folder containing a given activity ID.
+ * Returns an empty array if the activity isn't found.
+ */
+export function findActivityFolderPath(
+  folders: ContentFolder[],
+  activityId: string,
+  path: ContentFolder[] = [],
+): ContentFolder[] {
+  for (const folder of folders) {
+    const currentPath = [...path, folder];
+    for (const item of folder.contents) {
+      if (item.type !== "folder" && item.id === activityId) return currentPath;
+    }
+    const nested = findActivityFolderPath(
+      folder.contents.filter((c): c is ContentFolder => c.type === "folder"),
+      activityId,
+      currentPath,
+    );
+    if (nested.length) return nested;
+  }
+  return [];
+}
+
+/**
  * Collect all folder IDs from a {@link ContentFolder} tree (including nested).
  */
 export function collectFolderIds(folders: ContentFolder[]): Set<string> {
