@@ -3,6 +3,7 @@
   import type { Module, AnyActivityWithName } from "$lib/server/db";
 
   import { collectFolderIds } from "$lib/activityTree";
+  import FadeText from "$lib/components/fade-text.svelte";
   import * as Collapsible from "$lib/components/ui/collapsible";
   import * as Sidebar from "$lib/components/ui/sidebar";
   import { setPreference } from "$lib/preferences";
@@ -11,10 +12,12 @@
     module: Module;
     contentFolders: ContentFolder[];
     openFolderIds: string[];
+    currentActivityId?: string;
   }
 
-  const { module, contentFolders, openFolderIds = [] }: Props = $props();
+  const { module, contentFolders, openFolderIds = [], currentActivityId }: Props = $props();
 
+  let scrolled = $state(false);
   let openFolders = $derived(new Set(openFolderIds));
   let validFolderIds = $derived(collectFolderIds(contentFolders));
 
@@ -45,6 +48,21 @@
     );
   }
 </script>
+
+{#snippet backIcon()}
+  <svg
+    viewBox="0 0 15 15"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    class="w-6 h-6 shrink-0 group-hover/header:animate-[nudge-left_0.2s_ease-out_forwards]"
+  >
+    <path
+      d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z"
+      fill="currentColor"
+      fill-rule="evenodd"
+    />
+  </svg>
+{/snippet}
 
 {#snippet folderIcon()}
   <svg
@@ -84,23 +102,29 @@
     {#if item.type === "folder"}
       {#if item.contents.length === 0}
         <Sidebar.MenuItem>
-          <Sidebar.MenuButton class="w-full justify-start gap-2 text-sm">
-            {@render folderIcon()}
-            <span class="truncate">{item.name}</span>
+          <Sidebar.MenuButton class="w-full justify-start text-sm group/btn">
+            <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
+              {@render folderIcon()}
+              <FadeText text={item.name} class="flex-1 min-w-0" />
+            </span>
           </Sidebar.MenuButton>
         </Sidebar.MenuItem>
       {:else}
         <Sidebar.MenuItem>
           <Collapsible.Root
-            class="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
+            class="group/collapsible [&[data-state=open]>button>span>svg:first-child]:rotate-90"
             open={openFolders.has(item.id)}
             onOpenChange={async (open) => await toggleFolder(item.id, open)}
           >
             <Collapsible.Trigger>
               {#snippet child({ props })}
-                <Sidebar.MenuButton {...props} class="w-full justify-start gap-2 text-sm">
-                  {@render chevronIcon()}
-                  <span class="truncate">{item.name}</span>
+                <Sidebar.MenuButton {...props} class="w-full justify-start text-sm group/btn">
+                  <span
+                    class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px"
+                  >
+                    {@render chevronIcon()}
+                    <FadeText text={item.name} class="flex-1 min-w-0" />
+                  </span>
                 </Sidebar.MenuButton>
               {/snippet}
             </Collapsible.Trigger>
@@ -114,7 +138,7 @@
       {/if}
     {:else}
       <Sidebar.MenuItem>
-        <Sidebar.MenuButton class="w-full justify-start gap-2 text-sm">
+        <Sidebar.MenuButton isActive={item.id === currentActivityId} class="w-full justify-start text-sm group/btn">
           {#snippet child({ props })}
             <a
               href="/d2l/le/enhancedSequenceViewer/{module.id}?url={encodeURIComponent(
@@ -122,8 +146,10 @@
               )}"
               {...props}
             >
-              <span class="shrink-0">{getActivityIcon(item)}</span>
-              <span class="truncate">{item.name}</span>
+              <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
+                <span class="shrink-0">{getActivityIcon(item)}</span>
+                <FadeText text={item.name} class="flex-1 min-w-0" />
+              </span>
             </a>
           {/snippet}
         </Sidebar.MenuButton>
@@ -133,15 +159,46 @@
 {/snippet}
 
 <Sidebar.Root>
-  <Sidebar.Content style="scrollbar-color: var(--sidebar-accent) var(--sidebar);">
-    <Sidebar.Header>
-      <Sidebar.Menu>
-        <Sidebar.MenuItem>
-          {module.niceName ?? module.name}
-        </Sidebar.MenuItem>
-      </Sidebar.Menu>
-    </Sidebar.Header>
+  <Sidebar.Header class="p-4 border-b transition-colors {scrolled ? 'border-sidebar-border' : 'border-transparent'}">
+    <a
+      href="/d2l/home"
+      class="group/header flex items-center gap-3 rounded-lg transition-transform active:translate-y-px"
+    >
+      <div class="relative w-9 h-9 rounded-md overflow-hidden shrink-0">
+        <img
+          src={module.imageIconURL}
+          alt=""
+          draggable="false"
+          class="w-full h-full object-cover transition-opacity group-hover/header:opacity-0"
+        />
+        <div
+          class="absolute inset-0 flex items-center justify-center border border-sidebar-border rounded-md opacity-0 transition-opacity group-hover/header:opacity-100"
+        >
+          {@render backIcon()}
+        </div>
+      </div>
+      <div class="relative flex-1 min-w-0 h-9 flex flex-col justify-center overflow-hidden">
+        <div class="transition-opacity group-hover/header:opacity-0">
+          <p class="text-base font-bold text-stone-100 leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+            {module.niceCode || module.code}
+          </p>
+          <p class="text-xs text-stone-300 leading-none mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
+            {module.niceName || module.name}
+          </p>
+        </div>
+        <p
+          class="absolute inset-0 flex items-center text-sm text-stone-200 opacity-0 transition-opacity group-hover/header:opacity-100 whitespace-nowrap"
+        >
+          Back to home
+        </p>
+      </div>
+    </a>
+  </Sidebar.Header>
 
+  <Sidebar.Content
+    style="scrollbar-color: var(--sidebar-accent) var(--sidebar);"
+    onscroll={(e) => (scrolled = (e.target as HTMLElement).scrollTop > 0)}
+  >
     <Sidebar.Group>
       <Sidebar.GroupLabel>Module materials</Sidebar.GroupLabel>
       <Sidebar.GroupContent>
