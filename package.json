@@ -2,13 +2,15 @@
   "name": "politeshop",
   "private": true,
   "scripts": {
+    "ai:eval": "tsx ai/scripts/eval.ts --",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
     "oxfmt": "^0.52.0",
-    "svelte": "^5.53.3"
+    "svelte": "^5.53.3",
+    "tsx": "^4.23.0"
   },
   "packageManager": "pnpm@10.30.2"
 }

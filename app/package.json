@@ -14,6 +14,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
     "@openrouter/sdk": "^0.8.0",
+    "@politeshop/ai": "workspace:*",
     "@politeshop/lib": "workspace:*",
     "@politeshop/shared": "workspace:*",
     "bits-ui": "^2.9.3",

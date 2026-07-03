@@ -2,6 +2,7 @@ packages:
   - "app"
   - "ext"
   - "lib"
+  - "ai"
   - "shared"
 
 onlyBuiltDependencies:

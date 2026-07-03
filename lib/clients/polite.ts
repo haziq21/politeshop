@@ -208,8 +208,8 @@ export class POLITE {
 
   // ── Private helpers ──────────────────────────────────────────────────────────
 
+  async #fetchJSON(input: string | URL, init?: RequestInit): Promise<any>;
   async #fetchJSON<T extends z.ZodTypeAny>(input: string | URL, init: RequestInit & { schema: T }): Promise<z.infer<T>>;
-  async #fetchJSON<T extends z.ZodTypeAny>(input: string | URL, init?: RequestInit): Promise<any>;
   async #fetchJSON<T extends z.ZodTypeAny>(input: string | URL, init?: RequestInit & { schema?: T }): Promise<any> {
     const res = await this.#fetch(input, init);
 
