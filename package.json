@@ -4,7 +4,9 @@
   "scripts": {
     "ai:eval": "tsx ai/scripts/eval.ts --",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
+    "fmt:check": "oxfmt --check",
+    "app:db:generate": "pnpm --filter @politeshop/app db:generate",
+    "app:db:migrate": "pnpm --filter @politeshop/app db:migrate"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
