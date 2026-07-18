@@ -40,12 +40,8 @@
           "name": "activity_folder_id_activity_folder_id_fk",
           "tableFrom": "activity",
           "tableTo": "activity_folder",
-          "columnsFrom": [
-            "folder_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["folder_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -103,12 +99,8 @@
           "name": "activity_folder_parent_id_activity_folder_id_fk",
           "tableFrom": "activity_folder",
           "tableTo": "activity_folder",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -116,12 +108,8 @@
           "name": "activity_folder_module_id_module_id_fk",
           "tableFrom": "activity_folder",
           "tableTo": "module",
-          "columnsFrom": [
-            "module_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["module_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -173,12 +161,8 @@
           "name": "doc_embed_activity_id_activity_id_fk",
           "tableFrom": "doc_embed_activity",
           "tableTo": "activity",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -218,12 +202,8 @@
           "name": "html_activity_id_activity_id_fk",
           "tableFrom": "html_activity",
           "tableTo": "activity",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -301,12 +281,8 @@
           "name": "module_semester_id_semester_id_fk",
           "tableFrom": "module",
           "tableTo": "semester",
-          "columnsFrom": [
-            "semester_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["semester_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -395,12 +371,8 @@
           "name": "quiz_module_id_module_id_fk",
           "tableFrom": "quiz",
           "tableTo": "module",
-          "columnsFrom": [
-            "module_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["module_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -434,12 +406,8 @@
           "name": "quiz_activity_id_activity_id_fk",
           "tableFrom": "quiz_activity",
           "tableTo": "activity",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -447,12 +415,8 @@
           "name": "quiz_activity_quiz_id_quiz_id_fk",
           "tableFrom": "quiz_activity",
           "tableTo": "quiz",
-          "columnsFrom": [
-            "quiz_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["quiz_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -523,12 +487,8 @@
           "name": "semester_break_organization_id_organization_id_fk",
           "tableFrom": "semester_break",
           "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -562,12 +522,8 @@
           "name": "submission_activity_id_activity_id_fk",
           "tableFrom": "submission_activity",
           "tableTo": "activity",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -575,12 +531,8 @@
           "name": "submission_activity_dropbox_id_submission_dropbox_id_fk",
           "tableFrom": "submission_activity",
           "tableTo": "submission_dropbox",
-          "columnsFrom": [
-            "dropbox_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["dropbox_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -644,12 +596,8 @@
           "name": "submission_dropbox_module_id_module_id_fk",
           "tableFrom": "submission_dropbox",
           "tableTo": "module",
-          "columnsFrom": [
-            "module_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["module_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -701,12 +649,8 @@
           "name": "submission_file_submission_id_user_submission_id_fk",
           "tableFrom": "submission_file",
           "tableTo": "user_submission",
-          "columnsFrom": [
-            "submission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["submission_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -768,12 +712,8 @@
           "name": "user_organization_id_organization_id_fk",
           "tableFrom": "user",
           "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -807,12 +747,8 @@
           "name": "user_activity_access_user_id_user_id_fk",
           "tableFrom": "user_activity_access",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -820,12 +756,8 @@
           "name": "user_activity_access_activity_id_activity_id_fk",
           "tableFrom": "user_activity_access",
           "tableTo": "activity",
-          "columnsFrom": [
-            "activity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["activity_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -833,10 +765,7 @@
       "compositePrimaryKeys": {
         "user_activity_access_user_id_activity_id_pk": {
           "name": "user_activity_access_user_id_activity_id_pk",
-          "columns": [
-            "user_id",
-            "activity_id"
-          ]
+          "columns": ["user_id", "activity_id"]
         }
       },
       "uniqueConstraints": {},
@@ -867,12 +796,8 @@
           "name": "user_folder_access_user_id_user_id_fk",
           "tableFrom": "user_folder_access",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -880,12 +805,8 @@
           "name": "user_folder_access_folder_id_activity_folder_id_fk",
           "tableFrom": "user_folder_access",
           "tableTo": "activity_folder",
-          "columnsFrom": [
-            "folder_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["folder_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -893,10 +814,7 @@
       "compositePrimaryKeys": {
         "user_folder_access_user_id_folder_id_pk": {
           "name": "user_folder_access_user_id_folder_id_pk",
-          "columns": [
-            "user_id",
-            "folder_id"
-          ]
+          "columns": ["user_id", "folder_id"]
         }
       },
       "uniqueConstraints": {},
@@ -927,12 +845,8 @@
           "name": "user_module_user_id_user_id_fk",
           "tableFrom": "user_module",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -940,12 +854,8 @@
           "name": "user_module_module_id_module_id_fk",
           "tableFrom": "user_module",
           "tableTo": "module",
-          "columnsFrom": [
-            "module_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["module_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -953,10 +863,7 @@
       "compositePrimaryKeys": {
         "user_module_user_id_module_id_pk": {
           "name": "user_module_user_id_module_id_pk",
-          "columns": [
-            "user_id",
-            "module_id"
-          ]
+          "columns": ["user_id", "module_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1005,12 +912,8 @@
           "name": "user_submission_user_id_user_id_fk",
           "tableFrom": "user_submission",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -1018,12 +921,8 @@
           "name": "user_submission_dropbox_id_submission_dropbox_id_fk",
           "tableFrom": "user_submission",
           "tableTo": "submission_dropbox",
-          "columnsFrom": [
-            "dropbox_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["dropbox_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -1081,12 +980,8 @@
           "name": "video_embed_activity_id_activity_id_fk",
           "tableFrom": "video_embed_activity",
           "tableTo": "activity",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -1126,12 +1021,8 @@
           "name": "web_embed_activity_id_activity_id_fk",
           "tableFrom": "web_embed_activity",
           "tableTo": "activity",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -1147,15 +1038,7 @@
     "public.activity_type": {
       "name": "activity_type",
       "schema": "public",
-      "values": [
-        "html",
-        "web_embed",
-        "doc_embed",
-        "video_embed",
-        "submission",
-        "quiz",
-        "unknown"
-      ]
+      "values": ["html", "web_embed", "doc_embed", "video_embed", "submission", "quiz", "unknown"]
     }
   },
   "schemas": {},
