@@ -6,3 +6,21 @@ repos:
         entry: pnpm fmt
         language: system
         pass_filenames: false
+      - id: ruff
+        name: ruff
+        entry: uv run --directory ai/infra ruff check --fix
+        language: system
+        files: ^ai/infra/.*\.py$
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff-format
+        entry: uv run --directory ai/infra ruff format
+        language: system
+        files: ^ai/infra/.*\.py$
+        pass_filenames: false
+      - id: ty
+        name: ty
+        entry: uv run --directory ai/infra ty check
+        language: system
+        files: ^ai/infra/.*\.py$
+        pass_filenames: false
