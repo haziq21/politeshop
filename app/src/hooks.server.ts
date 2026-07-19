@@ -1,10 +1,18 @@
 import type { User } from "$lib/server/db";
 
+import { env } from "$env/dynamic/private";
 import { initUser } from "$lib/initUser.remote";
 import * as queries from "$lib/server/db/queries";
+import { MockPOLITELib } from "$lib/server/testing/mock-politelib";
 import { POLITELib } from "@politeshop/lib";
 import { AUTH_HEADER_NAMES } from "@politeshop/shared";
 import { redirect, type Handle } from "@sveltejs/kit";
+
+// Only ever set by the Playwright webServer in e2e tests (see
+// app/playwright.config.ts), never in production. Swaps out POLITELib
+// (which talks to the real POLITEMall / Brightspace APIs) for a fixture-based
+// fake, so e2e tests don't need a real student's POLITEMall session.
+const PLClient = env.MOCK_POLITELIB === "1" ? MockPOLITELib : POLITELib;
 
 export const handle: Handle = async ({ event, resolve }) => {
   if (event.url.pathname === "/d2l/login") return await resolve(event);
@@ -15,7 +23,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       status: 401,
     });
 
-  event.locals.pl = new POLITELib({
+  event.locals.pl = new PLClient({
     ...credentials,
     domain: new URL(event.request.url).hostname.split(".")[0],
   });
