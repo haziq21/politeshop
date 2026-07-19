@@ -2,12 +2,14 @@ import type { User } from "$lib/server/db";
 
 import { initUser } from "$lib/initUser.remote";
 import * as queries from "$lib/server/db/queries";
+import { mockwright } from "$lib/server/mockwright";
+import { getSessionHash } from "$lib/server/session-hash";
 import { POLITELib } from "@politeshop/lib";
 import { AUTH_HEADER_NAMES } from "@politeshop/shared";
 import { redirect, type Handle } from "@sveltejs/kit";
 
 export const handle: Handle = async ({ event, resolve }) => {
-  if (event.url.pathname === "/d2l/login") return await resolve(event);
+  if (event.url.pathname === "/d2l/login" || event.url.pathname === "/_mockwright") return await resolve(event);
 
   const credentials = getCredentialsFromHeaders(event.request.headers);
   if (!credentials)
@@ -15,12 +17,16 @@ export const handle: Handle = async ({ event, resolve }) => {
       status: 401,
     });
 
-  event.locals.pl = new POLITELib({
-    ...credentials,
-    domain: new URL(event.request.url).hostname.split(".")[0],
-  });
+  event.locals.pl = mockwright.wrap(
+    new POLITELib({
+      ...credentials,
+      domain: new URL(event.request.url).hostname.split(".")[0],
+    }),
+    "pl",
+    event.request.headers.get("x-test-id"),
+  );
 
-  event.locals.sessionHash = await queries.getSessionHash(credentials);
+  event.locals.sessionHash = await getSessionHash(credentials);
   const user = await queries.getUserFromSessionHash(event.locals.sessionHash);
 
   if (user) {
