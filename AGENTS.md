@@ -21,3 +21,7 @@ POLITEShop maintains its own database of user data, which it mirrors from POLITE
 ## Monorepo
 
 pnpm workspaces: `app`, `ext`, `lib`, `shared`. Use `pnpm --filter @politeshop/{name}` to scope commands.
+
+## Conventions
+
+- Comments only for non-obvious explanations, kept short. Assume a competent reader already familiar with the codebase, product, and tools.

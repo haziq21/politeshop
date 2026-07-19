@@ -76,20 +76,6 @@ export async function updateUser(u: Partial<User> & { id: string }): Promise<boo
   return res.rowCount === 1;
 }
 
-/**
- * Generate the user's session hash using their session credentials.
- */
-export async function getSessionHash(credentials: {
-  d2lSessionVal: string;
-  d2lSecureSessionVal: string;
-}): Promise<number> {
-  const input = `${credentials.d2lSessionVal},${credentials.d2lSecureSessionVal}`;
-
-  const encoded = new TextEncoder().encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
-  return new DataView(hashBuffer).getInt32(0, false);
-}
-
 /** Get the user's organization. */
 export async function getOrganization(userId: string): Promise<Organization> {
   return (
