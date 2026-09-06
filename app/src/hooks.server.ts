@@ -1,10 +1,15 @@
 import type { User } from "$lib/server/db";
 
+import { env } from "$env/dynamic/private";
 import { initUser } from "$lib/initUser.remote";
 import * as queries from "$lib/server/db/queries";
+import { getSessionHash } from "$lib/server/session-hash";
+import { MockPOLITELib } from "$lib/server/testing/mock-politelib";
 import { POLITELib } from "@politeshop/lib";
 import { AUTH_HEADER_NAMES } from "@politeshop/shared";
 import { redirect, type Handle } from "@sveltejs/kit";
+
+const PLClient = env.MOCK_POLITELIB === "1" ? MockPOLITELib : POLITELib;
 
 export const handle: Handle = async ({ event, resolve }) => {
   if (event.url.pathname === "/d2l/login") return await resolve(event);
@@ -15,12 +20,12 @@ export const handle: Handle = async ({ event, resolve }) => {
       status: 401,
     });
 
-  event.locals.pl = new POLITELib({
+  event.locals.pl = new PLClient({
     ...credentials,
     domain: new URL(event.request.url).hostname.split(".")[0],
   });
 
-  event.locals.sessionHash = await queries.getSessionHash(credentials);
+  event.locals.sessionHash = await getSessionHash(credentials);
   const user = await queries.getUserFromSessionHash(event.locals.sessionHash);
 
   if (user) {
