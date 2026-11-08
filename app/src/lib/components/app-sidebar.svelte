@@ -4,9 +4,8 @@
 
   import { collectFolderIds } from "$lib/activityTree";
   import FadeText from "$lib/components/fade-text.svelte";
-  import * as Collapsible from "$lib/components/ui/collapsible";
-  import * as Sidebar from "$lib/components/ui/sidebar";
   import { setPreference } from "$lib/preferences";
+  import { Collapsible } from "bits-ui";
 
   interface Props {
     module: Module;
@@ -16,6 +15,9 @@
   }
 
   const { module, contentFolders, openFolderIds = [], currentActivityId }: Props = $props();
+
+  const itemClass =
+    "outline-hidden ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium flex h-8 w-full items-center justify-start gap-2 overflow-hidden rounded-md p-2 text-left text-sm focus-visible:ring-2 group/btn";
 
   let scrolled = $state(false);
   let openFolders = $derived(new Set(openFolderIds));
@@ -101,111 +103,119 @@
   {#each items as item}
     {#if item.type === "folder"}
       {#if item.contents.length === 0}
-        <Sidebar.MenuItem>
-          <Sidebar.MenuButton class="w-full justify-start text-sm group/btn">
+        <li class="relative">
+          <button class={itemClass}>
             <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
               {@render folderIcon()}
               <FadeText text={item.name} class="flex-1 min-w-0" />
             </span>
-          </Sidebar.MenuButton>
-        </Sidebar.MenuItem>
+          </button>
+        </li>
       {:else}
-        <Sidebar.MenuItem>
+        <li class="relative">
           <Collapsible.Root
             class="group/collapsible [&[data-state=open]>button>span>svg:first-child]:rotate-90"
             open={openFolders.has(item.id)}
             onOpenChange={async (open) => await toggleFolder(item.id, open)}
           >
-            <Collapsible.Trigger>
-              {#snippet child({ props })}
-                <Sidebar.MenuButton {...props} class="w-full justify-start text-sm group/btn">
-                  <span
-                    class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px"
-                  >
-                    {@render chevronIcon()}
-                    <FadeText text={item.name} class="flex-1 min-w-0" />
-                  </span>
-                </Sidebar.MenuButton>
-              {/snippet}
-            </Collapsible.Trigger>
-            <Collapsible.Content>
-              <Sidebar.MenuSub>
-                {@render tree(item.contents)}
-              </Sidebar.MenuSub>
-            </Collapsible.Content>
-          </Collapsible.Root>
-        </Sidebar.MenuItem>
-      {/if}
-    {:else}
-      <Sidebar.MenuItem>
-        <Sidebar.MenuButton isActive={item.id === currentActivityId} class="w-full justify-start text-sm group/btn">
-          {#snippet child({ props })}
-            <a
-              href="/d2l/le/enhancedSequenceViewer/{module.id}?url={encodeURIComponent(
-                `https://sequences.api.brightspace.com/${module.id}/activity/${item.id}`,
-              )}"
-              {...props}
-            >
+            <Collapsible.Trigger class={itemClass}>
               <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
-                <span class="shrink-0">{getActivityIcon(item)}</span>
+                {@render chevronIcon()}
                 <FadeText text={item.name} class="flex-1 min-w-0" />
               </span>
-            </a>
-          {/snippet}
-        </Sidebar.MenuButton>
-      </Sidebar.MenuItem>
+            </Collapsible.Trigger>
+            <Collapsible.Content>
+              <ul class="flex min-w-0 translate-x-px flex-col gap-0.5 pl-2.5 py-0.5">
+                {@render tree(item.contents)}
+              </ul>
+            </Collapsible.Content>
+          </Collapsible.Root>
+        </li>
+      {/if}
+    {:else}
+      <li class="relative">
+        <a
+          href="/d2l/le/enhancedSequenceViewer/{module.id}?url={encodeURIComponent(
+            `https://sequences.api.brightspace.com/${module.id}/activity/${item.id}`,
+          )}"
+          class={itemClass}
+          data-active={item.id === currentActivityId}
+        >
+          <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
+            <span class="shrink-0">{getActivityIcon(item)}</span>
+            <FadeText text={item.name} class="flex-1 min-w-0" />
+          </span>
+        </a>
+      </li>
     {/if}
   {/each}
 {/snippet}
 
-<Sidebar.Root>
-  <Sidebar.Header class="p-4 border-b transition-colors {scrolled ? 'border-sidebar-border' : 'border-transparent'}">
-    <a
-      href="/d2l/home"
-      class="group/header flex items-center gap-3 rounded-lg transition-transform active:translate-y-px"
-    >
-      <div class="relative w-9 h-9 rounded-md overflow-hidden shrink-0">
-        <img
-          src={module.imageIconURL}
-          alt=""
-          draggable="false"
-          class="w-full h-full object-cover transition-opacity group-hover/header:opacity-0"
-        />
-        <div
-          class="absolute inset-0 flex items-center justify-center border border-sidebar-border rounded-md opacity-0 transition-opacity group-hover/header:opacity-100"
+<div class="text-sidebar-foreground hidden md:block">
+  <!-- Reserves the sidebar's width in the flex layout -->
+  <div class="w-(--sidebar-width) relative"></div>
+  <div class="w-(--sidebar-width) fixed inset-y-0 left-0 z-10 flex h-svh border-r">
+    <div class="bg-sidebar flex h-full w-full flex-col">
+      <div
+        class="flex flex-col gap-2 p-4 border-b transition-colors {scrolled
+          ? 'border-sidebar-border'
+          : 'border-transparent'}"
+      >
+        <a
+          href="/d2l/home"
+          class="group/header flex items-center gap-3 rounded-lg transition-transform active:translate-y-px"
         >
-          {@render backIcon()}
-        </div>
+          <div class="relative w-9 h-9 rounded-md overflow-hidden shrink-0">
+            <img
+              src={module.imageIconURL}
+              alt=""
+              draggable="false"
+              class="w-full h-full object-cover transition-opacity group-hover/header:opacity-0"
+            />
+            <div
+              class="absolute inset-0 flex items-center justify-center border border-sidebar-border rounded-md opacity-0 transition-opacity group-hover/header:opacity-100"
+            >
+              {@render backIcon()}
+            </div>
+          </div>
+          <div class="relative flex-1 min-w-0 h-9 flex flex-col justify-center overflow-hidden">
+            <div class="transition-opacity group-hover/header:opacity-0">
+              <p
+                class="text-base font-bold text-stone-100 leading-none whitespace-nowrap overflow-hidden text-ellipsis"
+              >
+                {module.niceCode || module.code}
+              </p>
+              <p class="text-xs text-stone-300 leading-none mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                {module.niceName || module.name}
+              </p>
+            </div>
+            <p
+              class="absolute inset-0 flex items-center text-sm text-stone-200 opacity-0 transition-opacity group-hover/header:opacity-100 whitespace-nowrap"
+            >
+              Back to home
+            </p>
+          </div>
+        </a>
       </div>
-      <div class="relative flex-1 min-w-0 h-9 flex flex-col justify-center overflow-hidden">
-        <div class="transition-opacity group-hover/header:opacity-0">
-          <p class="text-base font-bold text-stone-100 leading-none whitespace-nowrap overflow-hidden text-ellipsis">
-            {module.niceCode || module.code}
-          </p>
-          <p class="text-xs text-stone-300 leading-none mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
-            {module.niceName || module.name}
-          </p>
-        </div>
-        <p
-          class="absolute inset-0 flex items-center text-sm text-stone-200 opacity-0 transition-opacity group-hover/header:opacity-100 whitespace-nowrap"
-        >
-          Back to home
-        </p>
-      </div>
-    </a>
-  </Sidebar.Header>
 
-  <Sidebar.Content
-    style="scrollbar-color: var(--sidebar-accent) var(--sidebar);"
-    onscroll={(e) => (scrolled = (e.target as HTMLElement).scrollTop > 0)}
-  >
-    <Sidebar.Group>
-      <Sidebar.GroupLabel>Module materials</Sidebar.GroupLabel>
-      <Sidebar.GroupContent>
-        <Sidebar.Menu class="gap-0.5">
-          {@render tree(contentFolders)}
-        </Sidebar.Menu>
-      </Sidebar.GroupContent>
-    </Sidebar.Group>
-  </Sidebar.Content>
-</Sidebar.Root>
+      <div
+        class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto"
+        style="scrollbar-color: var(--sidebar-accent) var(--sidebar);"
+        onscroll={(e) => (scrolled = (e.target as HTMLElement).scrollTop > 0)}
+      >
+        <div class="relative flex w-full min-w-0 flex-col p-2">
+          <div
+            class="text-stone-400 ring-sidebar-ring outline-hidden flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-semibold"
+          >
+            Module materials
+          </div>
+          <div class="w-full text-sm">
+            <ul class="flex w-full min-w-0 flex-col gap-0.5">
+              {@render tree(contentFolders)}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
