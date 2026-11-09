@@ -4,7 +4,6 @@
   import type { Snippet } from "svelte";
 
   import AppSidebar from "$lib/components/app-sidebar.svelte";
-  import * as Sidebar from "$lib/components/ui/sidebar";
 
   interface Props {
     module: Module;
@@ -17,7 +16,7 @@
   const { module, contentFolders, openFolderIds, currentActivityId, children }: Props = $props();
 </script>
 
-<Sidebar.Provider style="--sidebar-width: 18rem;">
+<div class="flex min-h-svh w-full" style="--sidebar-width: 18rem;">
   <AppSidebar {module} {contentFolders} {openFolderIds} {currentActivityId} />
   {@render children?.()}
-</Sidebar.Provider>
+</div>

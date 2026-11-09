@@ -1,6 +1,6 @@
 <script lang="ts">
   import { findActivityFolderPath } from "$lib/activityTree";
-  import * as Breadcrumb from "$lib/components/ui/breadcrumb";
+  import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 
   import type { PageProps } from "./$types";
 
@@ -11,32 +11,40 @@
   let folderPath = $derived(findActivityFolderPath(data.contentFolders, activity.id));
 </script>
 
+{#snippet separator()}
+  <li role="presentation" aria-hidden="true" class="[&>svg]:size-3.5">
+    <ChevronRightIcon />
+  </li>
+{/snippet}
+
 <svelte:head>
   <title>{activity.name} — POLITEShop</title>
 </svelte:head>
 
 <main class="flex h-full w-full flex-col overflow-auto">
   <header class="px-6 pt-6 pb-4">
-    <Breadcrumb.Root>
-      <Breadcrumb.List>
-        <Breadcrumb.Item>
-          <Breadcrumb.Link href="/d2l/home/{module.id}" class="flex items-center gap-2">
+    <nav aria-label="breadcrumb">
+      <ol class="text-muted-foreground gap-1.5 text-sm flex flex-wrap items-center wrap-break-word">
+        <li class="gap-1 inline-flex items-center">
+          <a href="/d2l/home/{module.id}" class="flex items-center gap-2 hover:text-foreground transition-colors">
             <img src={module.imageIconURL} alt="" class="w-5 h-5 rounded object-cover" />
             {module.niceCode || module.code}
-          </Breadcrumb.Link>
-        </Breadcrumb.Item>
+          </a>
+        </li>
         {#each folderPath as folder}
-          <Breadcrumb.Separator />
-          <Breadcrumb.Item>
+          {@render separator()}
+          <li class="gap-1 inline-flex items-center">
             <span class="text-muted-foreground text-sm">{folder.name}</span>
-          </Breadcrumb.Item>
+          </li>
         {/each}
-        <Breadcrumb.Separator />
-        <Breadcrumb.Item>
-          <Breadcrumb.Page>{activity.name}</Breadcrumb.Page>
-        </Breadcrumb.Item>
-      </Breadcrumb.List>
-    </Breadcrumb.Root>
+        {@render separator()}
+        <li class="gap-1 inline-flex items-center">
+          <span role="link" aria-disabled="true" aria-current="page" class="text-foreground font-normal">
+            {activity.name}
+          </span>
+        </li>
+      </ol>
+    </nav>
   </header>
 
   <div class="p-6">
