@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ContentFolder } from "$lib/activityTree";
   import type { Module, AnyActivityWithName } from "$lib/server/db";
+  import type { Snippet } from "svelte";
 
   import { collectFolderIds } from "$lib/activityTree";
   import FadeText from "$lib/components/fade-text.svelte";
@@ -15,9 +16,6 @@
   }
 
   const { module, contentFolders, openFolderIds = [], currentActivityId }: Props = $props();
-
-  const itemClass =
-    "outline-hidden ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium flex h-8 w-full items-center justify-start gap-2 overflow-hidden rounded-md p-2 text-left text-sm focus-visible:ring-2 group/btn";
 
   let scrolled = $state(false);
   let openFolders = $derived(new Set(openFolderIds));
@@ -99,17 +97,35 @@
   </svg>
 {/snippet}
 
+{#snippet menuItem(
+  label: Snippet,
+  { href, active, ...props }: { href?: string; active?: boolean; [key: string]: unknown } = {},
+)}
+  <svelte:element
+    this={href ? "a" : "button"}
+    {href}
+    data-active={active}
+    {...props}
+    class="outline-hidden ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium flex h-8 w-full items-center justify-start gap-2 overflow-hidden rounded-md p-2 text-left text-sm focus-visible:ring-2 group/btn"
+  >
+    <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
+      {@render label()}
+    </span>
+  </svelte:element>
+{/snippet}
+
+{#snippet folderLabel(icon: Snippet, name: string)}
+  {@render icon()}
+  <FadeText text={name} class="flex-1 min-w-0" />
+{/snippet}
+
 {#snippet tree(items: (AnyActivityWithName | ContentFolder)[])}
   {#each items as item}
     {#if item.type === "folder"}
       {#if item.contents.length === 0}
         <li class="relative">
-          <button class={itemClass}>
-            <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
-              {@render folderIcon()}
-              <FadeText text={item.name} class="flex-1 min-w-0" />
-            </span>
-          </button>
+          {#snippet label()}{@render folderLabel(folderIcon, item.name)}{/snippet}
+          {@render menuItem(label)}
         </li>
       {:else}
         <li class="relative">
@@ -118,11 +134,11 @@
             open={openFolders.has(item.id)}
             onOpenChange={async (open) => await toggleFolder(item.id, open)}
           >
-            <Collapsible.Trigger class={itemClass}>
-              <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
-                {@render chevronIcon()}
-                <FadeText text={item.name} class="flex-1 min-w-0" />
-              </span>
+            <Collapsible.Trigger>
+              {#snippet child({ props })}
+                {#snippet label()}{@render folderLabel(chevronIcon, item.name)}{/snippet}
+                {@render menuItem(label, props)}
+              {/snippet}
             </Collapsible.Trigger>
             <Collapsible.Content>
               <ul class="flex min-w-0 translate-x-px flex-col gap-0.5 pl-2.5 py-0.5">
@@ -134,18 +150,16 @@
       {/if}
     {:else}
       <li class="relative">
-        <a
-          href="/d2l/le/enhancedSequenceViewer/{module.id}?url={encodeURIComponent(
+        {#snippet label()}
+          <span class="shrink-0">{getActivityIcon(item)}</span>
+          <FadeText text={item.name} class="flex-1 min-w-0" />
+        {/snippet}
+        {@render menuItem(label, {
+          href: `/d2l/le/enhancedSequenceViewer/${module.id}?url=${encodeURIComponent(
             `https://sequences.api.brightspace.com/${module.id}/activity/${item.id}`,
-          )}"
-          class={itemClass}
-          data-active={item.id === currentActivityId}
-        >
-          <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
-            <span class="shrink-0">{getActivityIcon(item)}</span>
-            <FadeText text={item.name} class="flex-1 min-w-0" />
-          </span>
-        </a>
+          )}`,
+          active: item.id === currentActivityId,
+        })}
       </li>
     {/if}
   {/each}
