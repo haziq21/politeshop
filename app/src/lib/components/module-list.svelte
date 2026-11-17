@@ -8,33 +8,32 @@
   let { modules }: Props = $props();
 </script>
 
-<ul class="flex flex-col gap-1 w-140">
+<ul class="flex flex-col gap-1 w-128">
   {#each modules as mod}
     <li class="">
       <a
         href={`/d2l/home/${mod.id}`}
-        class="group grid grid-rows-[repeat(3,auto)] grid-cols-[auto_1fr] hover:bg-card
-          border border-transparent hover:border-border pl-3 pr-6 py-3 rounded-xl"
+        class="group flex items-center gap-3 rounded-xl border border-transparent py-3 pr-6 pl-3 hover:border-border hover:bg-card"
       >
-        <img
-          src={mod.imageIconURL}
-          alt=""
-          draggable="false"
-          class="w-15 h-15 mr-3 object-cover rounded-lg row-span-full"
-        />
-        <p
-          class="font-bold text-xs text-muted-foreground group-hover:text-muted-foreground-hover leading-none self-end"
-        >
-          {mod.niceCode || mod.code}
-        </p>
-        <p class="text-lg self-center whitespace-nowrap overflow-hidden overflow-ellipsis">
-          {mod.niceName || mod.name}
-        </p>
-        <p
-          class="font-light text-sm text-muted-foreground group-hover:text-muted-foreground-hover leading-none self-start"
-        >
-          Nothing new here
-        </p>
+        <div class="size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+          {#if mod.imageIconURL}
+            <img
+              src={mod.imageIconURL}
+              alt=""
+              draggable="false"
+              class="size-full object-cover"
+              onerror={(e) => ((e.currentTarget as HTMLImageElement).hidden = true)}
+            />
+          {/if}
+        </div>
+        <div class="min-w-0 pt-0.5">
+          <p class="text-xs leading-none font-bold text-muted-foreground group-hover:text-muted-foreground-hover">
+            {mod.niceCode || mod.code}
+          </p>
+          <p class="mt-1 truncate text-lg leading-tight">
+            {mod.niceName || mod.name}
+          </p>
+        </div>
       </a>
     </li>
   {/each}

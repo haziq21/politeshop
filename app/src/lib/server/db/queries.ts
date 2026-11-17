@@ -1,4 +1,18 @@
-import { and, count, eq, getTableColumns, gt, isNull, lt, notInArray, or, SQL, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  countDistinct,
+  eq,
+  getTableColumns,
+  gt,
+  isNotNull,
+  isNull,
+  lt,
+  notInArray,
+  or,
+  SQL,
+  sql,
+} from "drizzle-orm";
 import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
 
 import {
@@ -329,6 +343,22 @@ export async function upsertActivities(acts: AnyActivity[]) {
   );
 }
 
+/** Insert dropboxes that don't exist yet, leaving existing ones as they are. */
+export async function insertMissingSubmissionDropboxes(
+  dropboxes: Pick<SubmissionDropbox, "id" | "moduleId" | "name">[],
+) {
+  if (!dropboxes.length) return;
+
+  await db.insert(submissionDropbox).values(dropboxes).onConflictDoNothing();
+}
+
+/** Insert quizzes that don't exist yet, leaving existing ones as they are. */
+export async function insertMissingQuizzes(quizzes: Pick<Quiz, "id" | "moduleId" | "name">[]) {
+  if (!quizzes.length) return;
+
+  await db.insert(quiz).values(quizzes).onConflictDoNothing();
+}
+
 export async function upsertSubmissionDropboxes(dropboxes: SubmissionDropbox[]) {
   if (!dropboxes.length) return;
 
@@ -438,4 +468,47 @@ export async function setUserFolderAccess(userId: string, folderIds: string[]) {
   await db
     .delete(userFolderAccess)
     .where(and(eq(userFolderAccess.userId, userId), notInArray(userFolderAccess.folderId, folderIds)));
+}
+
+/** Get the submission dropboxes and quizzes with due dates across every module the user is enrolled in. */
+export async function getDueItems(userId: string) {
+  const moduleCode = sql<string>`coalesce(nullif(${module.niceCode}, ''), ${module.code})`;
+
+  const [dropboxes, quizzes] = await Promise.all([
+    db
+      .select({
+        id: submissionDropbox.id,
+        title: submissionDropbox.name,
+        dueAt: submissionDropbox.dueAt,
+        moduleCode,
+        submissionCount: countDistinct(userSubmission.id),
+      })
+      .from(submissionDropbox)
+      .innerJoin(module, eq(module.id, submissionDropbox.moduleId))
+      .innerJoin(userModule, and(eq(userModule.moduleId, module.id), eq(userModule.userId, userId)))
+      .leftJoin(
+        userSubmission,
+        and(
+          eq(userSubmission.dropboxId, submissionDropbox.id),
+          eq(userSubmission.userId, userId),
+          isNotNull(userSubmission.submittedAt),
+        ),
+      )
+      .where(isNotNull(submissionDropbox.dueAt))
+      .groupBy(submissionDropbox.id, module.id),
+    db
+      .select({
+        id: quiz.id,
+        title: quiz.name,
+        dueAt: quiz.dueAt,
+        moduleCode,
+      })
+      .from(quiz)
+      .innerJoin(module, eq(module.id, quiz.moduleId))
+      .innerJoin(userModule, and(eq(userModule.moduleId, module.id), eq(userModule.userId, userId)))
+      .where(isNotNull(quiz.dueAt))
+      .groupBy(quiz.id, module.id),
+  ]);
+
+  return { dropboxes, quizzes };
 }

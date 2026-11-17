@@ -1,4 +1,4 @@
-import type { ActivityFolder, AnyActivity, AnyActivityWithName } from "$lib/server/db";
+import type { ActivityFolder, AnyActivityWithName } from "$lib/server/db";
 import type * as politelib from "@politeshop/lib";
 
 /**
@@ -24,9 +24,9 @@ export function flattenActivityTree(
   folders: politelib.ActivityFolder[],
   moduleId: string,
   parentId: string | null = null,
-): { folders: ActivityFolder[]; activities: AnyActivity[] } {
+): { folders: ActivityFolder[]; activities: AnyActivityWithName[] } {
   const flatFolders: ActivityFolder[] = [];
-  const flatActivities: AnyActivity[] = [];
+  const flatActivities: AnyActivityWithName[] = [];
 
   for (const folder of folders) {
     flatFolders.push({

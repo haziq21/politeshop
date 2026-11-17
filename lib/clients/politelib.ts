@@ -252,16 +252,16 @@ export class POLITELib {
 
     const base = {
       id: activity.Identifier,
+      name: activity.Title,
       sortOrder: activity.SortOrder,
     };
-    const name = activity.Title;
 
     // ── HTML activity (ActivityType 1, File, *.html) ──────────────────────────
     if (activity.ActivityType === 1 && activity.TypeIdentifier === "File" && activity.Url.endsWith(".html")) {
       const content = await this.polite.getContentHTML({
         urlOrPath: activity.Url,
       });
-      return { ...base, type: "html", name, content };
+      return { ...base, type: "html", content };
     }
 
     // ── Document embed (ActivityType 1, File, non-HTML) ───────────────────────
@@ -287,7 +287,6 @@ export class POLITELib {
       return {
         ...base,
         type: "doc_embed",
-        name,
         sourceURL: defaultToBaseURL(activity.Url, this.polite.baseURL).href,
         previewURL,
         previewURLExpiry,
@@ -310,7 +309,6 @@ export class POLITELib {
       return {
         ...base,
         type: "video_embed",
-        name,
         sourceURL: source.url,
         sourceURLExpiry: source.urlExpiry,
         thumbnailURL: thumbnail.url,
@@ -320,7 +318,7 @@ export class POLITELib {
 
     // ── Web embed (ActivityType 2) ────────────────────────────────────────────
     if (activity.ActivityType === 2) {
-      return { ...base, type: "web_embed", name, url: activity.Url };
+      return { ...base, type: "web_embed", url: activity.Url };
     }
 
     // ── Submission activity (ActivityType 3) ──────────────────────────────────
