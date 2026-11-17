@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const preferencesSchema = z.object({
   semester: z.string().optional(),
+  theme: z.enum(["light", "dark"]).optional(),
   openFolders: z.record(z.string(), z.array(z.string())).optional(),
 });
 export type Preferences = z.infer<typeof preferencesSchema>;
@@ -31,10 +32,11 @@ export async function getPreferences(): Promise<Preferences> {
 }
 
 export async function setPreference(key: "semester", value: string | undefined): Promise<void>;
+export async function setPreference(key: "theme", value: Preferences["theme"]): Promise<void>;
 export async function setPreference(key: ["openFolders", string], value: string[]): Promise<void>;
 export async function setPreference(key: "openFolders", value: Record<string, string[]> | undefined): Promise<void>;
 export async function setPreference(
-  key: "semester" | "openFolders" | ["openFolders", string],
+  key: "semester" | "theme" | "openFolders" | ["openFolders", string],
   value: string | undefined | Record<string, string[]> | undefined | string[],
 ): Promise<void> {
   const prefs = await getPreferences();

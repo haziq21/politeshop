@@ -1,6 +1,7 @@
 <script lang="ts">
   import DueDateHeatmap from "$lib/components/due-date-heatmap.svelte";
   import ModuleSelector from "$lib/components/module-selector.svelte";
+  import ThemeToggle from "$lib/components/theme-toggle.svelte";
   import { getPreferences, type Preferences } from "$lib/preferences";
   import { onMount } from "svelte";
 
@@ -39,14 +40,18 @@
   <title>POLITEShop</title>
 </svelte:head>
 
-<img src={organization.bannerImageURL} alt="Banner" class="w-full h-50 mt-15 object-cover" draggable="false" />
+<header class="flex h-15 items-center justify-end px-4">
+  <ThemeToggle />
+</header>
+
+<img src={organization.bannerImageURL} alt="Banner" class="w-full h-50 object-cover" draggable="false" />
 <h1 class="text-3xl font-semibold mx-35 mt-10">{organization.name}</h1>
 
 <a
   href={organization.academicCalendarLink ?? undefined}
   target="_blank"
-  class:hover:text-stone-400={!!organization.academicCalendarLink}
-  class="mx-35 font-medium text-xs text-stone-500"
+  class:hover:text-muted-foreground-hover={!!organization.academicCalendarLink}
+  class="mx-35 font-medium text-xs text-muted-foreground"
 >
   {institutionSubText}
 </a>

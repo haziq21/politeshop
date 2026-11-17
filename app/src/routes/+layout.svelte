@@ -57,4 +57,6 @@
   }}
 />
 
-{@render children()}
+<div data-theme={data.theme ?? "system"} class="contents">
+  {@render children()}
+</div>
