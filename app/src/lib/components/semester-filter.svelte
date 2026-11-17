@@ -15,8 +15,9 @@
 <form class="flex flex-col items-end gap-2">
   {#each optionsWithAll as sem}
     <label
-      class="bg-stone-800 hover:bg-stone-700 has-checked:bg-stone-600 text-xs text-stone-400
-      has-checked:text-stone-200 focus-within:ring px-3 py-2 rounded-md cursor-pointer"
+      class="bg-card hover:bg-accent has-checked:bg-secondary text-xs text-muted-foreground
+      has-checked:text-secondary-foreground border border-input
+      has-focus-visible:ring-2 ring-ring px-3 py-2 rounded-lg cursor-pointer"
     >
       <input type="radio" name="filter" value={sem.id} class="absolute opacity-0" bind:group={value} />
       {sem.name}

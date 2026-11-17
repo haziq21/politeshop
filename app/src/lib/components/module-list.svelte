@@ -13,22 +13,26 @@
     <li class="">
       <a
         href={`/d2l/home/${mod.id}`}
-        class="group grid grid-rows-[repeat(3,auto)] grid-cols-[auto_1fr] hover:bg-stone-800
-          border border-transparent hover:border-stone-700 pl-3 pr-6 py-3 rounded-lg"
+        class="group grid grid-rows-[repeat(3,auto)] grid-cols-[auto_1fr] hover:bg-card
+          border border-transparent hover:border-border pl-3 pr-6 py-3 rounded-xl"
       >
         <img
           src={mod.imageIconURL}
           alt=""
           draggable="false"
-          class="w-15 h-15 mr-3 object-cover rounded-md row-span-full"
+          class="w-15 h-15 mr-3 object-cover rounded-lg row-span-full"
         />
-        <p class="font-bold text-xs text-stone-500 group-hover:text-stone-400 leading-none self-end">
+        <p
+          class="font-bold text-xs text-muted-foreground group-hover:text-muted-foreground-hover leading-none self-end"
+        >
           {mod.niceCode || mod.code}
         </p>
         <p class="text-lg self-center whitespace-nowrap overflow-hidden overflow-ellipsis">
           {mod.niceName || mod.name}
         </p>
-        <p class="font-light text-sm text-stone-400 group-hover:text-stone-300 leading-none self-start">
+        <p
+          class="font-light text-sm text-muted-foreground group-hover:text-muted-foreground-hover leading-none self-start"
+        >
           Nothing new here
         </p>
       </a>

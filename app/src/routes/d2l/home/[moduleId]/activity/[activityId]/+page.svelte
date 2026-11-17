@@ -49,7 +49,7 @@
 
   <div class="p-6">
     {#if activity.type === "doc_embed"}
-      <div class="aspect-video w-full rounded-lg overflow-hidden">
+      <div class="aspect-video w-full rounded-xl overflow-hidden">
         <iframe
           src="{activity.previewURL ?? activity.sourceURL}#toolbar=0&navpanes=0"
           title={activity.name}
@@ -57,7 +57,7 @@
         ></iframe>
       </div>
     {:else if activity.type === "html"}
-      <div class="aspect-video w-full rounded-lg overflow-hidden">
+      <div class="aspect-video w-full rounded-xl overflow-hidden">
         <iframe
           srcdoc={activity.content}
           title={activity.name}
@@ -66,7 +66,7 @@
         ></iframe>
       </div>
     {:else if activity.type === "web_embed"}
-      <div class="aspect-video w-full rounded-lg overflow-hidden">
+      <div class="aspect-video w-full rounded-xl overflow-hidden">
         <iframe
           src={activity.url}
           title={activity.name}
@@ -75,14 +75,14 @@
         ></iframe>
       </div>
     {:else if activity.type === "video_embed"}
-      <div class="aspect-video w-full bg-black rounded-lg overflow-hidden">
+      <div class="aspect-video w-full bg-black rounded-xl overflow-hidden">
         <!-- svelte-ignore a11y_media_has_caption -->
         <video src={activity.sourceURL} poster={activity.thumbnailURL ?? undefined} controls class="h-full w-full">
           Your browser does not support the video element.
         </video>
       </div>
     {:else}
-      <div class="flex aspect-video w-full items-center justify-center rounded-lg overflow-hidden">
+      <div class="flex aspect-video w-full items-center justify-center rounded-xl overflow-hidden">
         <p class="text-muted-foreground text-lg">Not implemented yet</p>
       </div>
     {/if}
