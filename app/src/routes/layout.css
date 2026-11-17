@@ -27,6 +27,12 @@
 @theme {
   --font-inter: "Inter", sans-serif;
 
+  --text-2xs: 0.625rem;
+
+  --container-page: 100rem;
+  /* Width of the deadlines section from which its heatmap sits beside the list */
+  --container-due-split: 40.625rem;
+
   --color-background: light-dark(var(--color-gray-50), var(--color-gray-950));
   --color-foreground: light-dark(var(--color-gray-800), var(--color-gray-100));
   --color-foreground-hover: light-dark(var(--color-gray-900), white);
@@ -36,12 +42,17 @@
   --color-card: light-dark(var(--color-gray-100), var(--color-gray-900));
   --color-muted: light-dark(var(--color-gray-200), var(--color-gray-800));
   --color-accent: light-dark(var(--color-gray-200), var(--color-gray-800));
-  --color-secondary: light-dark(var(--color-gray-300), var(--color-gray-700));
+  --color-secondary: light-dark(var(--color-gray-200), var(--color-gray-800));
   --color-secondary-foreground: light-dark(var(--color-gray-900), var(--color-gray-50));
 
   --color-border: light-dark(var(--color-gray-200), var(--color-gray-800));
   --color-input: light-dark(var(--color-gray-300), var(--color-gray-700));
   --color-ring: var(--color-indigo-500);
+
+  --color-heat-1: light-dark(var(--color-indigo-200), var(--color-indigo-900));
+  --color-heat-2: light-dark(var(--color-indigo-400), var(--color-indigo-700));
+  --color-heat-3: light-dark(var(--color-indigo-600), var(--color-indigo-500));
+  --color-heat-4: light-dark(var(--color-indigo-800), var(--color-indigo-300));
 }
 
 @keyframes nudge-left {

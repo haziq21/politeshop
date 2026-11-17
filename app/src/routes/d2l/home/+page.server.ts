@@ -6,11 +6,12 @@ export const load: PageServerLoad = async ({ locals }) => {
   const user = await queries.getUserFromSessionHash(locals.sessionHash);
   const userId = user!.id;
 
-  const [organization, semesters, modules, semesterBreak] = await Promise.all([
+  const [organization, semesters, modules, semesterBreak, dueItems] = await Promise.all([
     queries.getOrganization(userId),
     queries.getSemesters(userId),
     queries.getModules(userId),
     queries.currentOrNextSemesterBreak(userId),
+    queries.getDueItems(userId),
   ]);
 
   return {
@@ -18,5 +19,6 @@ export const load: PageServerLoad = async ({ locals }) => {
     semesters: semesters.sort((a, b) => b.name.localeCompare(a.name)),
     modules,
     semesterBreak,
+    dueItems,
   };
 };

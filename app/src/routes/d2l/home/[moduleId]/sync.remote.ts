@@ -1,8 +1,7 @@
-import type { SubmissionDropbox, UserSubmission } from "$lib/server/db";
-
 import { getRequestEvent, query } from "$app/server";
-import { flattenActivityTree, unflattenActivityTree } from "$lib/activityTree";
+import { unflattenActivityTree } from "$lib/activityTree";
 import * as queries from "$lib/server/db/queries";
+import { syncAssessments, syncModuleContent } from "$lib/server/sync";
 import { z } from "zod";
 
 export const syncModule = query(z.object({ moduleId: z.string() }), async ({ moduleId }) => {
@@ -13,41 +12,10 @@ export const syncModule = query(z.object({ moduleId: z.string() }), async ({ mod
 
   const organization = await queries.getOrganization(userId);
 
-  const [moduleContents, quizzes, [dropboxes, userSubs]] = await Promise.all([
-    pl.getModuleContent({ moduleId }),
-    pl.getQuizzes({ moduleId }),
-    pl.getSubmissionDropboxes({ moduleId }).then(async (dropboxes) => {
-      const userSubs = await Promise.all(
-        dropboxes.map((d) =>
-          pl
-            .getSubmissions({
-              moduleId,
-              dropboxId: d.id,
-              organizationId: organization.id,
-            })
-            .then((subs) => subs.map((s) => ({ ...s, userId }))),
-        ),
-      );
-      return [dropboxes, userSubs.flat()] as [SubmissionDropbox[], UserSubmission[]];
-    }),
+  await Promise.all([
+    syncAssessments(pl, { userId, organizationId: organization.id, moduleId }),
+    syncModuleContent(pl, { userId, moduleId, stubReferencedAssessments: true }),
   ]);
-
-  const { folders: allFolders, activities: allActivities } = flattenActivityTree(moduleContents, moduleId);
-
-  await queries.upsertQuizzes(quizzes);
-  await queries.upsertSubmissionDropboxes(dropboxes);
-  await queries.upsertUserSubmissions(userSubs);
-  await queries.upsertActivityFolders(allFolders);
-  await queries.upsertActivities(allActivities);
-
-  await queries.setUserActivityAccess(
-    userId,
-    allActivities.map((a) => a.id),
-  );
-  await queries.setUserFolderAccess(
-    userId,
-    allFolders.map((f) => f.id),
-  );
 
   const [activityFolders, activities] = await Promise.all([
     queries.getActivityFolders(moduleId),

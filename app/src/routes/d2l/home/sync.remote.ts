@@ -1,73 +1,45 @@
 import { getRequestEvent, query } from "$app/server";
-import { OPENROUTER_API_KEY } from "$env/static/private";
 import * as queries from "$lib/server/db/queries";
+import {
+  syncAssessments,
+  syncModuleNames,
+  syncModulesAndSemesters,
+  syncOrganization,
+  syncUser,
+} from "$lib/server/sync";
 import { logger } from "$lib/utils";
-import { OpenRouterProvider, renameModules } from "@politeshop/ai";
 
 export const sync = query(async () => {
   const { pl, sessionHash } = getRequestEvent().locals;
 
-  const user = await queries.getUserFromSessionHash(sessionHash);
-  const userId = user!.id;
+  const user = (await queries.getUserFromSessionHash(sessionHash))!;
+  const userId = user.id;
 
-  const [partialUser, institution, { modules: partialModules, semesters }] = await Promise.all([
-    pl.getUser(),
-    pl.getInstitution(),
-    pl.getModulesAndSemesters(),
+  const [, , uglyModules] = await Promise.all([
+    syncOrganization(pl),
+    syncUser(pl, { sessionHash, organizationId: user.organizationId }),
+    syncModulesAndSemesters(pl, { userId }),
   ]);
+  await syncModuleNames(uglyModules, { userId });
 
-  const modules = partialModules.map((m) => ({
-    ...m,
-    imageIconURL: pl.getInstitutionImageURL({
-      institutionId: m.id,
-      width: 60,
-      height: 60,
-    }),
-  }));
-
-  await queries.upsertOrganization({
-    id: institution.id,
-    name: institution.name,
-  });
-  await queries.upsertUser({
-    id: partialUser.id,
-    name: partialUser.name,
-    sessionHash,
-    organizationId: institution.id,
-  });
-  await queries.upsertSemesters(semesters);
-  const uglyModules = await queries.upsertAndAssociateModules(partialUser.id, modules);
-
-  if (uglyModules.length > 0) {
-    logger.info(`Renaming ${uglyModules.length} modules...`);
-    const provider = new OpenRouterProvider({
-      apiKey: OPENROUTER_API_KEY,
-      model: "openai/gpt-5.4-mini",
-      reasoning: { effort: "low" },
-    });
-    const renamedPairs = await renameModules(
-      provider,
-      uglyModules.map((m) => ({ name: m.name, code: m.code })),
-    );
-    await queries.upsertAndAssociateModules(
-      partialUser.id,
-      uglyModules.map((module, i) => ({
-        ...module,
-        niceCode: renamedPairs[i]!.niceCode,
-        niceName: renamedPairs[i]!.niceName,
-      })),
-    );
+  const modules = await queries.getModules(userId);
+  const results = await Promise.allSettled(
+    modules.map((m) => syncAssessments(pl, { userId, organizationId: user.organizationId, moduleId: m.id })),
+  );
+  for (const r of results) {
+    if (r.status === "rejected") logger.warn({ err: r.reason }, "Failed to sync a module's due dates");
   }
 
-  const [organization, freshSemesters, freshModules] = await Promise.all([
+  const [organization, semesters, dueItems] = await Promise.all([
     queries.getOrganization(userId),
     queries.getSemesters(userId),
-    queries.getModules(userId),
+    queries.getDueItems(userId),
   ]);
 
   return {
     organization,
-    semesters: freshSemesters.sort((a, b) => b.name.localeCompare(a.name)),
-    modules: freshModules,
+    semesters: semesters.sort((a, b) => b.name.localeCompare(a.name)),
+    modules,
+    dueItems,
   };
 });
