@@ -25,3 +25,6 @@ pnpm workspaces: `app`, `ext`, `lib`, `shared`. Use `pnpm --filter @politeshop/{
 ## Conventions
 
 - Comments only for non-obvious explanations, kept short. Assume a competent reader already familiar with the codebase, product, and tools.
+- Commits have a message only, with no body, unless one commit spans several changes that the message doesn't make inferrable, in which case the body is a concise bullet list.
+- Git worktrees live in `.worktrees/` (gitignored).
+- PR descriptions are short: a one-line summary, then brief headed bullet lists. Cover only significant design decisions and anything the reviewer must act on (breaking changes, migrations to run before deploying). No verification section, no minor technical detail.
