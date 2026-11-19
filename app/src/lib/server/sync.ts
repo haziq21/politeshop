@@ -109,6 +109,7 @@ export async function syncModuleActivities(
   await queries.upsertActivities(activities);
   await queries.setUserActivityAccess(
     userId,
+    moduleId,
     activities.map((a) => a.id),
   );
 }

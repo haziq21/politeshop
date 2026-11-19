@@ -17,5 +17,5 @@ export const syncModule = query(z.object({ moduleId: z.string() }), async ({ mod
     syncModuleActivities(pl, { userId, moduleId, stubReferencedAssessments: true }),
   ]);
 
-  return { activities: await queries.getBaseActivities(moduleId) };
+  return { activities: await queries.getBaseActivities(userId, moduleId) };
 });
