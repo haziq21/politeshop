@@ -17,17 +17,15 @@ const user = await ps.getUser();
 // [{ id: '803172', name: 'DATA STRUCTURES & ALGORITHMS (2_DSA_011791)', code: '25S2-2_DSA_011791' }, ...]
 const modules = await ps.getModules();
 
-const content = await ps.getModuleContent(modules[0].id);
+const activities = await ps.getModuleActivities({ moduleId: modules[0].id });
 ```
 
 ## Terminology
 
 There are some differences in terminology between Singapore's Polytechnics / ITE and the underlying APIs. This library follows Polytechnic / ITE terminology.
 
-| POLITELib                 | Underlying APIs              | Definition                                                                                                      |
-| ------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Course                    | Course                       | A course of study (e.g. Information Technology). A student can only be in one course.                           |
-| Module                    | Enrollment / Course offering | A timetabled subject studied, e.g. Data Structures & Algorithms.                                                |
-| Activity                  | Activity / Topic             | An individual POLITEMall page containing text, media embeds, submission dropboxes, interactive activities, etc. |
-| Top-level activity folder | Module                       | A "root" group of POLITEMall content. By definition, these are not nested.                                      |
-| Activity folder           | Unit                         | A group of POLITEMall content. These can be nested.                                                             |
+| POLITELib | Underlying APIs                  | Definition                                                                                                                     |
+| --------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Course    | Course                           | A course of study (e.g. Information Technology). A student can only be in one course.                                          |
+| Module    | Enrollment / Course offering     | A timetabled subject studied, e.g. Data Structures & Algorithms.                                                               |
+| Activity  | Activity / Topic / Module / Unit | An individual POLITEMall page containing text, media embeds, submission dropboxes, interactive content, other activities, etc. |

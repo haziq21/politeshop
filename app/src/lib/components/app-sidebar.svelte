@@ -3,25 +3,24 @@
 
   import { Collapsible } from "bits-ui";
 
-  import type { ContentFolder } from "#lib/activityTree.ts";
-  import type { Module, AnyActivityWithName } from "#lib/server/db/index.ts";
+  import type { BaseActivity, Module } from "#lib/server/db/index.ts";
 
-  import { collectFolderIds } from "#lib/activityTree.ts";
   import FadeText from "#lib/components/fade-text.svelte";
   import { setPreference } from "#lib/preferences.ts";
 
   interface Props {
     module: Module;
-    contentFolders: ContentFolder[];
+    activities: BaseActivity[];
     openFolderIds: string[];
     currentActivityId?: string;
   }
 
-  const { module, contentFolders, openFolderIds = [], currentActivityId }: Props = $props();
+  const { module, activities, openFolderIds = [], currentActivityId }: Props = $props();
 
   let scrolled = $state(false);
   let openFolders = $derived(new Set(openFolderIds));
-  let validFolderIds = $derived(collectFolderIds(contentFolders));
+  let activitiesByParent = $derived(Map.groupBy(activities, (a) => a.parentId));
+  let folderIds = $derived(new Set(activities.filter((a) => a.type === "folder").map((a) => a.id)));
 
   async function toggleFolder(folderId: string, open: boolean) {
     if (open) {
@@ -30,11 +29,11 @@
       openFolders.delete(folderId);
     }
 
-    const ids = [...openFolders].filter((id) => validFolderIds.has(id));
+    const ids = [...openFolders].filter((id) => folderIds.has(id));
     await setPreference(["openFolders", module.id], ids);
   }
 
-  function getActivityIcon(activity: AnyActivityWithName): string {
+  function getActivityIcon(type: BaseActivity["type"]): string {
     return (
       (
         {
@@ -46,7 +45,7 @@
           quiz: "📝",
           unknown: "❓️",
         } as Record<string, string>
-      )[activity.type] ?? "❓️"
+      )[type] ?? "❓️"
     );
   }
 </script>
@@ -121,10 +120,10 @@
   <FadeText text={name} class="flex-1 min-w-0" />
 {/snippet}
 
-{#snippet tree(items: (AnyActivityWithName | ContentFolder)[])}
-  {#each items as item}
+{#snippet tree(parentId: string | null)}
+  {#each activitiesByParent.get(parentId) ?? [] as item (item.id)}
     {#if item.type === "folder"}
-      {#if item.contents.length === 0}
+      {#if !activitiesByParent.has(item.id)}
         <li class="relative">
           {#snippet label()}{@render folderLabel(folderIcon, item.name)}{/snippet}
           {@render menuItem(label)}
@@ -144,7 +143,7 @@
             </Collapsible.Trigger>
             <Collapsible.Content>
               <ul class="flex min-w-0 translate-x-px flex-col gap-0.5 pl-2.5 py-0.5">
-                {@render tree(item.contents)}
+                {@render tree(item.id)}
               </ul>
             </Collapsible.Content>
           </Collapsible.Root>
@@ -153,7 +152,7 @@
     {:else}
       <li class="relative">
         {#snippet label()}
-          <span class="shrink-0">{getActivityIcon(item)}</span>
+          <span class="shrink-0">{getActivityIcon(item.type)}</span>
           <FadeText text={item.name} class="flex-1 min-w-0" />
         {/snippet}
         {@render menuItem(label, {
@@ -225,7 +224,7 @@
           </div>
           <div class="w-full text-sm">
             <ul class="flex w-full min-w-0 flex-col gap-0.5">
-              {@render tree(contentFolders)}
+              {@render tree(null)}
             </ul>
           </div>
         </div>

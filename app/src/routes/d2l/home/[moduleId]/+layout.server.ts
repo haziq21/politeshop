@@ -1,18 +1,10 @@
-import { unflattenActivityTree } from "#lib/activityTree.ts";
 import * as queries from "#lib/server/db/queries.ts";
 
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ params }) => {
   const { moduleId } = params;
-  const [module, activityFolders, activities] = await Promise.all([
-    queries.getModule(moduleId),
-    queries.getActivityFolders(moduleId),
-    queries.getActivities(moduleId),
-  ]);
+  const [module, activities] = await Promise.all([queries.getModule(moduleId), queries.getBaseActivities(moduleId)]);
 
-  return {
-    module,
-    contentFolders: unflattenActivityTree(activityFolders, activities),
-  };
+  return { module, activities };
 };

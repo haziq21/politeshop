@@ -13,7 +13,7 @@ import {
   SQL,
   sql,
 } from "drizzle-orm";
-import { PgColumn, PgTable, type PgUpdateSetSource } from "drizzle-orm/pg-core";
+import { PgColumn } from "drizzle-orm/pg-core";
 
 import {
   db,
@@ -22,9 +22,11 @@ import {
   semester,
   module,
   userModule,
-  activityFolder,
-  activity,
+  folderActivity,
+  baseActivity,
+  type FolderActivity,
   type AnyActivity,
+  type BaseActivity,
   htmlActivity,
   webEmbedActivity,
   docEmbedActivity,
@@ -33,7 +35,6 @@ import {
   quizActivity,
   type Semester,
   type Module,
-  type ActivityFolder,
   type Organization,
   type User,
   type SemesterBreak,
@@ -44,9 +45,7 @@ import {
   submissionDropbox,
   type Quiz,
   quiz,
-  type AnyActivityWithName,
   userActivityAccess,
-  userFolderAccess,
 } from ".";
 
 const excluded = (col: PgColumn) => sql.raw(`excluded.${col.name}`);
@@ -204,143 +203,126 @@ export async function upsertAndAssociateModules(userId: string, mods: Module[]):
   return uglyModules;
 }
 
-/** Get the folders from the specified module. */
-export async function getActivityFolders(moduleId: string): Promise<ActivityFolder[]> {
-  return db
-    .select()
-    .from(activityFolder)
-    .where(eq(activityFolder.moduleId, moduleId))
-    .orderBy(activityFolder.sortOrder);
+/** Get every activity in the module, folders included, without their type-specific details. */
+export async function getBaseActivities(moduleId: string): Promise<BaseActivity[]> {
+  return db.select().from(baseActivity).where(eq(baseActivity.moduleId, moduleId)).orderBy(baseActivity.sortOrder);
 }
 
-/** Upsert the given activity folders. */
-export async function upsertActivityFolders(folders: ActivityFolder[]) {
-  if (!folders.length) return;
-
-  await db
-    .insert(activityFolder)
-    .values(folders)
-    .onConflictDoUpdate({
-      target: activityFolder.id,
-      set: {
-        name: excluded(activityFolder.name),
-        description: excluded(activityFolder.description),
-        parentId: excluded(activityFolder.parentId),
-        moduleId: excluded(activityFolder.moduleId),
-        sortOrder: excluded(activityFolder.sortOrder),
-      },
-    });
-}
-
-/** Get the activities with the specified `moduleId`. */
-export async function getActivities(moduleId: string): Promise<AnyActivityWithName[]> {
-  return (
+/** Get a single activity by ID, with its type-specific details. */
+export async function getActivity(activityId: string): Promise<AnyActivity | null> {
+  const row = (
     await db
       .select()
-      .from(activity)
-      .innerJoin(activityFolder, eq(activityFolder.id, activity.folderId))
-      .leftJoin(htmlActivity, eq(htmlActivity.id, activity.id))
-      .leftJoin(webEmbedActivity, eq(webEmbedActivity.id, activity.id))
-      .leftJoin(docEmbedActivity, eq(docEmbedActivity.id, activity.id))
-      .leftJoin(videoEmbedActivity, eq(videoEmbedActivity.id, activity.id))
-      .leftJoin(submissionActivity, eq(submissionActivity.id, activity.id))
-      .leftJoin(submissionDropbox, eq(submissionDropbox.id, submissionActivity.dropboxId))
-      .leftJoin(quizActivity, eq(quizActivity.id, activity.id))
-      .leftJoin(quiz, eq(quiz.id, quizActivity.quizId))
-      .where(eq(activityFolder.moduleId, moduleId))
-      .orderBy(activity.sortOrder)
-  ).map((a) => {
-    if (a.activity.type === "html") return { ...a.activity, ...a.html_activity };
-    if (a.activity.type === "web_embed") return { ...a.activity, ...a.web_embed_activity };
-    if (a.activity.type === "doc_embed") return { ...a.activity, ...a.doc_embed_activity };
-    if (a.activity.type === "video_embed") return { ...a.activity, ...a.video_embed_activity };
-    if (a.activity.type === "submission")
-      return {
-        ...a.activity,
-        ...a.submission_activity,
-        name: a.submission_dropbox!.name,
-      };
-    if (a.activity.type === "quiz") return { ...a.activity, ...a.quiz_activity, name: a.quiz!.name };
-    return a.activity;
-  }) as AnyActivityWithName[];
+      .from(baseActivity)
+      .leftJoin(folderActivity, eq(folderActivity.id, baseActivity.id))
+      .leftJoin(htmlActivity, eq(htmlActivity.id, baseActivity.id))
+      .leftJoin(webEmbedActivity, eq(webEmbedActivity.id, baseActivity.id))
+      .leftJoin(docEmbedActivity, eq(docEmbedActivity.id, baseActivity.id))
+      .leftJoin(videoEmbedActivity, eq(videoEmbedActivity.id, baseActivity.id))
+      .leftJoin(submissionActivity, eq(submissionActivity.id, baseActivity.id))
+      .leftJoin(quizActivity, eq(quizActivity.id, baseActivity.id))
+      .where(eq(baseActivity.id, activityId))
+  ).at(0);
+  if (!row) return null;
+
+  // The joins that don't match the activity's type are null, and spreading null adds nothing
+  return {
+    ...row.base_activity,
+    ...row.folder_activity,
+    ...row.html_activity,
+    ...row.web_embed_activity,
+    ...row.doc_embed_activity,
+    ...row.video_embed_activity,
+    ...row.submission_activity,
+    ...row.quiz_activity,
+  } as AnyActivity;
 }
 
-/** Get a single activity by ID, with its type-specific details and name. */
-export async function getActivity(activityId: string): Promise<AnyActivityWithName | null> {
-  const rows = await db
-    .select()
-    .from(activity)
-    .innerJoin(activityFolder, eq(activityFolder.id, activity.folderId))
-    .leftJoin(htmlActivity, eq(htmlActivity.id, activity.id))
-    .leftJoin(webEmbedActivity, eq(webEmbedActivity.id, activity.id))
-    .leftJoin(docEmbedActivity, eq(docEmbedActivity.id, activity.id))
-    .leftJoin(videoEmbedActivity, eq(videoEmbedActivity.id, activity.id))
-    .leftJoin(submissionActivity, eq(submissionActivity.id, activity.id))
-    .leftJoin(submissionDropbox, eq(submissionDropbox.id, submissionActivity.dropboxId))
-    .leftJoin(quizActivity, eq(quizActivity.id, activity.id))
-    .leftJoin(quiz, eq(quiz.id, quizActivity.quizId))
-    .where(eq(activity.id, activityId));
-
-  const a = rows[0];
-  if (!a) return null;
-
-  if (a.activity.type === "html") return { ...a.activity, ...a.html_activity } as AnyActivityWithName;
-  if (a.activity.type === "web_embed") return { ...a.activity, ...a.web_embed_activity } as AnyActivityWithName;
-  if (a.activity.type === "doc_embed") return { ...a.activity, ...a.doc_embed_activity } as AnyActivityWithName;
-  if (a.activity.type === "video_embed") return { ...a.activity, ...a.video_embed_activity } as AnyActivityWithName;
-  if (a.activity.type === "submission")
-    return {
-      ...a.activity,
-      ...a.submission_activity,
-      name: a.submission_dropbox!.name,
-    } as AnyActivityWithName;
-  if (a.activity.type === "quiz")
-    return {
-      ...a.activity,
-      ...a.quiz_activity,
-      name: a.quiz!.name,
-    } as AnyActivityWithName;
-  return a.activity as AnyActivityWithName;
-}
-
-/** Upsert the given activities. */
+/** Upsert the given activities, in one statement per table however many there are. */
 export async function upsertActivities(acts: AnyActivity[]) {
   if (!acts.length) return;
 
+  // parent_id references activity itself, so a folder and its children can go in one statement
   await db
-    .insert(activity)
+    .insert(baseActivity)
     .values(acts)
     .onConflictDoUpdate({
-      target: activity.id,
+      target: baseActivity.id,
       set: {
-        type: excluded(activity.type),
-        folderId: excluded(activity.folderId),
-        sortOrder: excluded(activity.sortOrder),
+        type: excluded(baseActivity.type),
+        name: excluded(baseActivity.name),
+        moduleId: excluded(baseActivity.moduleId),
+        parentId: excluded(baseActivity.parentId),
+        sortOrder: excluded(baseActivity.sortOrder),
       },
     });
 
-  // Helper function for the tedious inserts below
-  const upsertActivityDetails = <T extends PgTable>(
-    table: T,
-    target: PgColumn,
-    value: T["$inferInsert"],
-    set?: PgUpdateSetSource<T>,
-  ) =>
-    db
-      .insert(table)
-      .values(value)
-      .onConflictDoUpdate({ target, set: set || value });
+  const folders = acts.filter((a) => a.type === "folder");
+  const htmls = acts.filter((a) => a.type === "html");
+  const webEmbeds = acts.filter((a) => a.type === "web_embed");
+  const docEmbeds = acts.filter((a) => a.type === "doc_embed");
+  const videoEmbeds = acts.filter((a) => a.type === "video_embed");
+  const submissions = acts.filter((a) => a.type === "submission");
+  const quizzes = acts.filter((a) => a.type === "quiz");
 
-  await Promise.all(
-    acts.map((a) => {
-      if (a.type === "html") return upsertActivityDetails(htmlActivity, htmlActivity.id, a);
-      if (a.type === "web_embed") return upsertActivityDetails(webEmbedActivity, webEmbedActivity.id, a);
-      if (a.type === "doc_embed") return upsertActivityDetails(docEmbedActivity, docEmbedActivity.id, a);
-      if (a.type === "video_embed") return upsertActivityDetails(videoEmbedActivity, videoEmbedActivity.id, a);
-      if (a.type === "submission") return upsertActivityDetails(submissionActivity, submissionActivity.id, a);
-      if (a.type === "quiz") return upsertActivityDetails(quizActivity, quizActivity.id, a);
-    }),
-  );
+  await Promise.all([
+    folders.length &&
+      db
+        .insert(folderActivity)
+        .values(folders)
+        .onConflictDoUpdate({
+          target: folderActivity.id,
+          set: { description: excluded(folderActivity.description) },
+        }),
+    htmls.length &&
+      db
+        .insert(htmlActivity)
+        .values(htmls)
+        .onConflictDoUpdate({ target: htmlActivity.id, set: { content: excluded(htmlActivity.content) } }),
+    webEmbeds.length &&
+      db
+        .insert(webEmbedActivity)
+        .values(webEmbeds)
+        .onConflictDoUpdate({ target: webEmbedActivity.id, set: { url: excluded(webEmbedActivity.url) } }),
+    docEmbeds.length &&
+      db
+        .insert(docEmbedActivity)
+        .values(docEmbeds)
+        .onConflictDoUpdate({
+          target: docEmbedActivity.id,
+          set: {
+            sourceURL: excluded(docEmbedActivity.sourceURL),
+            previewURL: excluded(docEmbedActivity.previewURL),
+            previewURLExpiry: excluded(docEmbedActivity.previewURLExpiry),
+          },
+        }),
+    videoEmbeds.length &&
+      db
+        .insert(videoEmbedActivity)
+        .values(videoEmbeds)
+        .onConflictDoUpdate({
+          target: videoEmbedActivity.id,
+          set: {
+            sourceURL: excluded(videoEmbedActivity.sourceURL),
+            sourceURLExpiry: excluded(videoEmbedActivity.sourceURLExpiry),
+            thumbnailURL: excluded(videoEmbedActivity.thumbnailURL),
+            thumbnailURLExpiry: excluded(videoEmbedActivity.thumbnailURLExpiry),
+          },
+        }),
+    submissions.length &&
+      db
+        .insert(submissionActivity)
+        .values(submissions)
+        .onConflictDoUpdate({
+          target: submissionActivity.id,
+          set: { dropboxId: excluded(submissionActivity.dropboxId) },
+        }),
+    quizzes.length &&
+      db
+        .insert(quizActivity)
+        .values(quizzes)
+        .onConflictDoUpdate({ target: quizActivity.id, set: { quizId: excluded(quizActivity.quizId) } }),
+  ]);
 }
 
 /** Insert dropboxes that don't exist yet, leaving existing ones as they are. */
@@ -457,17 +439,6 @@ export async function setUserActivityAccess(userId: string, activityIds: string[
   await db
     .delete(userActivityAccess)
     .where(and(eq(userActivityAccess.userId, userId), notInArray(userActivityAccess.activityId, activityIds)));
-}
-
-export async function setUserFolderAccess(userId: string, folderIds: string[]) {
-  await db
-    .insert(userFolderAccess)
-    .values(folderIds.map((folderId) => ({ userId, folderId })))
-    .onConflictDoNothing();
-
-  await db
-    .delete(userFolderAccess)
-    .where(and(eq(userFolderAccess.userId, userId), notInArray(userFolderAccess.folderId, folderIds)));
 }
 
 /** Get the submission dropboxes and quizzes with due dates across every module the user is enrolled in. */

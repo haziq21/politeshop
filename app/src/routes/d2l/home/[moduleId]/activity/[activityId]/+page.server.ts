@@ -7,7 +7,7 @@ import type { PageServerLoad } from "./$types";
 export const load: PageServerLoad = async ({ params }) => {
   const activity = await queries.getActivity(params.activityId);
 
-  if (!activity) {
+  if (!activity || activity.type === "folder") {
     throw error(404, `Activity ${params.activityId} not found`);
   }
 

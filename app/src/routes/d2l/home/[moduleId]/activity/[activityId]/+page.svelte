@@ -1,15 +1,20 @@
 <script lang="ts">
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 
-  import { findActivityFolderPath } from "#lib/activityTree.ts";
-
   import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();
 
   let activity = $derived(data.activity);
   let module = $derived(data.module);
-  let folderPath = $derived(findActivityFolderPath(data.contentFolders, activity.id));
+  let folderPath = $derived.by(() => {
+    const byId = new Map(data.activities.map((a) => [a.id, a]));
+    const path = [];
+    for (let folder = byId.get(activity.parentId ?? ""); folder; folder = byId.get(folder.parentId ?? "")) {
+      path.unshift(folder);
+    }
+    return path;
+  });
 </script>
 
 {#snippet separator()}

@@ -69,21 +69,8 @@ export const userModule = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.moduleId] })],
 );
 
-export const activityFolder = pgTable("activity_folder", {
-  id: text().primaryKey(),
-  name: text().notNull(),
-  description: text(),
-  parentId: text("parent_id").references((): AnyPgColumn => activityFolder.id, {
-    onDelete: "cascade",
-    onUpdate: "cascade",
-  }),
-  moduleId: text("module_id")
-    .notNull()
-    .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  sortOrder: integer("sort_order").notNull(),
-});
-
 export const activityTypeEnum = pgEnum("activity_type", [
+  "folder",
   "html",
   "web_embed",
   "doc_embed",
@@ -93,36 +80,45 @@ export const activityTypeEnum = pgEnum("activity_type", [
   "unknown",
 ]);
 
-export const activity = pgTable("activity", {
+export const baseActivity = pgTable("base_activity", {
   id: text().primaryKey(),
   type: activityTypeEnum().notNull(),
-  folderId: text("folder_id")
+  name: text().notNull(),
+  moduleId: text("module_id")
     .notNull()
-    .references(() => activityFolder.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  parentId: text("parent_id").references((): AnyPgColumn => baseActivity.id, {
+    onDelete: "cascade",
+    onUpdate: "cascade",
+  }),
   sortOrder: integer("sort_order").notNull(),
+});
+
+export const folderActivity = pgTable("folder_activity", {
+  id: text()
+    .primaryKey()
+    .references(() => baseActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+  description: text().notNull(),
 });
 
 export const htmlActivity = pgTable("html_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  name: text().notNull(),
+    .references(() => baseActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   content: text().notNull(),
 });
 
 export const webEmbedActivity = pgTable("web_embed_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  name: text().notNull(),
+    .references(() => baseActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   url: text("url").notNull(),
 });
 
 export const docEmbedActivity = pgTable("doc_embed_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  name: text().notNull(),
+    .references(() => baseActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   sourceURL: text("source_url").notNull(),
   previewURL: text("preview_url"),
   previewURLExpiry: timestamptz("preview_url_expiry"),
@@ -131,8 +127,7 @@ export const docEmbedActivity = pgTable("doc_embed_activity", {
 export const videoEmbedActivity = pgTable("video_embed_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  name: text().notNull(),
+    .references(() => baseActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   sourceURL: text("source_url").notNull(),
   sourceURLExpiry: timestamptz("source_url_expiry"),
   thumbnailURL: text("thumbnail_url"),
@@ -142,7 +137,7 @@ export const videoEmbedActivity = pgTable("video_embed_activity", {
 export const submissionActivity = pgTable("submission_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    .references(() => baseActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   dropboxId: text("dropbox_id")
     .notNull()
     .references(() => submissionDropbox.id, { onDelete: "cascade", onUpdate: "cascade" }),
@@ -151,7 +146,7 @@ export const submissionActivity = pgTable("submission_activity", {
 export const quizActivity = pgTable("quiz_activity", {
   id: text()
     .primaryKey()
-    .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    .references(() => baseActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   quizId: text("quiz_id")
     .notNull()
     .references(() => quiz.id, { onDelete: "cascade", onUpdate: "cascade" }),
@@ -218,20 +213,7 @@ export const userActivityAccess = pgTable(
       .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
     activityId: text("activity_id")
       .notNull()
-      .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
+      .references(() => baseActivity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.userId, table.activityId] })],
-);
-
-export const userFolderAccess = pgTable(
-  "user_folder_access",
-  {
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
-    folderId: text("folder_id")
-      .notNull()
-      .references(() => activityFolder.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  },
-  (table) => [primaryKey({ columns: [table.userId, table.folderId] })],
 );
