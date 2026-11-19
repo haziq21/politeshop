@@ -8,7 +8,7 @@
   let { modules }: Props = $props();
 </script>
 
-<ul class="flex flex-col gap-1 w-128">
+<ul class="flex w-lg flex-col gap-1">
   {#each modules as mod}
     <li class="">
       <a
@@ -30,7 +30,7 @@
           <p class="text-xs leading-none font-bold text-muted-foreground group-hover:text-muted-foreground-hover">
             {mod.niceCode || mod.code}
           </p>
-          <p class="mt-1 truncate text-lg leading-tight">
+          <p class="mt-1 truncate text-lg/tight">
             {mod.niceName || mod.name}
           </p>
         </div>

@@ -98,20 +98,20 @@
   <ThemeToggle />
 </header>
 
-<img src={organization.bannerImageURL} alt="Banner" class="w-full h-50 object-cover" draggable="false" />
+<img src={organization.bannerImageURL} alt="Banner" class="h-50 w-full object-cover" draggable="false" />
 <div class="mx-auto w-full max-w-page">
-  <h1 class="text-3xl font-semibold mx-35 mt-10">{organization.name}</h1>
+  <h1 class="mx-35 mt-10 text-3xl font-semibold">{organization.name}</h1>
 
   <a
     href={organization.academicCalendarLink ?? undefined}
     target="_blank"
     class:hover:text-muted-foreground-hover={!!organization.academicCalendarLink}
-    class="mx-35 font-medium text-xs text-muted-foreground"
+    class="mx-35 text-xs font-medium text-muted-foreground"
   >
     {institutionSubText}
   </a>
 
-  <div class="grid grid-cols-[auto_minmax(0,1fr)] justify-items-center mt-10 ml-5 pb-60">
+  <div class="mt-10 ml-5 grid grid-cols-[auto_minmax(0,1fr)] justify-items-center pb-60">
     <ModuleSelector filteredSemesterId={prefs?.semester ?? "all"} {semesters} {modules} />
     <div class="h-fit w-full pr-27 pl-11">
       <div class="@container w-full">
@@ -138,7 +138,7 @@
                       {@const ItemIcon = item.kind === "quiz" ? QuizIcon : UploadFileIcon}
                       <li
                         title={item.title}
-                        class="-mx-1 flex items-start gap-2.5 rounded-xl border border-transparent px-3 py-3"
+                        class="-mx-1 flex items-start gap-2.5 rounded-xl border border-transparent p-3"
                       >
                         <ItemIcon class="mt-px size-4 shrink-0 text-muted-foreground" />
                         <div class="flex min-w-0 flex-col gap-1">
@@ -156,7 +156,7 @@
                             {#if item.submissionCount > 0}
                               <span
                                 aria-hidden="true"
-                                class="size-0.75 -translate-y-[0.5px] rounded-full bg-muted-foreground/40"
+                                class="size-0.75 translate-y-[-0.5px] rounded-full bg-muted-foreground/40"
                               ></span>
                               <span
                                 class="inline-flex items-center gap-1"
@@ -175,7 +175,7 @@
                 {:else}
                   <ul class="flex flex-col gap-0.5">
                     {#each [listedDate ? "Nothing due" : "Nothing due soon", "", ""] as text}
-                      <li class="relative -mx-1 rounded-xl border border-transparent px-3 py-3" aria-hidden={!text}>
+                      <li class="relative -mx-1 rounded-xl border border-transparent p-3" aria-hidden={!text}>
                         <div class="invisible flex flex-col gap-1" aria-hidden="true">
                           <span class="text-sm leading-[1.2]">&nbsp;</span>
                           <span class="text-xs">&nbsp;</span>

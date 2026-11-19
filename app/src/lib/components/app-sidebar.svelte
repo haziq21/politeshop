@@ -55,7 +55,7 @@
     viewBox="0 0 15 15"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    class="w-6 h-6 shrink-0 group-hover/header:animate-[nudge-left_0.2s_ease-out_forwards]"
+    class="size-6 shrink-0 group-hover/header:animate-[nudge-left_0.2s_ease-out_forwards]"
   >
     <path
       d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z"
@@ -70,7 +70,7 @@
     viewBox="0 0 15 15"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    class="w-4 h-4 shrink-0 text-muted-foreground/60 group-hover/btn:text-muted-foreground"
+    class="size-4 shrink-0 text-muted-foreground/60 group-hover/btn:text-muted-foreground"
   >
     <path
       d="M1.40625 7.96875V7.5C1.40625 7.12704 1.55441 6.76935 1.81813 6.50563C2.08185 6.24191 2.43954 6.09375 2.8125 6.09375H12.1875C12.5605 6.09375 12.9181 6.24191 13.1819 6.50563C13.4456 6.76935 13.5938 7.12704 13.5938 7.5V7.96875M8.1625 3.94375L6.8375 2.61875C6.75045 2.5316 6.64709 2.46245 6.5333 2.41526C6.41952 2.36808 6.29755 2.34378 6.17437 2.34375H2.8125C2.43954 2.34375 2.08185 2.49191 1.81813 2.75563C1.55441 3.01935 1.40625 3.37704 1.40625 3.75V11.25C1.40625 11.623 1.55441 11.9806 1.81813 12.2444C2.08185 12.5081 2.43954 12.6562 2.8125 12.6562H12.1875C12.5605 12.6562 12.9181 12.5081 13.1819 12.2444C13.4456 11.9806 13.5938 11.623 13.5938 11.25V5.625C13.5938 5.25204 13.4456 4.89435 13.1819 4.63063C12.9181 4.36691 12.5605 4.21875 12.1875 4.21875H8.82563C8.57707 4.21853 8.33815 4.11962 8.1625 3.94375Z"
@@ -87,7 +87,7 @@
     viewBox="0 0 15 15"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    class="w-4 h-4 shrink-0 text-muted-foreground/60 group-hover/btn:text-muted-foreground transition-transform duration-200"
+    class="size-4 shrink-0 text-muted-foreground/60 transition-transform duration-200 group-hover/btn:text-muted-foreground"
   >
     <path
       d="M6.1584 3.13508C6.35985 2.94621 6.67627 2.95642 6.86514 3.15788L10.6151 7.15788C10.7954 7.3502 10.7954 7.64949 10.6151 7.84182L6.86514 11.8418C6.67627 12.0433 6.35985 12.0535 6.1584 11.8646C5.95694 11.6757 5.94673 11.3593 6.1356 11.1579L9.565 7.49985L6.1356 3.84182C5.94673 3.64036 5.95694 3.32394 6.1584 3.13508Z"
@@ -107,9 +107,9 @@
     {href}
     data-active={active}
     {...props}
-    class="outline-hidden ring-ring hover:bg-accent hover:text-foreground active:bg-accent active:text-foreground data-[active=true]:bg-accent data-[active=true]:text-foreground data-[active=true]:font-medium flex h-8 w-full items-center justify-start gap-2 overflow-hidden rounded-lg p-2 text-left text-sm focus-visible:ring-2 group/btn"
+    class="group/btn flex h-8 w-full items-center justify-start gap-2 overflow-hidden rounded-lg p-2 text-left text-sm ring-ring outline-hidden hover:bg-accent hover:text-foreground focus-visible:ring-2 active:bg-accent active:text-foreground data-[active=true]:bg-accent data-[active=true]:font-medium data-[active=true]:text-foreground"
   >
-    <span class="flex items-center gap-2 flex-1 min-w-0 transition-transform group-active/btn:translate-y-px">
+    <span class="flex min-w-0 flex-1 items-center gap-2 transition-transform group-active/btn:translate-y-px">
       {@render label()}
     </span>
   </svelte:element>
@@ -117,7 +117,7 @@
 
 {#snippet folderLabel(icon: Snippet, name: string)}
   {@render icon()}
-  <FadeText text={name} class="flex-1 min-w-0" />
+  <FadeText text={name} class="min-w-0 flex-1" />
 {/snippet}
 
 {#snippet tree(parentId: string | null)}
@@ -142,7 +142,7 @@
               {/snippet}
             </Collapsible.Trigger>
             <Collapsible.Content>
-              <ul class="flex min-w-0 translate-x-px flex-col gap-0.5 pl-2.5 py-0.5">
+              <ul class="flex min-w-0 translate-x-px flex-col gap-0.5 py-0.5 pl-2.5">
                 {@render tree(item.id)}
               </ul>
             </Collapsible.Content>
@@ -153,7 +153,7 @@
       <li class="relative">
         {#snippet label()}
           <span class="shrink-0">{getActivityIcon(item.type)}</span>
-          <FadeText text={item.name} class="flex-1 min-w-0" />
+          <FadeText text={item.name} class="min-w-0 flex-1" />
         {/snippet}
         {@render menuItem(label, {
           href: `/d2l/le/enhancedSequenceViewer/${module.id}?url=${encodeURIComponent(
@@ -168,42 +168,40 @@
 
 <div class="hidden md:block">
   <!-- Reserves the sidebar's width in the flex layout -->
-  <div class="w-(--sidebar-width) relative"></div>
-  <div class="w-(--sidebar-width) fixed inset-y-0 left-0 z-10 flex h-svh border-r">
-    <div class="bg-card flex h-full w-full flex-col">
+  <div class="relative w-(--sidebar-width)"></div>
+  <div class="fixed inset-y-0 left-0 z-10 flex h-svh w-(--sidebar-width) border-r">
+    <div class="flex size-full flex-col bg-card">
       <div
-        class="flex flex-col gap-2 p-4 border-b transition-colors {scrolled ? 'border-border' : 'border-transparent'}"
+        class="flex flex-col gap-2 border-b p-4 transition-colors {scrolled ? 'border-border' : 'border-transparent'}"
       >
         <a
           href="/d2l/home"
           class="group/header flex items-center gap-3 rounded-xl transition-transform active:translate-y-px"
         >
-          <div class="relative w-9 h-9 rounded-lg overflow-hidden shrink-0">
+          <div class="relative size-9 shrink-0 overflow-hidden rounded-lg">
             <img
               src={module.imageIconURL}
               alt=""
               draggable="false"
-              class="w-full h-full object-cover transition-opacity group-hover/header:opacity-0"
+              class="size-full object-cover transition-opacity group-hover/header:opacity-0"
             />
             <div
-              class="absolute inset-0 flex items-center justify-center border border-border rounded-lg opacity-0 transition-opacity group-hover/header:opacity-100"
+              class="absolute inset-0 flex items-center justify-center rounded-lg border border-border opacity-0 transition-opacity group-hover/header:opacity-100"
             >
               {@render backIcon()}
             </div>
           </div>
-          <div class="relative flex-1 min-w-0 h-9 flex flex-col justify-center overflow-hidden">
+          <div class="relative flex h-9 min-w-0 flex-1 flex-col justify-center overflow-hidden">
             <div class="transition-opacity group-hover/header:opacity-0">
-              <p class="text-base font-bold leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+              <p class="truncate text-base leading-none font-bold">
                 {module.niceCode || module.code}
               </p>
-              <p
-                class="text-xs text-muted-foreground leading-none mt-1 whitespace-nowrap overflow-hidden text-ellipsis"
-              >
+              <p class="mt-1 truncate text-xs leading-none text-muted-foreground">
                 {module.niceName || module.name}
               </p>
             </div>
             <p
-              class="absolute inset-0 flex items-center text-sm opacity-0 transition-opacity group-hover/header:opacity-100 whitespace-nowrap"
+              class="absolute inset-0 flex items-center text-sm whitespace-nowrap opacity-0 transition-opacity group-hover/header:opacity-100"
             >
               Back to home
             </p>
@@ -218,7 +216,7 @@
       >
         <div class="relative flex w-full min-w-0 flex-col p-2">
           <div
-            class="text-muted-foreground ring-ring outline-hidden flex h-8 shrink-0 items-center rounded-lg px-2 text-xs font-semibold"
+            class="flex h-8 shrink-0 items-center rounded-lg px-2 text-xs font-semibold text-muted-foreground ring-ring outline-hidden"
           >
             Module materials
           </div>

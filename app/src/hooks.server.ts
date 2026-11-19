@@ -43,7 +43,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     // If this fails, the session is probably expired
     partialUser = await event.locals.pl.getUser();
   } catch (error) {
-    console.log(`failed to fetch partial user: ${error}`);
+    console.log("failed to fetch partial user:", error);
     const { pathname, search, hash } = event.url;
     const loginURL = `/d2l/login?sessionExpired=1&target=${encodeURIComponent(pathname + search + hash)}`;
     redirect(302, loginURL);

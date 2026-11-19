@@ -20,7 +20,7 @@
 </script>
 
 <div class="flex gap-4">
-  <div class="mt-3 min-w-23 sticky top-20 h-fit">
+  <div class="sticky top-20 mt-3 h-fit min-w-23">
     <SemesterFilter options={semesters} bind:value={filteredSemesterId} />
   </div>
 

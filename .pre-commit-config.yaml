@@ -1,23 +1,32 @@
 repos:
   - repo: local
     hooks:
-      - id: oxfmt
-        name: oxfmt
-        entry: pnpm fmt
+      - id: vp-check
+        name: vp check (format + lint)
+        entry: pnpm exec vp check --fix --no-error-on-unmatched-pattern
         language: system
+        types_or: [ts, tsx, javascript, jsx, svelte, css, html, json, yaml, markdown]
+      - id: tailwind
+        name: tailwind canonical classes
+        entry: pnpm exec eslint --fix
+        language: system
+        files: ^app/.*\.(ts|svelte)$
+      - id: typecheck
+        name: svelte-check
+        entry: pnpm --filter @politeshop/app typecheck
+        language: system
+        files: ^app/.*\.(ts|svelte|json)$
         pass_filenames: false
       - id: ruff
         name: ruff
-        entry: uv run --directory ai/infra ruff check --fix
+        entry: uv run --project ai/infra ruff check --fix
         language: system
         files: ^ai/infra/.*\.py$
-        pass_filenames: false
       - id: ruff-format
         name: ruff-format
-        entry: uv run --directory ai/infra ruff format
+        entry: uv run --project ai/infra ruff format
         language: system
         files: ^ai/infra/.*\.py$
-        pass_filenames: false
       - id: ty
         name: ty
         entry: uv run --directory ai/infra ty check

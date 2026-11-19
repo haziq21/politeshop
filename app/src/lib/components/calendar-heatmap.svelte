@@ -105,7 +105,7 @@
     type="button"
     aria-label={label}
     onclick={() => slideTo(start + direction * navSteps)}
-    class="flex h-(--week-length) w-8 cursor-pointer items-center justify-center rounded-lg border border-border text-muted-foreground opacity-0 transition-opacity duration-150 outline-none group-has-focus-visible:opacity-100 group-hover:opacity-100 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring @min-due-split:h-8 @min-due-split:w-full"
+    class="flex h-(--week-length) w-8 cursor-pointer items-center justify-center rounded-lg border border-border text-muted-foreground opacity-0 transition-opacity duration-150 outline-none group-hover:opacity-100 group-has-focus-visible:opacity-100 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring @min-due-split:h-8 @min-due-split:w-full"
   >
     <ChevronRightIcon
       class={["size-4", direction < 0 ? "rotate-180 @min-due-split:-rotate-90" : "@min-due-split:rotate-90"]}
@@ -128,9 +128,9 @@
     onclick={() => (selectedDate = key === selectedKey ? null : date)}
     onpointerenter={(e) => e.pointerType === "mouse" && (hoveredDate = date)}
     class={[
-      "size-4 shrink-0 cursor-pointer rounded-xs outline-none aria-[current=date]:rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
-      "aria-pressed:inset-ring-2 aria-pressed:inset-ring-background aria-pressed:ring-2 aria-pressed:ring-foreground",
-      "not-aria-pressed:hover:inset-ring-2 not-aria-pressed:hover:inset-ring-background not-aria-pressed:hover:ring-2 not-aria-pressed:hover:ring-muted-foreground",
+      "size-4 shrink-0 cursor-pointer rounded-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background aria-[current=date]:rounded-full",
+      "aria-pressed:ring-2 aria-pressed:inset-ring-2 aria-pressed:ring-foreground aria-pressed:inset-ring-background",
+      "not-aria-pressed:hover:ring-2 not-aria-pressed:hover:inset-ring-2 not-aria-pressed:hover:ring-muted-foreground not-aria-pressed:hover:inset-ring-background",
       count === 0
         ? "bg-muted"
         : count < 2
@@ -173,7 +173,7 @@
             <span
               data-month
               style:--week-index={week}
-              class="slot absolute bottom-0 left-3 origin-bottom-left translate-x-(--distance-from-start) -rotate-30 text-2xs leading-4 whitespace-nowrap text-muted-foreground @min-due-split:top-2 @min-due-split:bottom-auto @min-due-split:left-0 @min-due-split:origin-left @min-due-split:translate-x-0 @min-due-split:translate-y-[calc(var(--distance-from-start)-50%)] @min-due-split:rotate-30"
+              class="slot absolute bottom-0 left-3 origin-bottom-left translate-x-(--distance-from-start) -rotate-30 text-2xs/4 whitespace-nowrap text-muted-foreground @min-due-split:top-2 @min-due-split:bottom-auto @min-due-split:left-0 @min-due-split:origin-left @min-due-split:translate-x-0 @min-due-split:translate-y-[calc(var(--distance-from-start)-50%)] @min-due-split:rotate-30"
               >{label}</span
             >
           {/if}
@@ -184,7 +184,7 @@
       <div
         role="group"
         aria-label="Days"
-        class="relative -mt-1 -mb-1 -ml-1 w-[calc(var(--window-length)+--spacing(1))] overflow-x-clip p-1 @min-due-split:-mb-6 @min-due-split:ml-0 @min-due-split:h-[calc(var(--window-length)+--spacing(6))] @min-due-split:w-auto @min-due-split:overflow-x-visible @min-due-split:overflow-y-clip @min-due-split:px-0 @min-due-split:pt-1 @min-due-split:pb-6"
+        class="relative -my-1 -ml-1 w-[calc(var(--window-length)+(--spacing(1)))] overflow-x-clip p-1 @min-due-split:-mb-6 @min-due-split:ml-0 @min-due-split:h-[calc(var(--window-length)+(--spacing(6)))] @min-due-split:w-auto @min-due-split:overflow-x-visible @min-due-split:overflow-y-clip @min-due-split:px-0 @min-due-split:pt-1 @min-due-split:pb-6"
         {onkeydown}
         onpointerleave={() => (hoveredDate = null)}
       >

@@ -254,9 +254,7 @@ Each internal node has this shape:
     "canDownload": true,
     "canPrint": true
   },
-  "entities": [
-    /* children */
-  ]
+  "entities": [/* children */]
 }
 ```
 

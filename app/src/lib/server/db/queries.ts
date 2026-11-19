@@ -24,7 +24,6 @@ import {
   userModule,
   folderActivity,
   baseActivity,
-  type FolderActivity,
   type AnyActivity,
   type BaseActivity,
   htmlActivity,

@@ -1,22 +1,11 @@
-import { defineConfig } from "vite";
-import dts from "vite-plugin-dts";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  build: {
-    lib: {
-      entry: "./index.ts",
-      formats: ["es"],
-      fileName: "index",
-    },
-    rollupOptions: {
-      external: ["jose", "zod"],
-    },
+  pack: {
+    entry: "./index.ts",
+    format: "esm",
+    fixedExtension: false,
+    dts: true,
+    deps: { neverBundle: ["jose", "zod"] },
   },
-  plugins: [
-    dts({
-      tsconfigPath: "./tsconfig.build.json",
-      include: ["./**/*.ts"],
-      exclude: ["dist", "node_modules", "scripts", "vite.config.ts"],
-    }),
-  ],
 });

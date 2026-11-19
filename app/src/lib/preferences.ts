@@ -37,7 +37,7 @@ export async function setPreference(key: ["openFolders", string], value: string[
 export async function setPreference(key: "openFolders", value: Record<string, string[]> | undefined): Promise<void>;
 export async function setPreference(
   key: "semester" | "theme" | "openFolders" | ["openFolders", string],
-  value: string | undefined | Record<string, string[]> | undefined | string[],
+  value: string | undefined | Record<string, string[]> | string[],
 ): Promise<void> {
   const prefs = await getPreferences();
 
