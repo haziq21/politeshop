@@ -4,7 +4,12 @@ import { eq } from "drizzle-orm";
 
 import * as schema from "../src/lib/server/db/schema";
 import { db } from "./db";
-import { expect, test } from "./fixtures";
+import { expect, test as base } from "./fixtures";
+
+// Every test here needs the seeded rows, though most never read the returned data
+const test = base.extend<{ _seed: void }>({
+  _seed: [async ({ seededUser: _seededUser }, use) => use(), { auto: true }],
+});
 
 const openHome = async (page: Page) => {
   await page.goto("/d2l/home");
@@ -18,7 +23,7 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
 });
 
-test("lists what's due in the next 14 days, soonest first, with submission counts", async ({ page, seededUser }) => {
+test("lists what's due in the next 14 days, soonest first, with submission counts", async ({ page }) => {
   const app = await openHome(page);
 
   await expect(app.getByRole("heading", { name: "Next 14 days" })).toBeVisible();
@@ -31,7 +36,7 @@ test("lists what's due in the next 14 days, soonest first, with submission count
   await expect(items.nth(1).getByLabel(/submission/)).toHaveCount(0);
 });
 
-test("hovering a day previews its items, and leaving restores the list", async ({ page, seededUser }) => {
+test("hovering a day previews its items, and leaving restores the list", async ({ page }) => {
   const app = await openHome(page);
 
   await day(app, "2026-03-21").hover();
@@ -44,7 +49,7 @@ test("hovering a day previews its items, and leaving restores the list", async (
   await expect(listed(app)).toHaveCount(3);
 });
 
-test("clicking a day pins it, and clicking it again clears it", async ({ page, seededUser }) => {
+test("clicking a day pins it, and clicking it again clears it", async ({ page }) => {
   const app = await openHome(page);
 
   await day(app, "2026-03-21").click();
@@ -58,7 +63,7 @@ test("clicking a day pins it, and clicking it again clears it", async ({ page, s
   await expect(app.getByRole("heading", { name: "Next 14 days" })).toBeVisible();
 });
 
-test("arrow keys move the selection between days", async ({ page, seededUser }) => {
+test("arrow keys move the selection between days", async ({ page }) => {
   const app = await openHome(page);
 
   await day(app, "2026-03-18").focus();
@@ -72,10 +77,7 @@ test("arrow keys move the selection between days", async ({ page, seededUser }) 
   await expect(app.getByText("Nothing due", { exact: true })).toBeVisible();
 });
 
-test("nav buttons page the heatmap by half its window, even when pressed before the slide lands", async ({
-  page,
-  seededUser,
-}) => {
+test("nav buttons page the heatmap by half its window, even when pressed before the slide lands", async ({ page }) => {
   const app = await openHome(page);
   const days = app.getByRole("group", { name: "Days" }).locator("[data-date]");
 
@@ -93,7 +95,7 @@ test("nav buttons page the heatmap by half its window, even when pressed before 
   await expect(day(app, "2026-03-18")).toBeVisible();
 });
 
-test("keyboard navigation past the edge of the view pages like the nav buttons", async ({ page, seededUser }) => {
+test("keyboard navigation past the edge of the view pages like the nav buttons", async ({ page }) => {
   const app = await openHome(page);
 
   // 2026-06-24 is on the last week in view
@@ -107,7 +109,7 @@ test("keyboard navigation past the edge of the view pages like the nav buttons",
   );
 });
 
-test("keeps a day tabbable when the selected day has scrolled out of view", async ({ page, seededUser }) => {
+test("keeps a day tabbable when the selected day has scrolled out of view", async ({ page }) => {
   const app = await openHome(page);
 
   await day(app, "2026-03-19").click();
@@ -120,7 +122,7 @@ test("keeps a day tabbable when the selected day has scrolled out of view", asyn
   await expect(app.getByRole("group", { name: "Days" }).locator('[data-date][tabindex="0"]')).toHaveCount(1);
 });
 
-test("says nothing is due soon when every deadline has passed", async ({ page, seededUser }) => {
+test("says nothing is due soon when every deadline has passed", async ({ page }) => {
   await page.clock.setFixedTime("2026-05-01T10:00:00Z");
   const app = await openHome(page);
 

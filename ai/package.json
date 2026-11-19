@@ -10,6 +10,9 @@
       "types": "./index.ts"
     }
   },
+  "scripts": {
+    "eval": "tsx scripts/eval.ts"
+  },
   "dependencies": {
     "@openrouter/sdk": "^0.8.0",
     "@stricli/core": "^1.2.7",

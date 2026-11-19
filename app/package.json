@@ -11,8 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "typecheck:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "e2e": "playwright test"
@@ -42,7 +42,7 @@
     "pino-pretty": "^13.0.0",
     "svelte": "^5.58.0",
     "svelte-check": "^4.3.6",
-    "tailwindcss": "^4.1.18",
+    "tailwindcss": "^4.3.5",
     "typescript": "^6.0.3",
     "vite": "^8.3.8"
   },

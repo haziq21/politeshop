@@ -20,8 +20,8 @@
 
 <span
   bind:this={el}
-  class="whitespace-nowrap block overflow-hidden max-w-full {className}"
-  class:[mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)]={overflows}
+  class="block max-w-full overflow-hidden whitespace-nowrap {className}"
+  class:mask-[linear-gradient(to_right,black_calc(100%-1rem),transparent)]={overflows}
 >
   {text}
 </span>

@@ -131,7 +131,7 @@ function App() {
 
   useEffect(() => {
     async function run() {
-      pl.getUser().then(setUser);
+      void pl.getUser().then(setUser);
       const fetchedInstitution = pl.getInstitution().then((inst) => {
         setInstitution(inst);
         return inst;
@@ -167,7 +167,7 @@ function App() {
       await Promise.all(submissionFetches);
     }
 
-    run();
+    void run();
   }, []);
 
   const totalActivities = byType && Array.from(byType.values()).reduce((a, b) => a + b, 0);

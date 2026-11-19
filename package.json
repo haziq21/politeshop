@@ -1,19 +1,20 @@
 {
   "name": "politeshop",
   "private": true,
+  "type": "module",
   "scripts": {
-    "ai:eval": "tsx ai/scripts/eval.ts --",
-    "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check",
-    "app:db:generate": "pnpm --filter @politeshop/app db:generate",
-    "app:db:migrate": "pnpm --filter @politeshop/app db:migrate"
+    "lint:tailwind": "eslint app"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
-    "oxfmt": "^0.52.0",
+    "@typescript-eslint/parser": "^8.73.0",
+    "eslint": "^10.15.0",
+    "eslint-plugin-better-tailwindcss": "^4.11.0",
     "svelte": "^5.58.0",
+    "svelte-eslint-parser": "^1.10.1",
     "tsx": "^4.23.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vite-plus": "^1.7.0"
   },
   "engines": {
     "node": "26.x"

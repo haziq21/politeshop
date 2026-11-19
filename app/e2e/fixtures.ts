@@ -1,3 +1,4 @@
+/* oxlint-disable no-empty-pattern -- Playwright needs a destructured first argument, even for fixtures with no dependencies */
 import type { Mw } from "mockwright";
 
 import { test as base, chromium, type BrowserContext } from "@playwright/test";
