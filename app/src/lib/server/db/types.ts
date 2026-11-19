@@ -1,5 +1,5 @@
 import type {
-  activity,
+  baseActivity,
   docEmbedActivity,
   htmlActivity,
   quizActivity,
@@ -8,7 +8,7 @@ import type {
   videoEmbedActivity,
   module,
   semester,
-  activityFolder,
+  folderActivity,
   organization,
   user,
   semesterBreak,
@@ -22,25 +22,25 @@ export type Organization = typeof organization.$inferInsert;
 export type User = typeof user.$inferInsert;
 export type Semester = typeof semester.$inferInsert;
 export type Module = typeof module.$inferInsert;
-export type ActivityFolder = typeof activityFolder.$inferInsert;
 export type SubmissionDropbox = typeof submissionDropbox.$inferInsert;
 export type UserSubmission = typeof userSubmission.$inferInsert;
 export type SubmissionFile = typeof submissionFile.$inferInsert;
 export type Quiz = typeof quiz.$inferInsert;
 export type SemesterBreak = typeof semesterBreak.$inferInsert;
 
-export type PartialActivity = typeof activity.$inferInsert;
+export type BaseActivity = typeof baseActivity.$inferInsert;
 
-type FullActivity<T extends PartialActivity["type"], TData> = PartialActivity & { type: T } & TData;
-export type HTMLActivity = FullActivity<"html", typeof htmlActivity.$inferInsert>;
-export type WebEmbedActivity = FullActivity<"web_embed", typeof webEmbedActivity.$inferInsert>;
-export type DocEmbedActivity = FullActivity<"doc_embed", typeof docEmbedActivity.$inferInsert>;
-export type VideoEmbedActivity = FullActivity<"video_embed", typeof videoEmbedActivity.$inferInsert>;
-export type SubmissionActivity = FullActivity<"submission", typeof submissionActivity.$inferInsert>;
-export type QuizActivity = FullActivity<"quiz", typeof quizActivity.$inferInsert>;
-export type UnknownActivity = FullActivity<"unknown", {}>;
+export type FolderActivity = BaseActivity & { type: "folder" } & typeof folderActivity.$inferInsert;
+export type HTMLActivity = BaseActivity & { type: "html" } & typeof htmlActivity.$inferInsert;
+export type WebEmbedActivity = BaseActivity & { type: "web_embed" } & typeof webEmbedActivity.$inferInsert;
+export type DocEmbedActivity = BaseActivity & { type: "doc_embed" } & typeof docEmbedActivity.$inferInsert;
+export type VideoEmbedActivity = BaseActivity & { type: "video_embed" } & typeof videoEmbedActivity.$inferInsert;
+export type SubmissionActivity = BaseActivity & { type: "submission" } & typeof submissionActivity.$inferInsert;
+export type QuizActivity = BaseActivity & { type: "quiz" } & typeof quizActivity.$inferInsert;
+export type UnknownActivity = BaseActivity & { type: "unknown" };
 
 export type AnyActivity =
+  | FolderActivity
   | HTMLActivity
   | WebEmbedActivity
   | DocEmbedActivity
@@ -48,5 +48,3 @@ export type AnyActivity =
   | SubmissionActivity
   | QuizActivity
   | UnknownActivity;
-
-export type AnyActivityWithName = AnyActivity & { name: string };

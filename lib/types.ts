@@ -28,23 +28,18 @@ export interface Module {
   code: string;
 }
 
-// ── Content ───────────────────────────────────────────────────────────────────
-
-export interface ActivityFolder {
-  type: "folder";
-  id: string;
-  name: string;
-  description: string;
-  sortOrder: number;
-  contents: (AnyActivity | ActivityFolder)[];
-}
-
 // ── Activities ────────────────────────────────────────────────────────────────
 
 interface BaseActivity {
   id: string;
   name: string;
   sortOrder: number;
+  parentId: string | null;
+}
+
+export interface FolderActivity extends BaseActivity {
+  type: "folder";
+  description: string;
 }
 
 export interface HTMLActivity extends BaseActivity {
@@ -98,6 +93,7 @@ export interface UnknownActivity extends BaseActivity {
 }
 
 export type AnyActivity =
+  | FolderActivity
   | HTMLActivity
   | WebEmbedActivity
   | DocEmbedActivity

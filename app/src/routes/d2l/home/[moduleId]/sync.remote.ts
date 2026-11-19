@@ -1,9 +1,8 @@
 import { getRequestEvent, query } from "$app/server";
 import { z } from "zod";
 
-import { unflattenActivityTree } from "#lib/activityTree.ts";
 import * as queries from "#lib/server/db/queries.ts";
-import { syncAssessments, syncModuleContent } from "#lib/server/sync.ts";
+import { syncAssessments, syncModuleActivities } from "#lib/server/sync.ts";
 
 export const syncModule = query(z.object({ moduleId: z.string() }), async ({ moduleId }) => {
   const { pl, sessionHash } = getRequestEvent().locals;
@@ -15,13 +14,8 @@ export const syncModule = query(z.object({ moduleId: z.string() }), async ({ mod
 
   await Promise.all([
     syncAssessments(pl, { userId, organizationId: organization.id, moduleId }),
-    syncModuleContent(pl, { userId, moduleId, stubReferencedAssessments: true }),
+    syncModuleActivities(pl, { userId, moduleId, stubReferencedAssessments: true }),
   ]);
 
-  const [activityFolders, activities] = await Promise.all([
-    queries.getActivityFolders(moduleId),
-    queries.getActivities(moduleId),
-  ]);
-
-  return { contentFolders: unflattenActivityTree(activityFolders, activities) };
+  return { activities: await queries.getBaseActivities(moduleId) };
 });

@@ -5,7 +5,6 @@ import { OpenRouterProvider, renameModules } from "@politeshop/ai";
 
 import type { Module } from "#lib/server/db/index.ts";
 
-import { flattenActivityTree } from "#lib/activityTree.ts";
 import * as queries from "#lib/server/db/queries.ts";
 import { logger } from "#lib/utils.ts";
 
@@ -87,7 +86,7 @@ export async function syncUserSubmissions(
  * already be stored; if it is, any that aren't are stored with just their name, to be filled in by
  * `syncAssessments`.
  */
-export async function syncModuleContent(
+export async function syncModuleActivities(
   pl: POLITELib,
   {
     userId,
@@ -95,11 +94,9 @@ export async function syncModuleContent(
     stubReferencedAssessments = false,
   }: { userId: string; moduleId: string; stubReferencedAssessments?: boolean },
 ) {
-  const content = await pl.getModuleContent({ moduleId });
-  const { folders, activities } = flattenActivityTree(content, moduleId);
+  const activities = (await pl.getModuleActivities({ moduleId })).map((a) => ({ ...a, moduleId }));
 
   await Promise.all([
-    queries.upsertActivityFolders(folders),
     stubReferencedAssessments &&
       queries.insertMissingSubmissionDropboxes(
         activities.flatMap((a) => (a.type === "submission" ? [{ id: a.dropboxId, moduleId, name: a.name }] : [])),
@@ -110,16 +107,10 @@ export async function syncModuleContent(
       ),
   ]);
   await queries.upsertActivities(activities);
-  await Promise.all([
-    queries.setUserActivityAccess(
-      userId,
-      activities.map((a) => a.id),
-    ),
-    queries.setUserFolderAccess(
-      userId,
-      folders.map((f) => f.id),
-    ),
-  ]);
+  await queries.setUserActivityAccess(
+    userId,
+    activities.map((a) => a.id),
+  );
 }
 
 /** A module's quizzes, submission dropboxes and the user's submissions. */

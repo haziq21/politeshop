@@ -2,26 +2,12 @@ import { render, Box, Text } from "ink";
 import pLimit from "p-limit";
 import { useState, useEffect } from "react";
 
-import type {
-  AnyActivity,
-  ActivityFolder,
-  User,
-  Institution,
-  Module,
-  Semester,
-  SubmissionDropbox,
-  Submission,
-} from "../types";
+import type { AnyActivity, User, Institution, Module, Semester, SubmissionDropbox, Submission } from "../types";
 
 import { POLITELib } from "../clients/politelib";
 import "dotenv/config";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Recursively collect all activities from a list of content tree nodes. */
-function collectActivities(items: ActivityFolder["contents"]): AnyActivity[] {
-  return items.flatMap((item) => (item.type === "folder" ? collectActivities(item.contents) : [item]));
-}
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -52,7 +38,7 @@ const limit = pLimit(8);
 // ── Counting helpers ──────────────────────────────────────────────────────────
 
 /**
- * Fetches content for each module ID in parallel.
+ * Fetches activities for each module ID in parallel.
  * Calls onUpdate with each module's activities as they resolve, enabling live updates.
  */
 async function getAllActivitiesBatched({
@@ -65,10 +51,8 @@ async function getAllActivitiesBatched({
   await Promise.all(
     moduleIds.map((moduleId) =>
       limit(async () => {
-        const content = await pl.getModuleContent({ moduleId });
-        onUpdate({
-          activities: content.flatMap((folder) => collectActivities(folder.contents)),
-        });
+        const activities = await pl.getModuleActivities({ moduleId });
+        onUpdate({ activities: activities.filter((a) => a.type !== "folder") });
       }),
     ),
   );

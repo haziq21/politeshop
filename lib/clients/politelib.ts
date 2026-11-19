@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { TOCModule, TOCTopic } from "../schema/polite";
 import type {
   AnyActivity,
-  ActivityFolder,
+  FolderActivity,
   Module,
   Institution,
   Quiz,
@@ -200,47 +200,62 @@ export class POLITELib {
     );
   }
 
-  // ── Module Content ────────────────────────────────────────────────────────────
+  // ── Module Activities ────────────────────────────────────────────────────────────
 
   /**
-   * Fetch all activity folders and activities for a module.
+   * Fetch a module's activities, folders included, as a flat list. Each activity names its folder
+   * in `parentId` (`null` for top-level folders), and a folder always comes before its children.
    *
    * Retrieves the table of contents then recursively parses every folder and
    * topic, making additional requests as needed to resolve activity details.
    */
-  async getModuleContent({ moduleId }: { moduleId: string }): Promise<ActivityFolder[]> {
+  async getModuleActivities({ moduleId }: { moduleId: string }): Promise<AnyActivity[]> {
     const toc = await this.polite.getModuleTOC({ moduleId });
 
-    return Promise.all(toc.Modules.map((m: TOCModule) => this.#parseActivityFolder({ folder: m, moduleId })));
+    const parsed = await Promise.all(
+      toc.Modules.map((m: TOCModule) => this.#parseFolderActivity({ folder: m, moduleId, parentId: null })),
+    );
+    return parsed.flat();
   }
 
   /**
-   * Parse a Brightspace "Module" (what POLITELib calls an activity folder)
-   * and all of its children recursively.
+   * Parse a Brightspace "Module" (what POLITELib calls a folder activity)
+   * and all of its descendants recursively, folder first.
    *
    * This may issue additional network requests for nested folders and topics.
    */
-  async #parseActivityFolder({ folder, moduleId }: { folder: TOCModule; moduleId: string }): Promise<ActivityFolder> {
+  async #parseFolderActivity({
+    folder,
+    moduleId,
+    parentId,
+  }: {
+    folder: TOCModule;
+    moduleId: string;
+    parentId: string | null;
+  }): Promise<AnyActivity[]> {
     const folderId = folder.ModuleId.toString();
 
     // Parse activities and sub-folders in parallel.
-    const [activities, activityFolders] = await Promise.all([
+    const [activities, folders] = await Promise.all([
       Promise.all(
         folder.Topics.filter((t: TOCTopic) => !t.IsBroken).map((t: TOCTopic) =>
-          this.#parseActivity({ activity: t, moduleId }),
+          this.#parseActivity({ activity: t, moduleId, parentId: folderId }),
         ),
       ),
-      Promise.all(folder.Modules.map((m: TOCModule) => this.#parseActivityFolder({ folder: m, moduleId }))),
+      Promise.all(
+        folder.Modules.map((m: TOCModule) => this.#parseFolderActivity({ folder: m, moduleId, parentId: folderId })),
+      ),
     ]);
 
-    return {
+    const self: FolderActivity = {
       type: "folder",
       id: folderId,
       name: folder.Title,
       description: folder.Description.Html,
       sortOrder: folder.SortOrder,
-      contents: [...activities, ...activityFolders].sort((a, b) => a.sortOrder - b.sortOrder),
+      parentId,
     };
+    return [self, ...activities, ...folders.flat()];
   }
 
   /**
@@ -251,13 +266,22 @@ export class POLITELib {
    *
    * @throws if `activity.IsBroken` is `true`.
    */
-  async #parseActivity({ activity, moduleId }: { activity: TOCTopic; moduleId: string }): Promise<AnyActivity> {
+  async #parseActivity({
+    activity,
+    moduleId,
+    parentId,
+  }: {
+    activity: TOCTopic;
+    moduleId: string;
+    parentId: string;
+  }): Promise<AnyActivity> {
     if (activity.IsBroken) throw new Error("parseActivity() cannot handle broken activities");
 
     const base = {
       id: activity.Identifier,
       name: activity.Title,
       sortOrder: activity.SortOrder,
+      parentId,
     };
 
     // ── HTML activity (ActivityType 1, File, *.html) ──────────────────────────

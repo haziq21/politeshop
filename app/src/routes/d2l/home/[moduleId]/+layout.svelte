@@ -13,7 +13,7 @@
   let synced = $state<SyncedData | null>(null);
   let prefs = $state<Preferences | null>(null);
 
-  let contentFolders = $derived(synced?.contentFolders ?? data.contentFolders);
+  let activities = $derived(synced?.activities ?? data.activities);
   let openFolderIds = $derived(prefs?.openFolders?.[data.module.id] ?? []);
 
   onMount(async () => {
@@ -22,6 +22,6 @@
   });
 </script>
 
-<WithSidebar module={data.module} {contentFolders} {openFolderIds} currentActivityId={page.params.activityId}>
+<WithSidebar module={data.module} {activities} {openFolderIds} currentActivityId={page.params.activityId}>
   {@render children()}
 </WithSidebar>

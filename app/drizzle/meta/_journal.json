@@ -8,6 +8,13 @@
       "when": 1783789267625,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795074437604,
+      "tag": "0001_fold_folders_into_activities",
+      "breakpoints": true
     }
   ]
 }
