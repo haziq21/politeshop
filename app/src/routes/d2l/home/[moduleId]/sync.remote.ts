@@ -1,8 +1,9 @@
 import { getRequestEvent, query } from "$app/server";
-import { unflattenActivityTree } from "$lib/activityTree";
-import * as queries from "$lib/server/db/queries";
-import { syncAssessments, syncModuleContent } from "$lib/server/sync";
 import { z } from "zod";
+
+import { unflattenActivityTree } from "#lib/activityTree.ts";
+import * as queries from "#lib/server/db/queries.ts";
+import { syncAssessments, syncModuleContent } from "#lib/server/sync.ts";
 
 export const syncModule = query(z.object({ moduleId: z.string() }), async ({ moduleId }) => {
   const { pl, sessionHash } = getRequestEvent().locals;

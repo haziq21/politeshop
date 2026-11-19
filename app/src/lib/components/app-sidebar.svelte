@@ -1,12 +1,14 @@
 <script lang="ts">
-  import type { ContentFolder } from "$lib/activityTree";
-  import type { Module, AnyActivityWithName } from "$lib/server/db";
   import type { Snippet } from "svelte";
 
-  import { collectFolderIds } from "$lib/activityTree";
-  import FadeText from "$lib/components/fade-text.svelte";
-  import { setPreference } from "$lib/preferences";
   import { Collapsible } from "bits-ui";
+
+  import type { ContentFolder } from "#lib/activityTree.ts";
+  import type { Module, AnyActivityWithName } from "#lib/server/db/index.ts";
+
+  import { collectFolderIds } from "#lib/activityTree.ts";
+  import FadeText from "#lib/components/fade-text.svelte";
+  import { setPreference } from "#lib/preferences.ts";
 
   interface Props {
     module: Module;

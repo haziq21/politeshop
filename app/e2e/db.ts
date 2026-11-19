@@ -9,7 +9,7 @@ import { getSessionHash } from "../src/lib/server/session-hash";
 export const db = drizzle(process.env.DATABASE_URL!, { schema });
 
 export async function seedData(
-  { user, institution, semester, module }: ReturnType<typeof createMockData>,
+  { user, institution, semester, module, dropboxes, quizzes, submissions }: ReturnType<typeof createMockData>,
   credentials: { d2lSessionVal: string; d2lSecureSessionVal: string },
 ) {
   await db.insert(schema.organization).values(institution);
@@ -19,6 +19,9 @@ export async function seedData(
     .insert(schema.user)
     .values({ ...user, organizationId: institution.id, sessionHash: await getSessionHash(credentials) });
   await db.insert(schema.userModule).values({ userId: user.id, moduleId: module.id });
+  await db.insert(schema.submissionDropbox).values(dropboxes);
+  await db.insert(schema.quiz).values(quizzes);
+  await db.insert(schema.userSubmission).values(submissions);
 }
 
 export async function resetData({ user, institution, semester, module }: ReturnType<typeof createMockData>) {
@@ -26,24 +29,4 @@ export async function resetData({ user, institution, semester, module }: ReturnT
   await db.delete(schema.module).where(eq(schema.module.id, module.id));
   await db.delete(schema.semester).where(eq(schema.semester.id, semester.id));
   await db.delete(schema.organization).where(eq(schema.organization.id, institution.id));
-}
-
-type DueItemSeed = { kind: "submission" | "quiz"; name: string; dueAt: Date; submissions?: number };
-
-export async function seedDueItems({ user, module }: ReturnType<typeof createMockData>, items: DueItemSeed[]) {
-  for (const item of items) {
-    const id = crypto.randomUUID();
-
-    if (item.kind === "quiz") {
-      await db.insert(schema.quiz).values({ id, moduleId: module.id, name: item.name, dueAt: item.dueAt });
-      continue;
-    }
-
-    await db.insert(schema.submissionDropbox).values({ id, moduleId: module.id, name: item.name, dueAt: item.dueAt });
-    for (let i = 0; i < (item.submissions ?? 0); i++) {
-      await db
-        .insert(schema.userSubmission)
-        .values({ id: crypto.randomUUID(), userId: user.id, dropboxId: id, submittedAt: new Date() });
-    }
-  }
 }

@@ -1,4 +1,4 @@
-import { COOKIE_NAME, parsePrefsCookie } from "$lib/preferences";
+import { COOKIE_NAME, parsePrefsCookie } from "#lib/preferences.ts";
 
 import type { LayoutServerLoad } from "./$types";
 

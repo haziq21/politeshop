@@ -1,5 +1,5 @@
-import { unflattenActivityTree } from "$lib/activityTree";
-import * as queries from "$lib/server/db/queries";
+import { unflattenActivityTree } from "#lib/activityTree.ts";
+import * as queries from "#lib/server/db/queries.ts";
 
 import type { LayoutServerLoad } from "./$types";
 

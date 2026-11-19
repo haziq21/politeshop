@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Semester } from "$lib/server/db";
+  import type { Semester } from "#lib/server/db/index.ts";
 
   interface Props {
     options: Semester[];

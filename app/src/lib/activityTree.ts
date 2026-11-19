@@ -1,5 +1,6 @@
-import type { ActivityFolder, AnyActivityWithName } from "$lib/server/db";
 import type * as politelib from "@politeshop/lib";
+
+import type { ActivityFolder, AnyActivityWithName } from "#lib/server/db/index.ts";
 
 /**
  * Recursive content tree node that mirrors the library's {@link ActivityFolder}

@@ -1,12 +1,15 @@
-import type { User } from "$lib/server/db";
+import type { Handle } from "@sveltejs/kit/hooks";
 
-import { initUser } from "$lib/initUser.remote";
-import * as queries from "$lib/server/db/queries";
-import { mockwright } from "$lib/server/mockwright";
-import { getSessionHash } from "$lib/server/session-hash";
 import { POLITELib } from "@politeshop/lib";
 import { AUTH_HEADER_NAMES } from "@politeshop/shared";
-import { redirect, type Handle } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
+
+import type { User } from "#lib/server/db/index.ts";
+
+import { initUser } from "#lib/initUser.remote.ts";
+import * as queries from "#lib/server/db/queries.ts";
+import { mockwright } from "#lib/server/mockwright.ts";
+import { getSessionHash } from "#lib/server/session-hash.ts";
 
 export const handle: Handle = async ({ event, resolve }) => {
   if (event.url.pathname === "/d2l/login" || event.url.pathname === "/_mockwright") return await resolve(event);

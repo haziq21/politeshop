@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { ContentFolder } from "$lib/activityTree";
-  import type { Module } from "$lib/server/db";
   import type { Snippet } from "svelte";
 
-  import AppSidebar from "$lib/components/app-sidebar.svelte";
+  import type { ContentFolder } from "#lib/activityTree.ts";
+  import type { Module } from "#lib/server/db/index.ts";
+
+  import AppSidebar from "#lib/components/app-sidebar.svelte";
 
   interface Props {
     module: Module;

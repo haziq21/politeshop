@@ -1,13 +1,14 @@
 import { getRequestEvent, query } from "$app/server";
-import * as queries from "$lib/server/db/queries";
+
+import * as queries from "#lib/server/db/queries.ts";
 import {
   syncAssessments,
   syncModuleNames,
   syncModulesAndSemesters,
   syncOrganization,
   syncUser,
-} from "$lib/server/sync";
-import { logger } from "$lib/utils";
+} from "#lib/server/sync.ts";
+import { logger } from "#lib/utils.ts";
 
 export const sync = query(async () => {
   const { pl, sessionHash } = getRequestEvent().locals;

@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@politeshop/shared": "workspace:*",
-    "typescript": "^5.8.3",
+    "typescript": "^6.0.3",
     "wxt": "^0.20.6"
   }
 }

@@ -1,16 +1,15 @@
 <script lang="ts">
-  import CalendarHeatmap from "$lib/components/calendar-heatmap.svelte";
-  import ChevronRightIcon from "$lib/components/icons/chevron-right.svelte";
-  import EventAvailableIcon from "$lib/components/icons/event-available.svelte";
-  import QuizIcon from "$lib/components/icons/quiz.svelte";
-  import TaskAltIcon from "$lib/components/icons/task-alt.svelte";
-  import UploadFileIcon from "$lib/components/icons/upload-file.svelte";
-  import ModuleSelector from "$lib/components/module-selector.svelte";
-  import ThemeToggle from "$lib/components/theme-toggle.svelte";
-  import { dayKey, dayTitle } from "$lib/dates";
-  import { getPreferences, type Preferences } from "$lib/preferences";
-  import { addDays, format, startOfDay } from "date-fns";
   import { onMount } from "svelte";
+
+  import CalendarHeatmap from "#lib/components/calendar-heatmap.svelte";
+  import ChevronRightIcon from "#lib/components/icons/chevron-right.svelte";
+  import EventAvailableIcon from "#lib/components/icons/event-available.svelte";
+  import QuizIcon from "#lib/components/icons/quiz.svelte";
+  import TaskAltIcon from "#lib/components/icons/task-alt.svelte";
+  import UploadFileIcon from "#lib/components/icons/upload-file.svelte";
+  import ModuleSelector from "#lib/components/module-selector.svelte";
+  import ThemeToggle from "#lib/components/theme-toggle.svelte";
+  import { getPreferences, type Preferences } from "#lib/preferences.ts";
 
   import type { PageProps } from "./$types";
 
@@ -25,21 +24,26 @@
   let semesters = $derived(synced?.semesters ?? data.semesters);
   let modules = $derived(synced?.modules ?? data.modules);
   let due = $derived(synced?.dueItems ?? data.dueItems);
-  let dueItems = $derived([
-    ...due.dropboxes.map((d) => ({ ...d, kind: "submission" as const, dueAt: d.dueAt! })),
-    ...due.quizzes.map((q) => ({ ...q, kind: "quiz" as const, dueAt: q.dueAt!, submissionCount: 0 })),
-  ]);
+  // Times show in the browser's time zone, so the section renders on the client only
+  let today = $state<Temporal.PlainDate | null>(null);
+  const dueItems = $derived(
+    [
+      ...due.dropboxes.map((d) => ({ ...d, kind: "submission" as const })),
+      ...due.quizzes.map((q) => ({ ...q, kind: "quiz" as const, submissionCount: 0 })),
+    ]
+      .map((item) => ({ ...item, dueAt: item.dueAt!.toZonedDateTimeISO(Temporal.Now.timeZoneId()) }))
+      .toSorted((a, b) => Temporal.ZonedDateTime.compare(a.dueAt, b.dueAt)),
+  );
   let prefs = $state<Preferences | null>(null);
 
   const UPCOMING_DAYS = 14;
 
-  // Times show in the browser's time zone, so the section renders on the client only
-  let today = $state<Date | null>(null);
   onMount(() => {
     let timer: ReturnType<typeof setTimeout>;
     const update = () => {
-      today = startOfDay(new Date());
-      timer = setTimeout(update, addDays(today, 1).getTime() - Date.now());
+      const now = Temporal.Now.zonedDateTimeISO();
+      today = now.toPlainDate();
+      timer = setTimeout(update, now.add({ days: 1 }).startOfDay().epochMilliseconds - now.epochMilliseconds);
     };
     update();
     return () => clearTimeout(timer);
@@ -49,18 +53,24 @@
   // the scroll position. It never shrinks below the tallest it has been.
   let minListHeight = $state(0);
 
-  let selectedDate = $state<Date | null>(null);
-  let hoveredDate = $state<Date | null>(null);
+  let selectedDate = $state<Temporal.PlainDate | null>(null);
+  let hoveredDate = $state<Temporal.PlainDate | null>(null);
 
-  const dueByDay = $derived(Map.groupBy(dueItems, (item) => dayKey(item.dueAt)));
+  const dueByDay = $derived(Map.groupBy(dueItems, (item) => item.dueAt.toPlainDate().toString()));
   const dueCounts = $derived(new Map(Array.from(dueByDay, ([key, group]) => [key, group.length] as const)));
 
   const listedDate = $derived(hoveredDate ?? selectedDate);
   const listedItems = $derived(
-    (listedDate
-      ? (dueByDay.get(dayKey(listedDate)) ?? [])
-      : dueItems.filter((item) => today && item.dueAt >= today && item.dueAt < addDays(today, UPCOMING_DAYS))
-    ).toSorted((a, b) => a.dueAt.getTime() - b.dueAt.getTime()),
+    listedDate
+      ? (dueByDay.get(listedDate.toString()) ?? [])
+      : dueItems.filter(({ dueAt }) => {
+          const day = dueAt.toPlainDate();
+          return (
+            !!today &&
+            Temporal.PlainDate.compare(day, today) >= 0 &&
+            Temporal.PlainDate.compare(day, today.add({ days: UPCOMING_DAYS })) < 0
+          );
+        }),
   );
 
   let institutionSubText = $derived.by(() => {
@@ -117,7 +127,9 @@
             >
               <div class="flex w-full flex-col gap-3">
                 <h2 class="flex h-6 items-center text-lg font-semibold tracking-tight text-foreground">
-                  {listedDate ? dayTitle(listedDate, today) : `Next ${UPCOMING_DAYS} days`}
+                  {listedDate
+                    ? `${listedDate.toLocaleString("en-US", { weekday: "long" })} ${listedDate.day} ${listedDate.toLocaleString("en-US", { month: "short" })}${listedDate.year === today.year ? "" : ` ${listedDate.year}`}`
+                    : `Next ${UPCOMING_DAYS} days`}
                 </h2>
 
                 {#if listedItems.length}
@@ -136,7 +148,11 @@
                             />{item.title}
                           </span>
                           <span class="flex items-center gap-2 text-xs whitespace-nowrap text-muted-foreground">
-                            <span>Due {format(item.dueAt, "d MMM, HH:mm")}</span>
+                            <span
+                              >Due {item.dueAt.day}
+                              {item.dueAt.toLocaleString("en-US", { month: "short" })},
+                              {item.dueAt.toPlainTime().toString({ smallestUnit: "minute" })}</span
+                            >
                             {#if item.submissionCount > 0}
                               <span
                                 aria-hidden="true"

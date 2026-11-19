@@ -58,6 +58,6 @@ export async function setPreference(
     name: COOKIE_NAME,
     value: JSON.stringify(prefs),
     sameSite: "none",
-    expires: Date.now() + COOKIE_MAX_AGE_MS,
+    expires: Temporal.Now.instant().epochMilliseconds + COOKIE_MAX_AGE_MS,
   });
 }

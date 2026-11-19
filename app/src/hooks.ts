@@ -1,4 +1,6 @@
-import { error, type Reroute } from "@sveltejs/kit";
+import type { Reroute } from "@sveltejs/kit/hooks";
+
+import { error } from "@sveltejs/kit";
 
 // Map POLITEMall's messy activity URLs to our format.
 // POLITEMall's ones look like this:

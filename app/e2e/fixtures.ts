@@ -22,6 +22,7 @@ export const test = base.extend<Fixtures>({
   context: async ({ subdomain }, use) => {
     const context = await chromium.launchPersistentContext("", {
       channel: "chromium",
+      timezoneId: "UTC",
       baseURL: `https://${subdomain}.polite.edu.sg`,
       args: [
         "--no-sandbox",

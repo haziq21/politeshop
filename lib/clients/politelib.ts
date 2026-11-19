@@ -14,6 +14,7 @@ import type {
 } from "../types";
 
 import { SirenEntity } from "../schema/siren";
+import { instant } from "../schema/temporal";
 import { chunk } from "../utils/array";
 import { defaultToBaseURL, getURLExpiry, lastPathComponent } from "../utils/url";
 import { Brightspace } from "./brightspace";
@@ -74,7 +75,10 @@ export class POLITELib {
    * requiring an asynchronous network request to obtain a fresh one.
    */
   get brightspace(): Promise<Brightspace> {
-    if (this.#brightspaceInstance !== null && this.#brightspaceInstance.tokenExpiry > new Date()) {
+    if (
+      this.#brightspaceInstance !== null &&
+      Temporal.Instant.compare(this.#brightspaceInstance.tokenExpiry, Temporal.Now.instant()) > 0
+    ) {
       return Promise.resolve(this.#brightspaceInstance);
     }
     return this.polite.getNewFetchToken().then(({ access_token }) => {
@@ -427,10 +431,10 @@ export class POLITELib {
   }
 
   #parseSubmissionDetails(ent: SirenEntity): {
-    submittedAt: Date;
+    submittedAt: Temporal.Instant;
     comment?: string;
   } {
-    const submittedAt = new Date(ent.findChild({ class: "submission-date" })?.properties?.date);
+    const submittedAt = instant.parse(ent.findChild({ class: "submission-date" })?.properties?.date);
 
     const comment = z
       .string()
@@ -486,7 +490,7 @@ export class POLITELib {
   }: {
     moduleId: string;
     activityId: string;
-  }): Promise<{ url: string; urlExpiry: Date | undefined }> {
+  }): Promise<{ url: string; urlExpiry: Temporal.Instant | undefined }> {
     const ent = await (
       await this.brightspace
     ).getTopicThumbnail({
@@ -500,8 +504,8 @@ export class POLITELib {
 
     const { src: url } = thumbnailProps;
     // The Content Service exposes the expiry as a Unix timestamp in `expires`.
-    const urlExpiry: Date | undefined = thumbnailProps.expires
-      ? new Date(thumbnailProps.expires * 1000)
+    const urlExpiry: Temporal.Instant | undefined = thumbnailProps.expires
+      ? Temporal.Instant.fromEpochMilliseconds(thumbnailProps.expires * 1000)
       : getURLExpiry(url);
 
     return { url, urlExpiry };
@@ -513,7 +517,7 @@ export class POLITELib {
   }: {
     moduleId: string;
     activityId: string;
-  }): Promise<{ url: string; urlExpiry: Date | undefined }> {
+  }): Promise<{ url: string; urlExpiry: Temporal.Instant | undefined }> {
     const ent = await (
       await this.brightspace
     ).getTopicMedia({
