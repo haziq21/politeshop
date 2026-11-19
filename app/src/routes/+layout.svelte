@@ -1,8 +1,9 @@
 <script lang="ts">
   import "./layout.css";
   import { afterNavigate, goto } from "$app/navigation";
-  import favicon from "$lib/assets/favicon.svg";
   import { onMount } from "svelte";
+
+  import favicon from "#lib/assets/favicon.svg";
 
   import type { LayoutProps } from "./$types";
 
@@ -53,7 +54,8 @@
     if (!a || a.hostname !== `${data.subdomain}.polite.edu.sg`) return;
 
     e.preventDefault();
-    goto(a.pathname + a.search + a.hash);
+    const path = a.pathname + a.search + a.hash;
+    goto(path).catch(() => (window.location.href = path));
   }}
 />
 

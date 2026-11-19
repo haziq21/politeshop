@@ -1,8 +1,10 @@
-import { dev } from "$app/environment";
-import { mockwright } from "$lib/server/mockwright";
-import { json } from "@sveltejs/kit";
+import { dev } from "$app/env";
 
-export const POST = async ({ request }) => {
+import { mockwright } from "#lib/server/mockwright.ts";
+
+import type { RequestHandler } from "./$types";
+
+export const POST: RequestHandler = async ({ request }) => {
   if (!dev) return new Response(null, { status: 404 });
-  return json(mockwright.handle(await request.json(), request.headers.get("x-test-id")));
+  return Response.json(mockwright.handle(await request.json(), request.headers.get("x-test-id")));
 };

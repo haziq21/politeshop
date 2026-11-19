@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Module } from "$lib/server/db";
+  import type { Module } from "#lib/server/db/index.ts";
 
   interface Props {
     modules: Module[];

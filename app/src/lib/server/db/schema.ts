@@ -1,14 +1,7 @@
-import {
-  integer,
-  pgEnum,
-  pgTable,
-  primaryKey,
-  timestamp,
-  text,
-  type AnyPgColumn,
-  date,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { integer, pgEnum, pgTable, primaryKey, text, type AnyPgColumn, uniqueIndex } from "drizzle-orm/pg-core";
+
+import { date, timestamptz } from "./temporal";
 
 export const organization = pgTable("organization", {
   id: text().primaryKey(),
@@ -51,8 +44,12 @@ export const module = pgTable("module", {
   niceName: text("nice_name"),
   code: text().notNull(),
   niceCode: text("nice_code"),
-  textUpdatedAt: timestamp("text_updated_at", { withTimezone: true }).notNull().defaultNow(),
-  niceTextUpdatedAt: timestamp("nice_text_updated_at", { withTimezone: true }).notNull().defaultNow(),
+  textUpdatedAt: timestamptz("text_updated_at")
+    .notNull()
+    .default(sql`now()`),
+  niceTextUpdatedAt: timestamptz("nice_text_updated_at")
+    .notNull()
+    .default(sql`now()`),
   semesterId: text("semester_id")
     .notNull()
     .references(() => semester.id, { onDelete: "cascade", onUpdate: "cascade" }),
@@ -128,7 +125,7 @@ export const docEmbedActivity = pgTable("doc_embed_activity", {
   name: text().notNull(),
   sourceURL: text("source_url").notNull(),
   previewURL: text("preview_url"),
-  previewURLExpiry: timestamp("preview_url_expiry", { withTimezone: true }),
+  previewURLExpiry: timestamptz("preview_url_expiry"),
 });
 
 export const videoEmbedActivity = pgTable("video_embed_activity", {
@@ -137,9 +134,9 @@ export const videoEmbedActivity = pgTable("video_embed_activity", {
     .references(() => activity.id, { onDelete: "cascade", onUpdate: "cascade" }),
   name: text().notNull(),
   sourceURL: text("source_url").notNull(),
-  sourceURLExpiry: timestamp("source_url_expiry", { withTimezone: true }),
+  sourceURLExpiry: timestamptz("source_url_expiry"),
   thumbnailURL: text("thumbnail_url"),
-  thumbnailURLExpiry: timestamp("thumbnail_url_expiry", { withTimezone: true }),
+  thumbnailURLExpiry: timestamptz("thumbnail_url_expiry"),
 });
 
 export const submissionActivity = pgTable("submission_activity", {
@@ -167,9 +164,9 @@ export const submissionDropbox = pgTable("submission_dropbox", {
     .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
   name: text().notNull(),
   description: text(),
-  dueAt: timestamp("due_at", { withTimezone: true }),
-  opensAt: timestamp("opens_at", { withTimezone: true }),
-  closesAt: timestamp("closes_at", { withTimezone: true }),
+  dueAt: timestamptz("due_at"),
+  opensAt: timestamptz("opens_at"),
+  closesAt: timestamptz("closes_at"),
 });
 
 export const quiz = pgTable("quiz", {
@@ -179,7 +176,7 @@ export const quiz = pgTable("quiz", {
     .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
   name: text().notNull(),
   description: text(),
-  dueAt: timestamp("due_at", { withTimezone: true }),
+  dueAt: timestamptz("due_at"),
 });
 
 export const userSubmission = pgTable("user_submission", {
@@ -190,7 +187,7 @@ export const userSubmission = pgTable("user_submission", {
   dropboxId: text("dropbox_id")
     .notNull()
     .references(() => submissionDropbox.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  submittedAt: timestamptz("submitted_at"),
   comment: text(),
 });
 

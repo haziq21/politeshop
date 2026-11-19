@@ -1,11 +1,13 @@
-import type { Module } from "$lib/server/db";
 import type { POLITELib } from "@politeshop/lib";
 
-import { OPENROUTER_API_KEY } from "$env/static/private";
-import { flattenActivityTree } from "$lib/activityTree";
-import * as queries from "$lib/server/db/queries";
-import { logger } from "$lib/utils";
+import { OPENROUTER_API_KEY } from "$app/env/private";
 import { OpenRouterProvider, renameModules } from "@politeshop/ai";
+
+import type { Module } from "#lib/server/db/index.ts";
+
+import { flattenActivityTree } from "#lib/activityTree.ts";
+import * as queries from "#lib/server/db/queries.ts";
+import { logger } from "#lib/utils.ts";
 
 // Each function fetches and stores only what its name says, and assumes the rows its arguments refer
 // to are already in the database.

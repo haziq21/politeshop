@@ -13,7 +13,7 @@ export class Brightspace {
   tenantId: string;
 
   /** The expiration date of the current `d2lFetchToken`. */
-  tokenExpiry: Date;
+  tokenExpiry: Temporal.Instant;
 
   #d2lFetchToken: string;
   #abortController = new AbortController();
@@ -28,7 +28,7 @@ export class Brightspace {
       .object({
         tenantid: z.string(),
         sub: z.string(),
-        exp: z.date({ coerce: true }),
+        exp: z.number().transform((seconds) => Temporal.Instant.fromEpochMilliseconds(seconds * 1000)),
       })
       .parse(decodeJwt(this.#d2lFetchToken));
     this.userId = sub;

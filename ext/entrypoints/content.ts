@@ -13,7 +13,7 @@ export default defineContentScript({
 
     let { token: d2lFetchToken, expiry } = getD2lFetchToken();
 
-    if (expiry && expiry < new Date()) {
+    if (expiry && Temporal.Instant.compare(expiry, Temporal.Now.instant()) < 0) {
       log("D2L.Fetch.Tokens expired");
       const xsrfToken = await extractXsrfToken();
 
@@ -87,14 +87,14 @@ export default defineContentScript({
 });
 
 /** Retrieve the d2lFetchToken from `localStorage`. */
-function getD2lFetchToken(): { token?: string; expiry?: Date } {
+function getD2lFetchToken(): { token?: string; expiry?: Temporal.Instant } {
   const tokens = localStorage.getItem("D2L.Fetch.Tokens");
   if (!tokens) return {};
   return parseD2lFetchTokenJSON(tokens);
 }
 
 /** Retrieve a new d2lFetchToken from the POLITEMall API and store it in `localStorage`. */
-async function newD2lFetchToken(xsrfToken: string): Promise<{ token?: string; expiry?: Date }> {
+async function newD2lFetchToken(xsrfToken: string): Promise<{ token?: string; expiry?: Temporal.Instant }> {
   const res = await fetch("/d2l/lp/auth/oauth2/token", {
     method: "POST",
     headers: {
@@ -115,7 +115,7 @@ async function newD2lFetchToken(xsrfToken: string): Promise<{ token?: string; ex
   localStorage.setItem(
     "D2L.Fetch.Tokens",
     JSON.stringify({
-      "*:*:*": { expires_at: expiry.getTime() / 1000, access_token: token },
+      "*:*:*": { expires_at: expiry.epochMilliseconds / 1000, access_token: token },
     }),
   );
   return { token, expiry };
@@ -123,7 +123,7 @@ async function newD2lFetchToken(xsrfToken: string): Promise<{ token?: string; ex
 
 function parseD2lFetchTokenJSON(json: string): {
   token?: string;
-  expiry?: Date;
+  expiry?: Temporal.Instant;
 } {
   try {
     const obj = JSON.parse(json);
@@ -136,7 +136,7 @@ function parseD2lFetchTokenJSON(json: string): {
     }
 
     if (typeof expires_at !== "number" || typeof access_token !== "string") return {};
-    return { token: access_token, expiry: new Date(expires_at * 1000) };
+    return { token: access_token, expiry: Temporal.Instant.fromEpochMilliseconds(expires_at * 1000) };
   } catch {
     return {};
   }

@@ -1,25 +1,23 @@
 <script lang="ts">
-  import { dayKey, dayTitle } from "$lib/dates";
-  import { addDays, addWeeks, differenceInCalendarWeeks, format, isSameYear, parseISO, startOfWeek } from "date-fns";
   import { tick } from "svelte";
   import { prefersReducedMotion } from "svelte/motion";
 
   import ChevronRightIcon from "./icons/chevron-right.svelte";
 
   interface Props {
-    /** Count per day, keyed by `dayKey`. Days with no entry are empty. */
+    /** Count per day, keyed by ISO date (`2026-03-18`). Days with no entry are empty. */
     counts: Map<string, number>;
-    today: Date;
-    selectedDate?: Date | null;
-    hoveredDate?: Date | null;
+    today: Temporal.PlainDate;
+    selectedDate?: Temporal.PlainDate | null;
+    hoveredDate?: Temporal.PlainDate | null;
     /** Weeks shown at once */
     windowSize?: number;
     /** Weeks shown before the current one */
     todayOffset?: number;
     /** Weeks a nav button moves the view by */
     navSteps?: number;
-    /** 0 is Sunday */
-    weekStartDay?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    /** 1 is Monday, 7 is Sunday */
+    weekStartDay?: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   }
 
   let {
@@ -32,8 +30,6 @@
     navSteps = windowSize / 2,
     weekStartDay = 1,
   }: Props = $props();
-
-  const weekOptions = $derived({ weekStartsOn: weekStartDay });
 
   // Weeks are placed by index (0 is this week). `shift` is how far the view has slid from where it
   // began; `lo`..`hi` is the furthest it has been since the last slide landed, and every week in
@@ -55,23 +51,29 @@
     lo = hi = shift;
   }
 
-  const weekStart = (week: number) => startOfWeek(addWeeks(today, week), weekOptions);
-  const weekOf = (date: Date) => differenceInCalendarWeeks(date, today, weekOptions);
-  const weekdays = $derived(Array.from({ length: 7 }, (_, i) => format(addDays(weekStart(0), i), "EEE")));
+  const startOfWeek = (date: Temporal.PlainDate) => date.subtract({ days: (date.dayOfWeek - weekStartDay + 7) % 7 });
+  const weekStart = (week: number) => startOfWeek(today).add({ weeks: week });
+  const weekOf = (date: Temporal.PlainDate) =>
+    startOfWeek(date).since(startOfWeek(today), { largestUnit: "weeks" }).weeks;
+  const weekdays = $derived(
+    Array.from({ length: 7 }, (_, i) => weekStart(0).add({ days: i }).toLocaleString("en-US", { weekday: "short" })),
+  );
+  const month = (date: Temporal.PlainDate) => date.toLocaleString("en-US", { month: "short" });
+  const yearIfNotThisYear = (date: Temporal.PlainDate) => (date.year === today.year ? "" : ` ${date.year}`);
 
   // Each month is labelled on the first week starting in it
   function monthLabel(week: number) {
     const monday = weekStart(week);
-    return monday.getDate() <= 7 ? format(monday, `MMM${isSameYear(monday, today) ? "" : " yyyy"}`) : "";
+    return monday.day <= 7 ? month(monday) + yearIfNotThisYear(monday) : "";
   }
 
   // The one tab stop: the selected day, else today, else the first day in view
-  const inView = (date: Date) => weekOf(date) >= start && weekOf(date) < start + windowSize;
+  const inView = (date: Temporal.PlainDate) => weekOf(date) >= start && weekOf(date) < start + windowSize;
   const tabKey = $derived(
-    dayKey(selectedDate && inView(selectedDate) ? selectedDate : inView(today) ? today : weekStart(start)),
+    (selectedDate && inView(selectedDate) ? selectedDate : inView(today) ? today : weekStart(start)).toString(),
   );
-  const selectedKey = $derived(selectedDate && dayKey(selectedDate));
-  const todayKey = $derived(dayKey(today));
+  const selectedKey = $derived(selectedDate?.toString());
+  const todayKey = $derived(today.toString());
 
   async function onkeydown(e: KeyboardEvent) {
     const grid = e.currentTarget as HTMLElement;
@@ -85,7 +87,7 @@
     if (!button || !days) return;
 
     e.preventDefault();
-    const next = addDays(parseISO(button.dataset.date!), days);
+    const next = Temporal.PlainDate.from(button.dataset.date!).add({ days });
     selectedDate = next;
 
     const week = weekOf(next);
@@ -94,7 +96,7 @@
     while (week >= start + windowSize) slideTo(start + navSteps);
 
     await tick();
-    grid.querySelector<HTMLElement>(`[data-date="${dayKey(next)}"]`)?.focus();
+    grid.querySelector<HTMLElement>(`[data-date="${next}"]`)?.focus();
   }
 </script>
 
@@ -111,8 +113,8 @@
   </button>
 {/snippet}
 
-{#snippet cell(date: Date)}
-  {@const key = dayKey(date)}
+{#snippet cell(date: Temporal.PlainDate)}
+  {@const key = date.toString()}
   {@const count = counts.get(key) ?? 0}
   <button
     type="button"
@@ -120,7 +122,9 @@
     tabindex={key === tabKey ? 0 : -1}
     aria-pressed={key === selectedKey}
     aria-current={key === todayKey ? "date" : undefined}
-    aria-label="{dayTitle(date, today)}, {count ? `${count} due` : 'nothing due'}"
+    aria-label="{date.toLocaleString('en-US', { weekday: 'long' })} {date.day} {month(date)}{yearIfNotThisYear(
+      date,
+    )}, {count ? `${count} due` : 'nothing due'}"
     onclick={() => (selectedDate = key === selectedKey ? null : date)}
     onpointerenter={(e) => e.pointerType === "mouse" && (hoveredDate = date)}
     class={[
@@ -191,7 +195,7 @@
               class="slot absolute top-0 left-0 flex translate-x-(--distance-from-start) flex-col gap-1 @min-due-split:translate-x-0 @min-due-split:translate-y-(--distance-from-start) @min-due-split:flex-row"
             >
               {#each { length: 7 } as _, i}
-                {@render cell(addDays(weekStart(week), i))}
+                {@render cell(weekStart(week).add({ days: i }))}
               {/each}
             </div>
           {/each}

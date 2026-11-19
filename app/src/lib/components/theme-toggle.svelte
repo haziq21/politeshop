@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { setPreference } from "$lib/preferences";
+  import { setPreference } from "#lib/preferences.ts";
 
   function toggle() {
     const root = document.querySelector<HTMLElement>("[data-theme]")!;

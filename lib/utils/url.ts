@@ -1,5 +1,3 @@
-import { addSeconds, parse } from "date-fns";
-
 /**
  * Return the last path component of a URL.
  * e.g. `lastPathComponent("https://host.com/foo/bar/123")` → `"123"`
@@ -20,7 +18,7 @@ export function lastPathComponent(url: string | URL): string {
  *
  * Returns `undefined` if the URL does not contain recognisable expiry information.
  */
-export function getURLExpiry(url: string): Date | undefined {
+export function getURLExpiry(url: string): Temporal.Instant | undefined {
   const urlObj = new URL(url);
 
   if (urlObj.hostname.endsWith(".amazonaws.com")) {
@@ -30,13 +28,13 @@ export function getURLExpiry(url: string): Date | undefined {
     const startDate = urlObj.searchParams.get("X-Amz-Date");
     if (!startDate) return undefined;
 
-    return addSeconds(parse(startDate, "yyyyMMdd'T'HHmmssX", new Date()), +expiresIn);
+    return Temporal.Instant.from(startDate).add({ seconds: +expiresIn });
   }
 
   if (urlObj.hostname.endsWith("content-service.brightspace.com")) {
     const expires = urlObj.searchParams.get("Expires");
     if (!expires) return undefined;
-    return new Date(+expires * 1000);
+    return Temporal.Instant.fromEpochMilliseconds(+expires * 1000);
   }
 
   return undefined;

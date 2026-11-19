@@ -6,6 +6,8 @@
 
 import { z } from "zod";
 
+import { instant } from "./temporal";
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 /** Response from GET /d2l/lp/auth/oauth2/token */
@@ -156,7 +158,7 @@ export const entityDropbox = z.object({
   Submissions: z
     .object({
       Id: z.number(),
-      SubmissionDate: z.coerce.date().nullable(),
+      SubmissionDate: instant.nullable(),
       Comment: richText,
       Files: file.array(),
     })
@@ -171,13 +173,13 @@ export const dropboxFolder = z.object({
   Name: z.string(),
   CustomInstructions: richText,
   Attachments: file.array(),
-  DueDate: z.coerce.date().nullable(),
+  DueDate: instant.nullable(),
   SubmissionType: z.literal(0),
   CompletionType: z.number(),
   Availability: z
     .object({
-      StartDate: z.coerce.date().nullable(),
-      EndDate: z.coerce.date().nullable(),
+      StartDate: instant.nullable(),
+      EndDate: instant.nullable(),
       StartDateAvailabilityType: z.number().nullable(),
       EndDateAvailabilityType: z.number().nullable(),
     })
@@ -200,9 +202,9 @@ export const quizReadData = z.object({
     Text: richText,
     IsDisplayed: z.boolean(),
   }),
-  StartDate: z.coerce.date(),
-  EndDate: z.coerce.date(),
-  DueDate: z.coerce.date().nullable(),
+  StartDate: instant,
+  EndDate: instant,
+  DueDate: instant.nullable(),
   SortOrder: z.number(),
   SubmissionTimeLimit: z.object({
     IsEnforced: z.boolean(),

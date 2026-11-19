@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { findActivityFolderPath } from "$lib/activityTree";
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+
+  import { findActivityFolderPath } from "#lib/activityTree.ts";
 
   import type { PageProps } from "./$types";
 

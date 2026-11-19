@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Module, Semester } from "$lib/server/db";
+  import type { Module, Semester } from "#lib/server/db/index.ts";
 
-  import { setPreference } from "$lib/preferences";
+  import { setPreference } from "#lib/preferences.ts";
 
   import ModuleList from "./module-list.svelte";
   import SemesterFilter from "./semester-filter.svelte";

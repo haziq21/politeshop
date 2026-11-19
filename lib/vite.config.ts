@@ -9,7 +9,7 @@ export default defineConfig({
       fileName: "index",
     },
     rollupOptions: {
-      external: ["date-fns", "jose", "zod"],
+      external: ["jose", "zod"],
     },
   },
   plugins: [

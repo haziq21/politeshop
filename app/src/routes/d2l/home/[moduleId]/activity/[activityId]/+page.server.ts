@@ -1,5 +1,6 @@
-import * as queries from "$lib/server/db/queries";
 import { error } from "@sveltejs/kit";
+
+import * as queries from "#lib/server/db/queries.ts";
 
 import type { PageServerLoad } from "./$types";
 

@@ -1,5 +1,6 @@
 import { getRequestEvent, query } from "$app/server";
-import { syncOrganization, syncUser } from "$lib/server/sync";
+
+import { syncOrganization, syncUser } from "#lib/server/sync.ts";
 
 export const initUser = query(async () => {
   const { pl, sessionHash } = getRequestEvent().locals;
