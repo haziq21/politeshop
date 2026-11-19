@@ -5,6 +5,7 @@ import {
   eq,
   getTableColumns,
   gt,
+  inArray,
   isNotNull,
   isNull,
   lt,
@@ -202,9 +203,14 @@ export async function upsertAndAssociateModules(userId: string, mods: Module[]):
   return uglyModules;
 }
 
-/** Get every activity in the module, folders included, without their type-specific details. */
-export async function getBaseActivities(moduleId: string): Promise<BaseActivity[]> {
-  return db.select().from(baseActivity).where(eq(baseActivity.moduleId, moduleId)).orderBy(baseActivity.sortOrder);
+/** Get the module's activities that the user has access to, folders included, without their type-specific details. */
+export async function getBaseActivities(userId: string, moduleId: string): Promise<BaseActivity[]> {
+  return db
+    .select(getTableColumns(baseActivity))
+    .from(baseActivity)
+    .innerJoin(userActivityAccess, eq(userActivityAccess.activityId, baseActivity.id))
+    .where(and(eq(baseActivity.moduleId, moduleId), eq(userActivityAccess.userId, userId)))
+    .orderBy(baseActivity.sortOrder);
 }
 
 /** Get a single activity by ID, with its type-specific details. */
@@ -429,15 +435,27 @@ export async function currentOrNextSemesterBreak(userId: string): Promise<
   ).at(0);
 }
 
-export async function setUserActivityAccess(userId: string, activityIds: string[]) {
-  await db
-    .insert(userActivityAccess)
-    .values(activityIds.map((activityId) => ({ userId, activityId })))
-    .onConflictDoNothing();
+/** Give the user access to exactly `activityIds` among the module's activities. Their access to other modules is unchanged. */
+export async function setUserActivityAccess(userId: string, moduleId: string, activityIds: string[]) {
+  if (activityIds.length) {
+    await db
+      .insert(userActivityAccess)
+      .values(activityIds.map((activityId) => ({ userId, activityId })))
+      .onConflictDoNothing();
+  }
 
   await db
     .delete(userActivityAccess)
-    .where(and(eq(userActivityAccess.userId, userId), notInArray(userActivityAccess.activityId, activityIds)));
+    .where(
+      and(
+        eq(userActivityAccess.userId, userId),
+        inArray(
+          userActivityAccess.activityId,
+          db.select({ id: baseActivity.id }).from(baseActivity).where(eq(baseActivity.moduleId, moduleId)),
+        ),
+        notInArray(userActivityAccess.activityId, activityIds),
+      ),
+    );
 }
 
 /** Get the submission dropboxes and quizzes with due dates across every module the user is enrolled in. */
