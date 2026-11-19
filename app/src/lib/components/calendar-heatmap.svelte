@@ -5,8 +5,8 @@
   import ChevronRightIcon from "./icons/chevron-right.svelte";
 
   interface Props {
-    /** Count per day, keyed by ISO date (`2026-03-18`). Days with no entry are empty. */
-    counts: Map<string, number>;
+    /** Number of entries on a day; days with none are empty */
+    countFor: (date: Temporal.PlainDate) => number;
     today: Temporal.PlainDate;
     selectedDate?: Temporal.PlainDate | null;
     hoveredDate?: Temporal.PlainDate | null;
@@ -21,7 +21,7 @@
   }
 
   let {
-    counts,
+    countFor,
     today,
     selectedDate = $bindable(null),
     hoveredDate = $bindable(null),
@@ -105,17 +105,15 @@
     type="button"
     aria-label={label}
     onclick={() => slideTo(start + direction * navSteps)}
-    class="flex h-(--week-length) w-8 cursor-pointer items-center justify-center rounded-lg border border-border text-muted-foreground opacity-0 transition-opacity duration-150 outline-none group-hover:opacity-100 group-has-focus-visible:opacity-100 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring @min-due-split:h-8 @min-due-split:w-full"
+    class="flex h-(--week-length) w-8 cursor-pointer items-center justify-center rounded-lg border border-border text-muted-foreground opacity-0 transition-opacity duration-150 outline-none group-hover:opacity-100 group-has-focus-visible:opacity-100 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring @2xl:h-8 @2xl:w-full"
   >
-    <ChevronRightIcon
-      class={["size-4", direction < 0 ? "rotate-180 @min-due-split:-rotate-90" : "@min-due-split:rotate-90"]}
-    />
+    <ChevronRightIcon class={["size-4", direction < 0 ? "rotate-180 @2xl:-rotate-90" : "@2xl:rotate-90"]} />
   </button>
 {/snippet}
 
 {#snippet cell(date: Temporal.PlainDate)}
   {@const key = date.toString()}
-  {@const count = counts.get(key) ?? 0}
+  {@const count = countFor(date)}
   <button
     type="button"
     data-date={key}
@@ -145,19 +143,19 @@
 {/snippet}
 
 <div
-  class="heatmap group relative isolate -ml-11 flex items-end gap-3 pt-9 before:absolute before:-inset-4 before:-z-10 @min-due-split:mr-8 @min-due-split:ml-0 @min-due-split:w-(--week-length) @min-due-split:shrink-0 @min-due-split:flex-col @min-due-split:items-stretch @min-due-split:gap-5 @min-due-split:pt-0"
+  class="heatmap group relative isolate -ml-11 flex items-end gap-3 pt-9 before:absolute before:-inset-4 before:-z-10 @2xl:mr-8 @2xl:ml-0 @2xl:w-(--week-length) @2xl:shrink-0 @2xl:flex-col @2xl:items-stretch @2xl:gap-5 @2xl:pt-0"
   style:--view-start={start}
   style:--window-size={windowSize}
   ontransitionend={(e) => e.propertyName === "--view-start" && settle()}
 >
   {@render nav(-1, "Earlier")}
 
-  <div class="flex gap-1 @min-due-split:flex-col">
-    <div aria-hidden="true" class="flex flex-col gap-1 @min-due-split:flex-row">
+  <div class="flex gap-1 @2xl:flex-col">
+    <div aria-hidden="true" class="flex flex-col gap-1 @2xl:flex-row">
       {#each weekdays as weekday}
         <span
-          class="flex h-4 w-7 items-center justify-end text-2xs font-medium text-muted-foreground @min-due-split:h-3.5 @min-due-split:w-4 @min-due-split:justify-center"
-          >{weekday[0]}<span class="@min-due-split:hidden">{weekday.slice(1)}</span></span
+          class="flex h-4 w-7 items-center justify-end text-2xs font-medium text-muted-foreground @2xl:h-3.5 @2xl:w-4 @2xl:justify-center"
+          >{weekday[0]}<span class="@2xl:hidden">{weekday.slice(1)}</span></span
         >
       {/each}
     </div>
@@ -165,7 +163,7 @@
     <div class="relative">
       <div
         aria-hidden="true"
-        class="pointer-events-none absolute -top-1 -right-11 -left-3 h-0 overflow-x-clip @min-due-split:top-0 @min-due-split:right-auto @min-due-split:-bottom-6 @min-due-split:left-full @min-due-split:ml-2 @min-due-split:h-auto @min-due-split:w-0 @min-due-split:overflow-x-visible @min-due-split:overflow-y-clip"
+        class="pointer-events-none absolute -top-1 -right-11 -left-3 h-0 overflow-x-clip @2xl:top-0 @2xl:right-auto @2xl:-bottom-6 @2xl:left-full @2xl:ml-2 @2xl:h-auto @2xl:w-0 @2xl:overflow-x-visible @2xl:overflow-y-clip"
       >
         {#each rendered as week (week)}
           {@const label = monthLabel(week)}
@@ -173,7 +171,7 @@
             <span
               data-month
               style:--week-index={week}
-              class="slot absolute bottom-0 left-3 origin-bottom-left translate-x-(--distance-from-start) -rotate-30 text-2xs/4 whitespace-nowrap text-muted-foreground @min-due-split:top-2 @min-due-split:bottom-auto @min-due-split:left-0 @min-due-split:origin-left @min-due-split:translate-x-0 @min-due-split:translate-y-[calc(var(--distance-from-start)-50%)] @min-due-split:rotate-30"
+              class="slot absolute bottom-0 left-3 origin-bottom-left translate-x-(--distance-from-start) -rotate-30 text-2xs/4 whitespace-nowrap text-muted-foreground @2xl:top-2 @2xl:bottom-auto @2xl:left-0 @2xl:origin-left @2xl:translate-x-0 @2xl:translate-y-[calc(var(--distance-from-start)-50%)] @2xl:rotate-30"
               >{label}</span
             >
           {/if}
@@ -184,15 +182,15 @@
       <div
         role="group"
         aria-label="Days"
-        class="relative -my-1 -ml-1 w-[calc(var(--window-length)+(--spacing(1)))] overflow-x-clip p-1 @min-due-split:-mb-6 @min-due-split:ml-0 @min-due-split:h-[calc(var(--window-length)+(--spacing(6)))] @min-due-split:w-auto @min-due-split:overflow-x-visible @min-due-split:overflow-y-clip @min-due-split:px-0 @min-due-split:pt-1 @min-due-split:pb-6"
+        class="relative -my-1 -ml-1 w-[calc(var(--window-length)+(--spacing(1)))] overflow-x-clip p-1 @2xl:-mb-6 @2xl:ml-0 @2xl:h-[calc(var(--window-length)+(--spacing(6)))] @2xl:w-auto @2xl:overflow-x-visible @2xl:overflow-y-clip @2xl:px-0 @2xl:pt-1 @2xl:pb-6"
         {onkeydown}
         onpointerleave={() => (hoveredDate = null)}
       >
-        <div class="relative h-(--week-length) @min-due-split:h-0">
+        <div class="relative h-(--week-length) @2xl:h-0">
           {#each rendered as week (week)}
             <div
               style:--week-index={week}
-              class="slot absolute top-0 left-0 flex translate-x-(--distance-from-start) flex-col gap-1 @min-due-split:translate-x-0 @min-due-split:translate-y-(--distance-from-start) @min-due-split:flex-row"
+              class="slot absolute top-0 left-0 flex translate-x-(--distance-from-start) flex-col gap-1 @2xl:translate-x-0 @2xl:translate-y-(--distance-from-start) @2xl:flex-row"
             >
               {#each { length: 7 } as _, i}
                 {@render cell(weekStart(week).add({ days: i }))}

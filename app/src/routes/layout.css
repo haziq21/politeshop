@@ -30,8 +30,6 @@
   --text-2xs: 0.625rem;
 
   --container-page: 100rem;
-  /* Width of the deadlines section from which its heatmap sits beside the list */
-  --container-due-split: 40.625rem;
 
   --color-background: light-dark(var(--color-gray-50), var(--color-gray-950));
   --color-foreground: light-dark(var(--color-gray-800), var(--color-gray-100));

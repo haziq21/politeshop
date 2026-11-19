@@ -17,6 +17,7 @@ POLITEShop maintains its own database of user data, which it mirrors from POLITE
 - Extension build: `pnpm --filter @politeshop/ext build` → `ext/.output/chrome-mv3`
 - Format / lint / type check (root, via vite+ `vp`; config in `vite.config.ts`): `vp check` (format + type-aware lint, which also type-checks the TS in every package; `--fix` to fix), `pnpm lint:tailwind`, `pnpm --filter @politeshop/app typecheck` (svelte-check, for `.svelte` files)
 - Tailwind: oxfmt sorts classes (`fmt.sortTailwindcss`), and `eslint-plugin-better-tailwindcss` enforces canonical classes via `eslint.config.mjs` (`pnpm lint:tailwind --fix`); oxlint cannot see class attributes in `.svelte` markup
+- Component tests (Vitest browser mode, config in the root `vite.config.ts`): `vp test` from the repo root
 - Pre-commit (`.pre-commit-config.yaml`, pre-commit framework): `vp check --fix`, Tailwind lint, svelte-check, plus ruff/ty for `ai/infra`
 
 ## Monorepo
