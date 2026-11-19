@@ -466,7 +466,7 @@ export async function getDueItems(userId: string) {
     db
       .select({
         id: submissionDropbox.id,
-        title: submissionDropbox.name,
+        name: submissionDropbox.name,
         dueAt: submissionDropbox.dueAt,
         moduleCode,
         submissionCount: countDistinct(userSubmission.id),
@@ -487,7 +487,7 @@ export async function getDueItems(userId: string) {
     db
       .select({
         id: quiz.id,
-        title: quiz.name,
+        name: quiz.name,
         dueAt: quiz.dueAt,
         moduleCode,
       })

@@ -1,6 +1,21 @@
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite-plus";
+import { playwright } from "vite-plus/test/browser-playwright";
 
 export default defineConfig({
+  plugins: [tailwindcss(), svelte()],
+  test: {
+    include: ["app/src/**/*.test.ts"],
+    setupFiles: ["app/src/vitest-setup.ts"],
+    browser: {
+      enabled: true,
+      headless: true,
+      provider: playwright(),
+      viewport: { width: 1280, height: 720 },
+      instances: [{ browser: "chromium" }],
+    },
+  },
   lint: {
     options: { typeAware: true, typeCheck: true },
     rules: { "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }] },
