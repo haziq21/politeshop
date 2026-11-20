@@ -5,8 +5,7 @@ import { test as base, chromium, type BrowserContext } from "@playwright/test";
 import path from "node:path";
 
 import { mockwright } from "../src/lib/server/mockwright";
-import { createMockData } from "./data";
-import { resetData, seedData } from "./db";
+import { createMocks, resetData, seedData } from "./data";
 
 const EXTENSION_PATH = path.resolve(import.meta.dirname, "../../ext/.output/chrome-mv3");
 
@@ -15,7 +14,8 @@ type Fixtures = {
   mw: Mw<typeof mockwright>;
   subdomain: string;
   credentials: { d2lSessionVal: string; d2lSecureSessionVal: string };
-  seededUser: ReturnType<typeof createMockData>;
+  /** `data` is seeded into the DB for the test user; `pl` is what POLITEMall returns to match it */
+  mocks: ReturnType<typeof createMocks>;
 };
 
 export const test = base.extend<Fixtures>({
@@ -67,14 +67,18 @@ export const test = base.extend<Fixtures>({
     await use(page);
   },
 
-  seededUser: async ({ credentials }, use) => {
-    const data = createMockData();
+  mocks: async ({ mw, credentials }, use) => {
+    const mocks = createMocks();
+    await mw("pl.getModuleActivities").mockResolvedValue(mocks.pl.activities);
+    await mw("pl.getQuizzes").mockResolvedValue(mocks.pl.quizzes);
+    await mw("pl.getSubmissionDropboxes").mockResolvedValue(mocks.pl.dropboxes);
+    await mw("pl.getSubmissions").mockResolvedValue(mocks.pl.submissions);
 
     try {
-      await seedData(data, credentials);
-      await use(data);
+      await seedData(mocks.data, credentials);
+      await use(mocks);
     } finally {
-      await resetData(data);
+      await resetData(mocks.data);
     }
   },
 });
