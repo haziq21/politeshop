@@ -15,6 +15,13 @@
       "when": 1795074437604,
       "tag": "0001_fold_folders_into_activities",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795200335766,
+      "tag": "0002_index_activity_module_id",
+      "breakpoints": true
     }
   ]
 }

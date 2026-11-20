@@ -1,0 +1,1 @@
+CREATE INDEX "base_activity_module_id_index" ON "base_activity" USING btree ("module_id");

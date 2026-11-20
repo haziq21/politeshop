@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, pgEnum, pgTable, primaryKey, text, type AnyPgColumn, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, integer, pgEnum, pgTable, primaryKey, text, type AnyPgColumn, uniqueIndex } from "drizzle-orm/pg-core";
 
 import { date, timestamptz } from "./temporal";
 
@@ -80,19 +80,23 @@ export const activityTypeEnum = pgEnum("activity_type", [
   "unknown",
 ]);
 
-export const baseActivity = pgTable("base_activity", {
-  id: text().primaryKey(),
-  type: activityTypeEnum().notNull(),
-  name: text().notNull(),
-  moduleId: text("module_id")
-    .notNull()
-    .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
-  parentId: text("parent_id").references((): AnyPgColumn => baseActivity.id, {
-    onDelete: "cascade",
-    onUpdate: "cascade",
-  }),
-  sortOrder: integer("sort_order").notNull(),
-});
+export const baseActivity = pgTable(
+  "base_activity",
+  {
+    id: text().primaryKey(),
+    type: activityTypeEnum().notNull(),
+    name: text().notNull(),
+    moduleId: text("module_id")
+      .notNull()
+      .references(() => module.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    parentId: text("parent_id").references((): AnyPgColumn => baseActivity.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    }),
+    sortOrder: integer("sort_order").notNull(),
+  },
+  (table) => [index().on(table.moduleId)],
+);
 
 export const folderActivity = pgTable("folder_activity", {
   id: text()
