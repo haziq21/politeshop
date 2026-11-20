@@ -213,12 +213,16 @@ export async function getBaseActivities(userId: string, moduleId: string): Promi
     .orderBy(baseActivity.sortOrder);
 }
 
-/** Get a single activity by ID, with its type-specific details. */
-export async function getActivity(activityId: string): Promise<AnyActivity | null> {
+/** Get a single activity by ID, with its type-specific details. Null if it doesn't exist or the user can't access it. */
+export async function getActivity(userId: string, activityId: string): Promise<AnyActivity | null> {
   const row = (
     await db
       .select()
       .from(baseActivity)
+      .innerJoin(
+        userActivityAccess,
+        and(eq(userActivityAccess.activityId, baseActivity.id), eq(userActivityAccess.userId, userId)),
+      )
       .leftJoin(folderActivity, eq(folderActivity.id, baseActivity.id))
       .leftJoin(htmlActivity, eq(htmlActivity.id, baseActivity.id))
       .leftJoin(webEmbedActivity, eq(webEmbedActivity.id, baseActivity.id))
