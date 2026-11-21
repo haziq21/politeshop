@@ -1,0 +1,153 @@
+{
+  "Next": "https://nplms.polite.edu.sg/d2l/api/le/1.75/100013/quizzes/?bookmark=bookmark-27",
+  "Objects": [
+    {
+      "QuizId": 100014,
+      "Name": "Name 28",
+      "AutoExportToGrades": true,
+      "IsActive": true,
+      "GradeItemId": 100015,
+      "IsAutoSetGraded": true,
+      "Instructions": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": false
+      },
+      "Description": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": true
+      },
+      "Header": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": true
+      },
+      "Footer": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": true
+      },
+      "StartDate": null,
+      "EndDate": null,
+      "DueDate": null,
+      "DisplayInCalendar": false,
+      "SortOrder": 2,
+      "SubmissionTimeLimit": {
+        "IsEnforced": false,
+        "ShowClock": false,
+        "TimeLimitValue": 0
+      },
+      "SubmissionGracePeriod": 5,
+      "LateSubmissionInfo": {
+        "LateSubmissionOption": 0,
+        "LateLimitMinutes": null
+      },
+      "AttemptsAllowed": {
+        "IsUnlimited": false,
+        "NumberOfAttemptsAllowed": 3
+      },
+      "Password": null,
+      "AllowHints": false,
+      "DisableRightClick": false,
+      "DisablePagerAndAlerts": false,
+      "RestrictIPAddressRange": [],
+      "NotificationEmail": "NotificationEmail 29",
+      "CalcTypeId": 1,
+      "CategoryId": null,
+      "PreventMovingBackwards": false,
+      "Shuffle": false,
+      "ActivityId": "https://example.com/activities/segment-30/segment-31",
+      "AllowOnlyUsersWithSpecialAccess": false,
+      "IsRetakeIncorrectOnly": false,
+      "PagingTypeId": 0,
+      "IsSynchronous": false,
+      "DeductionPercentage": null,
+      "HideQuestionPoints": false,
+      "IsSingleSession": false,
+      "AnnotationToolsEnabled": true
+    },
+    {
+      "QuizId": 100016,
+      "Name": "Name 32",
+      "AutoExportToGrades": false,
+      "IsActive": true,
+      "GradeItemId": null,
+      "IsAutoSetGraded": true,
+      "Instructions": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": false
+      },
+      "Description": {
+        "Text": {
+          "Text": "Text 33",
+          "Html": "<p>html 34</p>"
+        },
+        "IsDisplayed": true
+      },
+      "Header": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": true
+      },
+      "Footer": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": true
+      },
+      "StartDate": "2024-08-03T16:01:00.000Z",
+      "EndDate": "2024-09-12T15:59:59.000Z",
+      "DueDate": "2024-08-17T15:59:59.000Z",
+      "DisplayInCalendar": false,
+      "SortOrder": 2,
+      "SubmissionTimeLimit": {
+        "IsEnforced": false,
+        "ShowClock": false,
+        "TimeLimitValue": 0
+      },
+      "SubmissionGracePeriod": 0,
+      "LateSubmissionInfo": {
+        "LateSubmissionOption": 0,
+        "LateLimitMinutes": null
+      },
+      "AttemptsAllowed": {
+        "IsUnlimited": true,
+        "NumberOfAttemptsAllowed": null
+      },
+      "Password": null,
+      "AllowHints": false,
+      "DisableRightClick": false,
+      "DisablePagerAndAlerts": false,
+      "RestrictIPAddressRange": [],
+      "NotificationEmail": null,
+      "CalcTypeId": 1,
+      "CategoryId": null,
+      "PreventMovingBackwards": false,
+      "Shuffle": true,
+      "ActivityId": "https://example.com/activities/segment-30/segment-35",
+      "AllowOnlyUsersWithSpecialAccess": false,
+      "IsRetakeIncorrectOnly": true,
+      "PagingTypeId": 1,
+      "IsSynchronous": false,
+      "DeductionPercentage": null,
+      "HideQuestionPoints": false,
+      "IsSingleSession": false,
+      "AnnotationToolsEnabled": true
+    }
+  ]
+}

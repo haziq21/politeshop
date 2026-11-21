@@ -1,0 +1,838 @@
+{
+  "activity": {
+    "100035": {
+      "class": ["release-condition-fix", "sequenced-activity"],
+      "properties": {
+        "title": "title 104",
+        "courseName": "courseName 105",
+        "canDownload": true,
+        "canPrint": true,
+        "enableManualCompletionComponent": true
+      },
+      "entities": [
+        {
+          "class": ["icon", "tier1"],
+          "rel": ["icon"],
+          "properties": {
+            "iconSetKey": "tier1:file-video",
+            "imagePath": "https://example.com/segment-106/segment-107/segment-108/segment-109/segment-110/segment-111"
+          }
+        },
+        {
+          "class": ["icon", "tier2"],
+          "rel": ["icon"],
+          "properties": {
+            "iconSetKey": "tier2:file-video",
+            "imagePath": "https://example.com/segment-106/segment-107/segment-108/segment-109/segment-112/segment-111"
+          }
+        },
+        {
+          "class": ["activity", "file-activity"],
+          "rel": ["about"],
+          "properties": {
+            "name": "name 113",
+            "title": "title 104",
+            "canDownload": true,
+            "canPrint": true
+          },
+          "entities": [
+            {
+              "class": ["file"],
+              "rel": ["about"],
+              "properties": {
+                "name": "name 113",
+                "title": "title 104",
+                "type": "type 114",
+                "canDownload": true,
+                "canPrint": true
+              },
+              "entities": [
+                {
+                  "class": ["last-modified", "date"],
+                  "rel": ["item"],
+                  "properties": {
+                    "date": "2026-10-25T13:22:37.003Z"
+                  }
+                }
+              ],
+              "links": [
+                {
+                  "rel": ["alternate"],
+                  "type": "video/mp4",
+                  "href": "https://nplms.polite.edu.sg/d2l/api/le/1.12/100061/content/topics/100035/segment-115?stream=REDACTED"
+                },
+                {
+                  "class": ["embed"],
+                  "rel": ["alternate"],
+                  "type": "video/mp4",
+                  "href": "https://nplms.polite.edu.sg/content/enforced/segment-67/100036/segment-68.mp4"
+                },
+                {
+                  "class": ["view"],
+                  "rel": ["alternate"],
+                  "type": "video/mp4",
+                  "href": "https://nplms.polite.edu.sg/d2l/le/content/100061/segment-116/100035/segment-117"
+                },
+                {
+                  "class": ["fullscreen"],
+                  "rel": ["alternate"],
+                  "type": "video/mp4",
+                  "href": "https://nplms.polite.edu.sg/d2l/le/content/100061/segment-118/100035/segment-117?asv=REDACTED&skipHeader=REDACTED"
+                },
+                {
+                  "class": ["download"],
+                  "rel": ["alternate"],
+                  "type": "video/mp4",
+                  "href": "https://nplms.polite.edu.sg/d2l/api/le/1.12/100061/content/topics/100035/segment-115?stream=REDACTED"
+                }
+              ]
+            },
+            {
+              "class": ["completion", "incomplete", "required"],
+              "rel": ["item", "https://api.brightspace.com/rels/completion"],
+              "links": [
+                {
+                  "rel": ["alternate"],
+                  "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100035/segment-119"
+                }
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100035/segment-120?hasStateChanged=REDACTED&hasBeenViewed=REDACTED&filterOnDatesAndDepth=0&previousCompletion=REDACTED",
+              "name": "view-activity",
+              "method": "POST"
+            },
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100035/segment-120?hasStateChanged=REDACTED&hasBeenViewed=REDACTED&filterOnDatesAndDepth=0&previousCompletion=REDACTED",
+              "name": "view-activity-duration",
+              "method": "PUT"
+            },
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100035/segment-121",
+              "name": "set-last-viewed-content-object",
+              "method": "POST"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "rel": ["https://api.brightspace.com/rels/organization"],
+          "href": "https://tenant-1.organizations.api.brightspace.com/100061"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/next-previous-activity"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100035/segment-122?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/sequence-root"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100062?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/end-of-sequence"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100062/segment-123?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://activities.api.brightspace.com/rels/activity-usage"],
+          "href": "https://tenant-1.activities.api.brightspace.com/old/activities/segment-124/usages/100061"
+        },
+        {
+          "class": [""],
+          "rel": ["https://sequences.api.brightspace.com/rels/default-return-url"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/segment-125/100061/segment-126"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/sequence-viewer-application"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/segment-125/100061?redirect=REDACTED&url=REDACTED"
+        },
+        {
+          "rel": ["alternate"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/content/100061/segment-116/100035/segment-117"
+        },
+        {
+          "rel": ["up"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100062?filterOnDatesAndDepth=0"
+        },
+        {
+          "class": ["sequenced-activity"],
+          "rel": ["self", "describes"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100035?filterOnDatesAndDepth=0"
+        }
+      ],
+      "rel": ["item"]
+    },
+    "100038": {
+      "class": ["release-condition-fix", "sequenced-activity"],
+      "properties": {
+        "title": "title 127",
+        "courseName": "courseName 105",
+        "canDownload": true,
+        "canPrint": true,
+        "enableManualCompletionComponent": true
+      },
+      "entities": [
+        {
+          "class": ["icon", "tier1"],
+          "rel": ["icon"],
+          "properties": {
+            "iconSetKey": "tier1:file-document",
+            "imagePath": "https://example.com/segment-106/segment-107/segment-108/segment-109/segment-110/segment-128"
+          }
+        },
+        {
+          "class": ["icon", "tier2"],
+          "rel": ["icon"],
+          "properties": {
+            "iconSetKey": "tier2:file-document",
+            "imagePath": "https://example.com/segment-106/segment-107/segment-108/segment-109/segment-112/segment-128"
+          }
+        },
+        {
+          "class": ["activity", "file-activity"],
+          "rel": ["about"],
+          "properties": {
+            "name": "name 129",
+            "title": "title 127",
+            "canDownload": true,
+            "canPrint": true
+          },
+          "entities": [
+            {
+              "class": ["file"],
+              "rel": ["about"],
+              "properties": {
+                "name": "name 129",
+                "title": "title 127",
+                "type": "type 130",
+                "canDownload": true,
+                "canPrint": true
+              },
+              "entities": [
+                {
+                  "class": ["last-modified", "date"],
+                  "rel": ["item"],
+                  "properties": {
+                    "date": "2026-10-25T12:50:57.713Z"
+                  }
+                }
+              ],
+              "links": [
+                {
+                  "rel": ["alternate"],
+                  "type": "application/msword",
+                  "href": "https://nplms.polite.edu.sg/d2l/api/le/1.12/100061/content/topics/100038/segment-115?stream=REDACTED"
+                },
+                {
+                  "class": ["embed"],
+                  "rel": ["alternate"],
+                  "type": "application/msword",
+                  "href": "https://nplms.polite.edu.sg/content/enforced/segment-67/100036/segment-131.doc"
+                },
+                {
+                  "class": ["view"],
+                  "rel": ["alternate"],
+                  "type": "application/msword",
+                  "href": "https://nplms.polite.edu.sg/d2l/le/content/100061/segment-116/100038/segment-117"
+                },
+                {
+                  "class": ["fullscreen"],
+                  "rel": ["alternate"],
+                  "type": "application/msword",
+                  "href": "https://nplms.polite.edu.sg/d2l/le/content/100061/segment-118/100038/segment-117?asv=REDACTED&skipHeader=REDACTED"
+                },
+                {
+                  "class": ["download"],
+                  "rel": ["alternate"],
+                  "type": "application/msword",
+                  "href": "https://nplms.polite.edu.sg/d2l/api/le/1.12/100061/content/topics/100038/segment-115?stream=REDACTED"
+                },
+                {
+                  "class": ["pdf", "d2l-converted-doc"],
+                  "rel": ["alternate"],
+                  "type": "application/pdf",
+                  "href": "https://fixtures.s3.amazonaws.com/00000000-0000-4000-8000-000000000001/segment-132.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=REDACTED&X-Amz-Credential=REDACTED&X-Amz-Date=20270101T100847Z&X-Amz-Expires=5460&X-Amz-Security-Token=REDACTED&X-Amz-Signature=REDACTED&X-Amz-SignedHeaders=host&x-amz-checksum-mode=REDACTED&x-id=REDACTED"
+                }
+              ]
+            },
+            {
+              "class": ["completion", "incomplete", "required"],
+              "rel": ["item", "https://api.brightspace.com/rels/completion"],
+              "links": [
+                {
+                  "rel": ["alternate"],
+                  "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100038/segment-119"
+                }
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100038/segment-120?hasStateChanged=REDACTED&hasBeenViewed=REDACTED&filterOnDatesAndDepth=0&previousCompletion=REDACTED",
+              "name": "view-activity",
+              "method": "POST"
+            },
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100038/segment-120?hasStateChanged=REDACTED&hasBeenViewed=REDACTED&filterOnDatesAndDepth=0&previousCompletion=REDACTED",
+              "name": "view-activity-duration",
+              "method": "PUT"
+            },
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100038/segment-121",
+              "name": "set-last-viewed-content-object",
+              "method": "POST"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "rel": ["https://api.brightspace.com/rels/organization"],
+          "href": "https://tenant-1.organizations.api.brightspace.com/100061"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/next-previous-activity"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100038/segment-122?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/sequence-root"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100062?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/end-of-sequence"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100062/segment-123?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://activities.api.brightspace.com/rels/activity-usage"],
+          "href": "https://tenant-1.activities.api.brightspace.com/old/activities/segment-133/usages/100061"
+        },
+        {
+          "class": [""],
+          "rel": ["https://sequences.api.brightspace.com/rels/default-return-url"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/segment-125/100061/segment-126"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/sequence-viewer-application"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/segment-125/100061?redirect=REDACTED&url=REDACTED"
+        },
+        {
+          "rel": ["alternate"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/content/100061/segment-116/100038/segment-117"
+        },
+        {
+          "rel": ["up"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100063?filterOnDatesAndDepth=0"
+        },
+        {
+          "class": ["sequenced-activity"],
+          "rel": ["self", "describes"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100061/activity/100038?filterOnDatesAndDepth=0"
+        }
+      ],
+      "rel": ["item"]
+    },
+    "100056": {
+      "class": ["release-condition-fix", "sequenced-activity"],
+      "properties": {
+        "title": "title 134",
+        "startDate": {
+          "Year": 2024,
+          "Month": 11,
+          "Day": 11,
+          "Hour": 0,
+          "Minute": 1,
+          "Second": 0,
+          "Millisecond": 0,
+          "TimeOfDay": {
+            "Hour": 0,
+            "Minute": 1,
+            "Second": 0,
+            "Millisecond": 0,
+            "TotalHours": 0.016666666666666666,
+            "TotalMinutes": 1.0,
+            "TotalSeconds": 60.0,
+            "TotalMilliseconds": 60000.0,
+            "Ticks": 600000000
+          },
+          "DayOfWeek": 1
+        },
+        "startDateString": "2024-12-21T16:01:00.000Z",
+        "courseName": "courseName 135",
+        "canDownload": true,
+        "canPrint": true,
+        "enableManualCompletionComponent": true
+      },
+      "entities": [
+        {
+          "class": ["icon", "tier1"],
+          "rel": ["icon"],
+          "properties": {
+            "iconSetKey": "tier1:file-document",
+            "imagePath": "https://example.com/segment-106/segment-107/segment-108/segment-109/segment-110/segment-128"
+          }
+        },
+        {
+          "class": ["icon", "tier2"],
+          "rel": ["icon"],
+          "properties": {
+            "iconSetKey": "tier2:file-document",
+            "imagePath": "https://example.com/segment-106/segment-107/segment-108/segment-109/segment-112/segment-128"
+          }
+        },
+        {
+          "class": ["activity", "file-activity"],
+          "rel": ["about"],
+          "properties": {
+            "name": "name 136",
+            "title": "title 134",
+            "canDownload": true,
+            "canPrint": true
+          },
+          "entities": [
+            {
+              "class": ["file"],
+              "rel": ["about"],
+              "properties": {
+                "name": "name 136",
+                "title": "title 134",
+                "type": "type 137",
+                "canDownload": true,
+                "canPrint": true
+              },
+              "entities": [
+                {
+                  "class": ["last-modified", "date"],
+                  "rel": ["item"],
+                  "properties": {
+                    "date": "2024-11-25T12:34:11.620Z"
+                  }
+                }
+              ],
+              "links": [
+                {
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/d2l/api/le/1.12/100013/content/topics/100056/segment-115?stream=REDACTED"
+                },
+                {
+                  "class": ["embed"],
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/content/enforced/segment-59/segment-138.docx"
+                },
+                {
+                  "class": ["view"],
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/d2l/le/content/100013/segment-116/100056/segment-117"
+                },
+                {
+                  "class": ["fullscreen"],
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/d2l/le/content/100013/segment-118/100056/segment-117?asv=REDACTED&skipHeader=REDACTED"
+                },
+                {
+                  "class": ["download"],
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/d2l/api/le/1.12/100013/content/topics/100056/segment-115?stream=REDACTED"
+                },
+                {
+                  "class": ["pdf", "d2l-converted-doc"],
+                  "rel": ["alternate"],
+                  "type": "application/pdf",
+                  "href": "https://fixtures.s3.amazonaws.com/00000000-0000-4000-8000-000000000001/segment-139.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=REDACTED&X-Amz-Credential=REDACTED&X-Amz-Date=20270101T100930Z&X-Amz-Expires=5460&X-Amz-Security-Token=REDACTED&X-Amz-Signature=REDACTED&X-Amz-SignedHeaders=host&x-amz-checksum-mode=REDACTED&x-id=REDACTED"
+                }
+              ]
+            },
+            {
+              "class": ["completion", "incomplete", "required"],
+              "rel": ["item", "https://api.brightspace.com/rels/completion"],
+              "entities": [
+                {
+                  "class": ["start", "date"],
+                  "rel": ["item"],
+                  "properties": {
+                    "date": "2024-12-21T16:01:00.000Z"
+                  }
+                }
+              ],
+              "links": [
+                {
+                  "rel": ["alternate"],
+                  "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100056/segment-119"
+                }
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100056/segment-120?hasStateChanged=REDACTED&hasBeenViewed=REDACTED&filterOnDatesAndDepth=0&previousCompletion=REDACTED",
+              "name": "view-activity",
+              "method": "POST"
+            },
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100056/segment-120?hasStateChanged=REDACTED&hasBeenViewed=REDACTED&filterOnDatesAndDepth=0&previousCompletion=REDACTED",
+              "name": "view-activity-duration",
+              "method": "PUT"
+            },
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100056/segment-121",
+              "name": "set-last-viewed-content-object",
+              "method": "POST"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "rel": ["https://api.brightspace.com/rels/organization"],
+          "href": "https://tenant-1.organizations.api.brightspace.com/100013"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/next-previous-activity"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100056/segment-122?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/sequence-root"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100048?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/end-of-sequence"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100048/segment-123?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://activities.api.brightspace.com/rels/activity-usage"],
+          "href": "https://tenant-1.activities.api.brightspace.com/old/activities/segment-140/usages/100013"
+        },
+        {
+          "class": [""],
+          "rel": ["https://sequences.api.brightspace.com/rels/default-return-url"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/segment-125/100013/segment-126"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/sequence-viewer-application"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/segment-125/100013?redirect=REDACTED&url=REDACTED"
+        },
+        {
+          "rel": ["alternate"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/content/100013/segment-116/100056/segment-117"
+        },
+        {
+          "rel": ["up"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100053?filterOnDatesAndDepth=0"
+        },
+        {
+          "class": ["sequenced-activity"],
+          "rel": ["self", "describes"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100056?filterOnDatesAndDepth=0"
+        }
+      ],
+      "rel": ["item"]
+    },
+    "100060": {
+      "class": ["release-condition-fix", "sequenced-activity"],
+      "properties": {
+        "title": "title 152",
+        "startDate": {
+          "Year": 2024,
+          "Month": 11,
+          "Day": 28,
+          "Hour": 18,
+          "Minute": 0,
+          "Second": 0,
+          "Millisecond": 0,
+          "TimeOfDay": {
+            "Hour": 18,
+            "Minute": 0,
+            "Second": 0,
+            "Millisecond": 0,
+            "TotalHours": 18.0,
+            "TotalMinutes": 1080.0,
+            "TotalSeconds": 64800.0,
+            "TotalMilliseconds": 64800000.0,
+            "Ticks": 648000000000
+          },
+          "DayOfWeek": 4
+        },
+        "startDateString": "2025-01-08T10:00:00.000Z",
+        "courseName": "courseName 135",
+        "canDownload": true,
+        "canPrint": true,
+        "enableManualCompletionComponent": true
+      },
+      "entities": [
+        {
+          "class": ["icon", "tier1"],
+          "rel": ["icon"],
+          "properties": {
+            "iconSetKey": "tier1:file-document",
+            "imagePath": "https://example.com/segment-106/segment-107/segment-108/segment-109/segment-110/segment-128"
+          }
+        },
+        {
+          "class": ["icon", "tier2"],
+          "rel": ["icon"],
+          "properties": {
+            "iconSetKey": "tier2:file-document",
+            "imagePath": "https://example.com/segment-106/segment-107/segment-108/segment-109/segment-112/segment-128"
+          }
+        },
+        {
+          "class": ["activity", "file-activity"],
+          "rel": ["about"],
+          "properties": {
+            "name": "name 153",
+            "title": "title 152",
+            "canDownload": true,
+            "canPrint": true
+          },
+          "entities": [
+            {
+              "class": ["file", "processing"],
+              "rel": ["about"],
+              "properties": {
+                "name": "name 153",
+                "title": "title 152",
+                "type": "type 137",
+                "canDownload": true,
+                "canPrint": true
+              },
+              "entities": [
+                {
+                  "class": ["last-modified", "date"],
+                  "rel": ["item"],
+                  "properties": {
+                    "date": "2024-11-25T13:54:19.410Z"
+                  }
+                }
+              ],
+              "links": [
+                {
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/d2l/api/le/1.12/100013/content/topics/100060/segment-115?stream=REDACTED"
+                },
+                {
+                  "class": ["embed"],
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/content/enforced/segment-59/segment-154.docx"
+                },
+                {
+                  "class": ["view"],
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/d2l/le/content/100013/segment-116/100060/segment-117"
+                },
+                {
+                  "class": ["fullscreen"],
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/d2l/le/content/100013/segment-118/100060/segment-117?asv=REDACTED&skipHeader=REDACTED"
+                },
+                {
+                  "class": ["download"],
+                  "rel": ["alternate"],
+                  "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  "href": "https://nplms.polite.edu.sg/d2l/api/le/1.12/100013/content/topics/100060/segment-115?stream=REDACTED"
+                }
+              ]
+            },
+            {
+              "class": ["completion", "incomplete", "required"],
+              "rel": ["item", "https://api.brightspace.com/rels/completion"],
+              "entities": [
+                {
+                  "class": ["start", "date"],
+                  "rel": ["item"],
+                  "properties": {
+                    "date": "2025-01-08T10:00:00.000Z"
+                  }
+                }
+              ],
+              "links": [
+                {
+                  "rel": ["alternate"],
+                  "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100060/segment-119"
+                }
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100060/segment-120?hasStateChanged=REDACTED&hasBeenViewed=REDACTED&filterOnDatesAndDepth=0&previousCompletion=REDACTED",
+              "name": "view-activity",
+              "method": "POST"
+            },
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100060/segment-120?hasStateChanged=REDACTED&hasBeenViewed=REDACTED&filterOnDatesAndDepth=0&previousCompletion=REDACTED",
+              "name": "view-activity-duration",
+              "method": "PUT"
+            },
+            {
+              "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100060/segment-121",
+              "name": "set-last-viewed-content-object",
+              "method": "POST"
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "rel": ["https://api.brightspace.com/rels/organization"],
+          "href": "https://tenant-1.organizations.api.brightspace.com/100013"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/next-previous-activity"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100060/segment-122?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/sequence-root"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100048?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/end-of-sequence"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100048/segment-123?filterOnDatesAndDepth=0"
+        },
+        {
+          "rel": ["https://activities.api.brightspace.com/rels/activity-usage"],
+          "href": "https://tenant-1.activities.api.brightspace.com/old/activities/segment-155/usages/100013"
+        },
+        {
+          "class": [""],
+          "rel": ["https://sequences.api.brightspace.com/rels/default-return-url"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/segment-125/100013/segment-126"
+        },
+        {
+          "rel": ["https://sequences.api.brightspace.com/rels/sequence-viewer-application"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/segment-125/100013?redirect=REDACTED&url=REDACTED"
+        },
+        {
+          "rel": ["alternate"],
+          "type": "text/html",
+          "href": "https://nplms.polite.edu.sg/d2l/le/content/100013/segment-116/100060/segment-117"
+        },
+        {
+          "rel": ["up"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100059?filterOnDatesAndDepth=0"
+        },
+        {
+          "class": ["sequenced-activity"],
+          "rel": ["self", "describes"],
+          "href": "https://tenant-1.sequences.api.brightspace.com/100013/activity/100060?filterOnDatesAndDepth=0"
+        }
+      ],
+      "rel": ["item"]
+    }
+  },
+  "thumbnail": {
+    "100055": {
+      "class": ["content-service-resource"],
+      "properties": {
+        "d2lrn": "d2lrn 141",
+        "contentServiceEndpoint": "https://tenant-1.content-service.brightspace.com",
+        "topicId": 100055,
+        "orgUnitId": 100013
+      },
+      "entities": [
+        {
+          "class": ["thumbnail"],
+          "rel": ["thumbnail"],
+          "properties": {
+            "src": "https://tenant-1.content-service.brightspace.com/00000000-0000-4000-8000-000000000001/segment-142/00000000-0000-4000-8000-000000000002/00000000-0000-4000-8000-000000000003/segment-143/segment-144.png?Expires=1798801770&Key-Pair-Id=REDACTED&Signature=REDACTED",
+            "expires": 1798801770
+          }
+        }
+      ],
+      "links": [
+        {
+          "rel": ["self"],
+          "href": "https://tenant-1.content-service.api.brightspace.com/topics/100013/100055"
+        }
+      ],
+      "actions": [
+        {
+          "href": "https://tenant-1.content-service.api.brightspace.com/topics/100013/100055/segment-145",
+          "name": "get-metadata",
+          "method": "GET"
+        },
+        {
+          "href": "https://tenant-1.content-service.api.brightspace.com/topics/100013/100055/segment-146",
+          "name": "get-thumbnails",
+          "method": "GET"
+        },
+        {
+          "href": "https://tenant-1.content-service.api.brightspace.com/topics/100013/100055/segment-147",
+          "name": "get-revision",
+          "method": "GET"
+        },
+        {
+          "href": "https://tenant-1.content-service.api.brightspace.com/topics/100013/100055/media",
+          "name": "get-media",
+          "method": "GET",
+          "fields": [
+            {
+              "type": "radio",
+              "name": "format",
+              "value": []
+            },
+            {
+              "type": "checkbox",
+              "name": "attachment",
+              "value": true
+            }
+          ]
+        },
+        {
+          "href": "https://tenant-1.content-service.api.brightspace.com/topics/100013/100055/segment-148",
+          "name": "get-track",
+          "method": "GET",
+          "fields": [
+            {
+              "type": "text",
+              "name": "locale",
+              "value": "value 149"
+            }
+          ]
+        },
+        {
+          "href": "https://tenant-1.content-service.api.brightspace.com/topics/100013/100055/segment-150",
+          "name": "get-tracks",
+          "method": "GET",
+          "fields": [
+            {
+              "type": "text",
+              "name": "locale",
+              "value": "value 149"
+            }
+          ]
+        }
+      ],
+      "rel": ["about", "item"]
+    }
+  },
+  "media": {
+    "100055": {
+      "class": ["media", "video", null],
+      "properties": {
+        "src": "https://tenant-1.content-service.brightspace.com/00000000-0000-4000-8000-000000000001/segment-142/00000000-0000-4000-8000-000000000002/00000000-0000-4000-8000-000000000003/segment-151.mp4?Expires=1798801770&Key-Pair-Id=REDACTED&Signature=REDACTED",
+        "expires": 1798801770
+      },
+      "rel": ["alternate"]
+    }
+  }
+}

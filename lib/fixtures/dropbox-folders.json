@@ -1,0 +1,132 @@
+[
+  {
+    "Id": 100019,
+    "CategoryId": null,
+    "Name": "Name 40",
+    "CustomInstructions": {
+      "Text": "",
+      "Html": ""
+    },
+    "Attachments": [],
+    "TotalFiles": -1,
+    "UnreadFiles": -1,
+    "FlaggedFiles": -1,
+    "TotalUsers": -1,
+    "TotalUsersWithSubmissions": -1,
+    "TotalUsersWithFeedback": -1,
+    "Availability": {
+      "StartDate": "2024-08-31T16:01:00.000Z",
+      "EndDate": "2024-09-26T15:59:59.000Z",
+      "StartDateAvailabilityType": 0,
+      "EndDateAvailabilityType": 0
+    },
+    "IsHidden": false,
+    "Assessment": {
+      "ScoreDenominator": null,
+      "Rubrics": []
+    },
+    "DropboxType": 2,
+    "GroupTypeId": null,
+    "DueDate": "2024-09-12T15:59:59.000Z",
+    "DisplayInCalendar": false,
+    "NotificationEmail": null,
+    "LinkAttachments": [],
+    "ActivityId": "https://example.com/activities/dropbox/segment-41",
+    "IsAnonymous": false,
+    "SubmissionType": 0,
+    "CompletionType": 0,
+    "AllowableFileType": 0,
+    "CustomAllowableFileTypes": null,
+    "GradeItemId": null,
+    "AllowOnlyUsersWithSpecialAccess": null
+  },
+  {
+    "Id": 100020,
+    "CategoryId": null,
+    "Name": "Name 42",
+    "CustomInstructions": {
+      "Text": "",
+      "Html": ""
+    },
+    "Attachments": [
+      {
+        "FileId": 100021,
+        "FileName": "FileName 43",
+        "Size": 248595
+      }
+    ],
+    "TotalFiles": -1,
+    "UnreadFiles": -1,
+    "FlaggedFiles": -1,
+    "TotalUsers": -1,
+    "TotalUsersWithSubmissions": -1,
+    "TotalUsersWithFeedback": -1,
+    "Availability": null,
+    "IsHidden": false,
+    "Assessment": {
+      "ScoreDenominator": null,
+      "Rubrics": []
+    },
+    "DropboxType": 2,
+    "GroupTypeId": null,
+    "DueDate": null,
+    "DisplayInCalendar": false,
+    "NotificationEmail": null,
+    "LinkAttachments": [],
+    "ActivityId": "https://example.com/activities/dropbox/segment-44",
+    "IsAnonymous": false,
+    "SubmissionType": 0,
+    "CompletionType": 0,
+    "AllowableFileType": 0,
+    "CustomAllowableFileTypes": null,
+    "GradeItemId": null,
+    "AllowOnlyUsersWithSpecialAccess": null
+  },
+  {
+    "Id": 100022,
+    "CategoryId": null,
+    "Name": "Name 45",
+    "CustomInstructions": {
+      "Text": "",
+      "Html": ""
+    },
+    "Attachments": [],
+    "TotalFiles": -1,
+    "UnreadFiles": -1,
+    "FlaggedFiles": -1,
+    "TotalUsers": -1,
+    "TotalUsersWithSubmissions": -1,
+    "TotalUsersWithFeedback": -1,
+    "Availability": {
+      "StartDate": "2025-09-07T01:00:00.000Z",
+      "EndDate": "2025-09-20T15:59:59.000Z",
+      "StartDateAvailabilityType": 0,
+      "EndDateAvailabilityType": 0
+    },
+    "IsHidden": false,
+    "Assessment": {
+      "ScoreDenominator": 100.0,
+      "Rubrics": []
+    },
+    "DropboxType": 2,
+    "GroupTypeId": null,
+    "DueDate": "2025-09-13T15:59:59.000Z",
+    "DisplayInCalendar": false,
+    "NotificationEmail": null,
+    "LinkAttachments": [
+      {
+        "LinkId": 100023,
+        "LinkName": "LinkName 46",
+        "Href": "https://nplms.polite.edu.sg/d2l/segment-47/segment-48/segment-49/segment-50?ou=REDACTED&type=REDACTED&fileId=REDACTED"
+      }
+    ],
+    "ActivityId": "https://example.com/activities/dropbox/segment-51",
+    "IsAnonymous": false,
+    "SubmissionType": 0,
+    "CompletionType": 0,
+    "AllowableFileType": 0,
+    "CustomAllowableFileTypes": null,
+    "GradeItemId": null,
+    "AllowOnlyUsersWithSpecialAccess": null
+  }
+]

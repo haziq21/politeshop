@@ -1,0 +1,80 @@
+{
+  "PagingInfo": {
+    "Bookmark": "Bookmark 6",
+    "HasMoreItems": true
+  },
+  "Items": [
+    {
+      "OrgUnit": {
+        "Id": 100002,
+        "Type": {
+          "Id": 1,
+          "Code": "Code 7",
+          "Name": "Name 8"
+        },
+        "Name": "Name 5",
+        "Code": null,
+        "HomeUrl": "https://nplms.polite.edu.sg/d2l/home/100002",
+        "ImageUrl": "https://nplms.polite.edu.sg/d2l/api/lp/1.9/courses/100002/image"
+      },
+      "Access": {
+        "IsActive": true,
+        "StartDate": null,
+        "EndDate": null,
+        "CanAccess": true,
+        "ClasslistRoleName": "Student",
+        "LISRoles": ["urn:lti:instrole:ims/lis/Student", "urn:lti:instrole:ims/lis/Learner"],
+        "LastAccessed": "2027-01-01T10:07:59.833Z"
+      },
+      "PinDate": null
+    },
+    {
+      "OrgUnit": {
+        "Id": 100003,
+        "Type": {
+          "Id": 4,
+          "Code": "Code 9",
+          "Name": "Name 10"
+        },
+        "Name": "Name 11",
+        "Code": "Code 12",
+        "HomeUrl": "https://nplms.polite.edu.sg/d2l/home/100003",
+        "ImageUrl": null
+      },
+      "Access": {
+        "IsActive": true,
+        "StartDate": null,
+        "EndDate": null,
+        "CanAccess": true,
+        "ClasslistRoleName": "Student",
+        "LISRoles": ["urn:lti:instrole:ims/lis/Student", "urn:lti:instrole:ims/lis/Learner"],
+        "LastAccessed": null
+      },
+      "PinDate": null
+    },
+    {
+      "OrgUnit": {
+        "Id": 100004,
+        "Type": {
+          "Id": 3,
+          "Code": "Code 13",
+          "Name": "Name 14"
+        },
+        "Name": "Name 15",
+        "Code": "Code 16",
+        "HomeUrl": "https://nplms.polite.edu.sg/d2l/home/100004",
+        "ImageUrl": "https://nplms.polite.edu.sg/d2l/api/lp/1.9/courses/100004/image"
+      },
+      "Access": {
+        "IsActive": true,
+        "StartDate": null,
+        "EndDate": null,
+        "CanAccess": true,
+        "ClasslistRoleName": "Student",
+        "LISRoles": ["urn:lti:instrole:ims/lis/Student", "urn:lti:instrole:ims/lis/Learner"],
+        "LastAccessed": "2026-12-30T05:21:36.300Z"
+      },
+      "PinDate": null
+    }
+  ]
+}

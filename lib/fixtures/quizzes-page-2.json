@@ -1,0 +1,79 @@
+{
+  "Next": null,
+  "Objects": [
+    {
+      "QuizId": 100017,
+      "Name": "Name 36",
+      "AutoExportToGrades": false,
+      "IsActive": true,
+      "GradeItemId": null,
+      "IsAutoSetGraded": true,
+      "Instructions": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": false
+      },
+      "Description": {
+        "Text": {
+          "Text": "Text 37",
+          "Html": "<p>html 38</p>"
+        },
+        "IsDisplayed": true
+      },
+      "Header": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": true
+      },
+      "Footer": {
+        "Text": {
+          "Text": "",
+          "Html": ""
+        },
+        "IsDisplayed": true
+      },
+      "StartDate": null,
+      "EndDate": null,
+      "DueDate": null,
+      "DisplayInCalendar": false,
+      "SortOrder": 3,
+      "SubmissionTimeLimit": {
+        "IsEnforced": false,
+        "ShowClock": false,
+        "TimeLimitValue": 0
+      },
+      "SubmissionGracePeriod": 5,
+      "LateSubmissionInfo": {
+        "LateSubmissionOption": 0,
+        "LateLimitMinutes": null
+      },
+      "AttemptsAllowed": {
+        "IsUnlimited": false,
+        "NumberOfAttemptsAllowed": 3
+      },
+      "Password": null,
+      "AllowHints": false,
+      "DisableRightClick": false,
+      "DisablePagerAndAlerts": true,
+      "RestrictIPAddressRange": [],
+      "NotificationEmail": null,
+      "CalcTypeId": 1,
+      "CategoryId": 100018,
+      "PreventMovingBackwards": false,
+      "Shuffle": true,
+      "ActivityId": "https://example.com/activities/segment-30/segment-39",
+      "AllowOnlyUsersWithSpecialAccess": false,
+      "IsRetakeIncorrectOnly": true,
+      "PagingTypeId": null,
+      "IsSynchronous": false,
+      "DeductionPercentage": null,
+      "HideQuestionPoints": false,
+      "IsSingleSession": false,
+      "AnnotationToolsEnabled": true
+    }
+  ]
+}

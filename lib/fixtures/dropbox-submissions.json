@@ -1,0 +1,105 @@
+[
+  {
+    "Entity": {
+      "DisplayName": "DisplayName 52",
+      "EntityId": 100001,
+      "EntityType": "User",
+      "Active": true
+    },
+    "Status": 1,
+    "Feedback": null,
+    "Submissions": [
+      {
+        "Id": 100024,
+        "SubmittedBy": {
+          "Identifier": "100001",
+          "DisplayName": "DisplayName 52"
+        },
+        "SubmissionDate": "2025-12-08T06:10:13.430Z",
+        "Comment": {
+          "Text": "",
+          "Html": ""
+        },
+        "Files": [
+          {
+            "IsRead": false,
+            "IsFlagged": false,
+            "IsDeleted": false,
+            "FileId": 100025,
+            "FileName": "FileName 53",
+            "Size": 205476
+          }
+        ]
+      },
+      {
+        "Id": 100026,
+        "SubmittedBy": {
+          "Identifier": "100001",
+          "DisplayName": "DisplayName 52"
+        },
+        "SubmissionDate": "2025-12-08T06:11:22.563Z",
+        "Comment": {
+          "Text": "",
+          "Html": ""
+        },
+        "Files": [
+          {
+            "IsRead": false,
+            "IsFlagged": false,
+            "IsDeleted": false,
+            "FileId": 100027,
+            "FileName": "FileName 54",
+            "Size": 43
+          }
+        ]
+      },
+      {
+        "Id": 100028,
+        "SubmittedBy": {
+          "Identifier": "100001",
+          "DisplayName": "DisplayName 52"
+        },
+        "SubmissionDate": "2025-12-08T07:36:42.563Z",
+        "Comment": {
+          "Text": "",
+          "Html": ""
+        },
+        "Files": [
+          {
+            "IsRead": false,
+            "IsFlagged": false,
+            "IsDeleted": false,
+            "FileId": 100029,
+            "FileName": "FileName 55",
+            "Size": 97960
+          },
+          {
+            "IsRead": false,
+            "IsFlagged": false,
+            "IsDeleted": false,
+            "FileId": 100030,
+            "FileName": "FileName 56",
+            "Size": 141598
+          },
+          {
+            "IsRead": false,
+            "IsFlagged": false,
+            "IsDeleted": false,
+            "FileId": 100031,
+            "FileName": "FileName 57",
+            "Size": 95161
+          },
+          {
+            "IsRead": false,
+            "IsFlagged": false,
+            "IsDeleted": false,
+            "FileId": 100032,
+            "FileName": "FileName 58",
+            "Size": 94623
+          }
+        ]
+      }
+    ],
+    "CompletionDate": "2025-12-08T07:36:42.563Z"
+  }
+]
