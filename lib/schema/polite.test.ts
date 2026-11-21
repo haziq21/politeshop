@@ -50,14 +50,14 @@ test("dropboxFolder turns date strings into Instants and allows null dates and a
   expect(dropboxFolder.parse({ ...folder, DueDate: null }).DueDate).toBeNull();
 });
 
-test("quizReadData requires start and end dates but allows no due date", () => {
+test("quizReadData allows quizzes with no start, end or due date", () => {
   const quiz = {
     QuizId: 1,
     Name: "Quiz",
     Instructions: { Text: { Text: "", Html: "" }, IsDisplayed: false },
     Description: { Text: { Text: "", Html: "" }, IsDisplayed: false },
-    StartDate: "2026-03-01T00:00:00Z",
-    EndDate: "2026-03-31T00:00:00Z",
+    StartDate: null,
+    EndDate: null,
     DueDate: null,
     SortOrder: 0,
     SubmissionTimeLimit: { IsEnforced: false, ShowClock: false, TimeLimitValue: 0 },
@@ -66,6 +66,12 @@ test("quizReadData requires start and end dates but allows no due date", () => {
     Shuffle: false,
   };
 
-  expect(quizReadData.parse(quiz).DueDate).toBeNull();
-  expect(quizReadData.safeParse({ ...quiz, StartDate: null }).success).toBe(false);
+  const parsed = quizReadData.parse(quiz);
+
+  expect(parsed.StartDate).toBeNull();
+  expect(parsed.EndDate).toBeNull();
+  expect(parsed.DueDate).toBeNull();
+  expect(quizReadData.parse({ ...quiz, StartDate: "2026-03-01T00:00:00Z" }).StartDate?.toString()).toBe(
+    "2026-03-01T00:00:00Z",
+  );
 });
