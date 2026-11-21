@@ -1,0 +1,170 @@
+{
+  "class": ["user-assignment-activity", "activity", "started"],
+  "entities": [
+    {
+      "class": ["assignment-submission-list"],
+      "rel": ["https://assignments.api.brightspace.com/rels/assignment-submission-list"],
+      "properties": {
+        "downloadAll": "/d2l/api/le/1.40/100064/dropbox/folders/100065/submissions/100001/segment-156"
+      },
+      "links": [
+        {
+          "class": ["assignment-submission", "latest"],
+          "rel": ["https://assignments.api.brightspace.com/rels/assignment-submission-list"],
+          "href": "https://tenant-1.assignments.api.brightspace.com/100064/folders/submissions/100066"
+        }
+      ]
+    },
+    {
+      "class": ["relative-uri"],
+      "rel": ["item", "https://assessments.api.brightspace.com/rels/assessment-rubric-application"],
+      "properties": {
+        "path": "/d2l/le/activities/segment-157/segment-158/segment-159"
+      }
+    },
+    {
+      "class": ["start-date", "date"],
+      "rel": ["https://api.brightspace.com/rels/date"],
+      "properties": {
+        "date": "2024-08-14T14:30:00.000Z",
+        "localizedDate": "2024-08-14T22:30:00.000"
+      }
+    },
+    {
+      "class": ["end-date", "date"],
+      "rel": ["https://api.brightspace.com/rels/date"],
+      "properties": {
+        "date": "2024-10-11T15:59:59.000Z",
+        "localizedDate": "2024-10-11T23:59:59.000"
+      }
+    },
+    {
+      "class": ["due-date", "date"],
+      "rel": ["https://api.brightspace.com/rels/date"],
+      "properties": {
+        "date": "2024-08-27T15:59:59.000Z",
+        "localizedDate": "2024-08-27T23:59:59.000"
+      }
+    },
+    {
+      "class": ["availability-dates"],
+      "rel": ["https://api.brightspace.com/rels/availabilitydates"],
+      "properties": {
+        "CurrentAvailabilityType": 0,
+        "DisplayInCalendar": false
+      },
+      "entities": [
+        {
+          "class": ["availability-start-date", "availability-dates"],
+          "rel": ["https://api.brightspace.com/rels/availabilitydate"],
+          "properties": {
+            "dateTime": {
+              "date": "2024-08-14T14:30:00.000Z",
+              "localizedDate": "2024-08-14T22:30:00.000"
+            },
+            "availabilityType": 0
+          }
+        },
+        {
+          "class": ["availability-end-date", "availability-dates"],
+          "rel": ["https://api.brightspace.com/rels/availabilitydate"],
+          "properties": {
+            "dateTime": {
+              "date": "2024-10-11T15:59:59.000Z",
+              "localizedDate": "2024-10-11T23:59:59.000"
+            },
+            "availabilityType": 0
+          }
+        }
+      ]
+    },
+    {
+      "class": ["date", "localized-formatted-date"],
+      "rel": ["https://api.brightspace.com/rels/date"],
+      "properties": {
+        "date": "2024-08-20T12:04:29.893Z",
+        "localizedDate": "2024-08-20T20:04:29.893"
+      }
+    },
+    {
+      "class": ["completion", "complete"],
+      "rel": ["item", "https://activities.api.brightspace.com/rels/completion"],
+      "entities": [
+        {
+          "class": ["date", "completion-date"],
+          "rel": ["https://api.brightspace.com/rels/date"],
+          "properties": {
+            "date": "2024-08-20T12:04:29.893Z"
+          }
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "rel": ["https://activities.api.brightspace.com/rels/user-activity-usage", "self"],
+      "href": "https://tenant-1.activities.api.brightspace.com/old/activities/100002_2000_100065/usages/100064/users/100001"
+    },
+    {
+      "rel": ["https://activities.api.brightspace.com/rels/activity-usage"],
+      "href": "https://tenant-1.activities.api.brightspace.com/old/activities/100002_2000_100065/usages/100064"
+    },
+    {
+      "rel": ["https://api.brightspace.com/rels/user"],
+      "href": "https://tenant-1.users.api.brightspace.com/100001"
+    },
+    {
+      "rel": ["https://api.brightspace.com/rels/organization"],
+      "href": "https://tenant-1.organizations.api.brightspace.com/100064"
+    },
+    {
+      "rel": ["https://activities.api.brightspace.com/rels/evaluation"],
+      "href": "https://tenant-1.activities.api.brightspace.com/old/activities/100002_2000_100065/usages/100064/users/segment-160/segment-157"
+    },
+    {
+      "rel": ["https://api.brightspace.com/rels/dismiss"],
+      "href": "https://tenant-1.activities.api.brightspace.com/old/activities/100002_2000_100065/usages/100064/segment-161?dismissedSource=REDACTED"
+    },
+    {
+      "rel": ["https://activities.api.brightspace.com/rels/associations"],
+      "href": "https://tenant-1.activities.api.brightspace.com/old/activities/100002_2000_100065/usages/100064/users/100001/segment-162"
+    },
+    {
+      "rel": ["https://api.brightspace.com/rels/assignment"],
+      "href": "https://tenant-1.assignments.api.brightspace.com/100064/folders/100065"
+    },
+    {
+      "rel": ["https://api.brightspace.com/rels/user-assignment"],
+      "href": "https://tenant-1.assignments.api.brightspace.com/100064/folders/100065/users/100001"
+    },
+    {
+      "rel": ["https://activities.api.brightspace.com/rels/feedback"],
+      "href": "https://tenant-1.activities.api.brightspace.com/old/activities/100002_2000_100065/usages/100064/users/segment-160/segment-163"
+    },
+    {
+      "rel": ["https://alignments.api.brightspace.com/rels/alignments"],
+      "href": "https://tenant-1.alignments.api.brightspace.com/segment-164/100002_2000_100065/100064/segment-160"
+    }
+  ],
+  "actions": [
+    {
+      "href": "https://tenant-1.activities.api.brightspace.com/old/activities/100002_2000_100065/usages/100064/users/100001/segment-162",
+      "name": "query-associations",
+      "method": "GET",
+      "fields": [
+        {
+          "type": "text",
+          "name": "type"
+        }
+      ]
+    },
+    {
+      "class": ["my-assignment", "submit"],
+      "type": "multipart/mixed",
+      "title": "title 165",
+      "href": "https://tenant-1.assignments.api.brightspace.com/100064/folders/100065/submissions/segment-166",
+      "name": "submit",
+      "method": "POST"
+    }
+  ]
+}

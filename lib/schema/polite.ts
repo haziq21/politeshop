@@ -202,8 +202,8 @@ export const quizReadData = z.object({
     Text: richText,
     IsDisplayed: z.boolean(),
   }),
-  StartDate: instant,
-  EndDate: instant,
+  StartDate: instant.nullable(),
+  EndDate: instant.nullable(),
   DueDate: instant.nullable(),
   SortOrder: z.number(),
   SubmissionTimeLimit: z.object({

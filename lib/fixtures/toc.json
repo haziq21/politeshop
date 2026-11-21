@@ -1,0 +1,516 @@
+{
+  "Modules": [
+    {
+      "IsHidden": false,
+      "SortOrder": -155,
+      "StartDateTime": null,
+      "EndDateTime": null,
+      "IsLocked": false,
+      "PacingStartDate": null,
+      "PacingEndDate": null,
+      "DefaultPath": "/content/enforced/segment-59/",
+      "ModuleId": 100033,
+      "Title": "Title 60",
+      "Modules": [],
+      "Topics": [
+        {
+          "IsExempt": false,
+          "IsHidden": false,
+          "SortOrder": -154,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "IsBroken": false,
+          "ActivityId": "https://example.com/activities/segment-61/segment-62",
+          "CompletionType": 2,
+          "TopicId": 100034,
+          "Identifier": "100034",
+          "TypeIdentifier": "File",
+          "Title": "Title 63",
+          "Bookmarked": false,
+          "Unread": false,
+          "Url": "/content/enforced/segment-59/segment-64.html",
+          "ToolId": null,
+          "ToolItemId": null,
+          "ActivityType": 1,
+          "GradeItemId": null,
+          "LastModifiedDate": "2021-09-14T20:18:48.933Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsExempt": false,
+          "IsHidden": false,
+          "SortOrder": 3086,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "IsBroken": false,
+          "ActivityId": "https://example.com/activities/segment-61/segment-65",
+          "CompletionType": 2,
+          "TopicId": 100035,
+          "Identifier": "100035",
+          "TypeIdentifier": "File",
+          "Title": "Title 66",
+          "Bookmarked": false,
+          "Unread": true,
+          "Url": "/content/enforced/segment-67/100036/segment-68.mp4",
+          "ToolId": null,
+          "ToolItemId": null,
+          "ActivityType": 1,
+          "GradeItemId": null,
+          "LastModifiedDate": "2026-10-25T13:22:37.003Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsExempt": false,
+          "IsHidden": false,
+          "SortOrder": -597,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "IsBroken": true,
+          "ActivityId": "https://example.com/activities/segment-61/segment-69",
+          "CompletionType": 2,
+          "TopicId": 100037,
+          "Identifier": "100037",
+          "TypeIdentifier": "File",
+          "Title": "Title 70",
+          "Bookmarked": false,
+          "Unread": true,
+          "Url": null,
+          "ToolId": null,
+          "ToolItemId": null,
+          "ActivityType": 1,
+          "GradeItemId": null,
+          "LastModifiedDate": "2026-01-13T09:29:52.477Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsExempt": false,
+          "IsHidden": false,
+          "SortOrder": -593,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "IsBroken": false,
+          "ActivityId": "https://example.com/activities/segment-61/segment-71",
+          "CompletionType": 2,
+          "TopicId": 100038,
+          "Identifier": "100038",
+          "TypeIdentifier": "File",
+          "Title": "Title 72",
+          "Bookmarked": false,
+          "Unread": true,
+          "Url": "/content/enforced/segment-67/100036/segment-73.doc",
+          "ToolId": null,
+          "ToolItemId": null,
+          "ActivityType": 1,
+          "GradeItemId": null,
+          "LastModifiedDate": "2026-10-25T12:50:57.713Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsExempt": false,
+          "IsHidden": false,
+          "SortOrder": 5100,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "IsBroken": true,
+          "ActivityId": null,
+          "CompletionType": 2,
+          "TopicId": 100039,
+          "Identifier": "100039",
+          "TypeIdentifier": "Link",
+          "Title": "Title 74",
+          "Bookmarked": false,
+          "Unread": true,
+          "Url": "/d2l/segment-47/segment-48/segment-49/segment-50?ou=REDACTED&type=REDACTED&rCode=REDACTED",
+          "ToolId": 2000,
+          "ToolItemId": 100040,
+          "ActivityType": 3,
+          "GradeItemId": null,
+          "LastModifiedDate": "2021-09-24T09:29:23.677Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsExempt": false,
+          "IsHidden": false,
+          "SortOrder": 5192,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "IsBroken": false,
+          "ActivityId": "https://example.com/activities/dropbox/segment-75",
+          "CompletionType": 2,
+          "TopicId": 100041,
+          "Identifier": "100041",
+          "TypeIdentifier": "Link",
+          "Title": "Title 76",
+          "Bookmarked": false,
+          "Unread": false,
+          "Url": "/d2l/segment-47/segment-48/segment-49/segment-50?ou=REDACTED&type=REDACTED&rcode=REDACTED",
+          "ToolId": 2000,
+          "ToolItemId": 100042,
+          "ActivityType": 3,
+          "GradeItemId": null,
+          "LastModifiedDate": "2026-10-25T13:34:06.423Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsExempt": false,
+          "IsHidden": false,
+          "SortOrder": 1221,
+          "StartDateTime": "2024-12-26T02:30:00.000Z",
+          "EndDateTime": null,
+          "IsLocked": false,
+          "IsBroken": false,
+          "ActivityId": "https://example.com/activities/dropbox/segment-77",
+          "CompletionType": 2,
+          "TopicId": 100043,
+          "Identifier": "100043",
+          "TypeIdentifier": "Link",
+          "Title": "Title 78",
+          "Bookmarked": false,
+          "Unread": false,
+          "Url": "/d2l/segment-47/segment-48/segment-49/segment-50?ou=REDACTED&type=REDACTED&rcode=REDACTED",
+          "ToolId": 2000,
+          "ToolItemId": 100044,
+          "ActivityType": 3,
+          "GradeItemId": null,
+          "LastModifiedDate": "2024-12-26T03:01:56.447Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsExempt": false,
+          "IsHidden": false,
+          "SortOrder": 9322,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "IsBroken": false,
+          "ActivityId": "https://example.com/activities/segment-79/segment-80",
+          "CompletionType": 2,
+          "TopicId": 100045,
+          "Identifier": "100045",
+          "TypeIdentifier": "Link",
+          "Title": "Title 81",
+          "Bookmarked": false,
+          "Unread": false,
+          "Url": "/d2l/segment-47/segment-48/segment-49/segment-50?ou=REDACTED&type=REDACTED&rCode=REDACTED",
+          "ToolId": 390000,
+          "ToolItemId": 100046,
+          "ActivityType": 7,
+          "GradeItemId": 100047,
+          "LastModifiedDate": "2024-05-21T12:17:41.843Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        }
+      ],
+      "LastModifiedDate": "2021-09-14T20:18:48.910Z",
+      "Description": {
+        "Text": "",
+        "Html": ""
+      }
+    },
+    {
+      "IsHidden": false,
+      "SortOrder": -101,
+      "StartDateTime": null,
+      "EndDateTime": null,
+      "IsLocked": false,
+      "PacingStartDate": null,
+      "PacingEndDate": null,
+      "DefaultPath": "/content/enforced/segment-59/",
+      "ModuleId": 100048,
+      "Title": "Title 82",
+      "Modules": [
+        {
+          "IsHidden": false,
+          "SortOrder": 116,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "PacingStartDate": null,
+          "PacingEndDate": null,
+          "DefaultPath": "/content/enforced/segment-59/",
+          "ModuleId": 100049,
+          "Title": "Title 83",
+          "Modules": [
+            {
+              "IsHidden": false,
+              "SortOrder": 391,
+              "StartDateTime": null,
+              "EndDateTime": null,
+              "IsLocked": false,
+              "PacingStartDate": null,
+              "PacingEndDate": null,
+              "DefaultPath": "/content/enforced/segment-59/",
+              "ModuleId": 100050,
+              "Title": "Title 84",
+              "Modules": [],
+              "Topics": [
+                {
+                  "IsExempt": false,
+                  "IsHidden": false,
+                  "SortOrder": 608,
+                  "StartDateTime": null,
+                  "EndDateTime": null,
+                  "IsLocked": false,
+                  "IsBroken": false,
+                  "ActivityId": "https://example.com/activities/segment-30/segment-85",
+                  "CompletionType": 2,
+                  "TopicId": 100051,
+                  "Identifier": "100051",
+                  "TypeIdentifier": "Link",
+                  "Title": "Title 86",
+                  "Bookmarked": false,
+                  "Unread": true,
+                  "Url": "/d2l/segment-47/segment-48/segment-49/segment-50?ou=REDACTED&type=REDACTED&rCode=REDACTED",
+                  "ToolId": 51000,
+                  "ToolItemId": 100052,
+                  "ActivityType": 4,
+                  "GradeItemId": null,
+                  "LastModifiedDate": "2026-01-10T09:05:54.777Z",
+                  "Description": {
+                    "Text": "Text 87",
+                    "Html": "<p>html 88</p>"
+                  }
+                }
+              ],
+              "LastModifiedDate": "2022-12-06T14:15:53.493Z",
+              "Description": {
+                "Text": "",
+                "Html": ""
+              }
+            }
+          ],
+          "Topics": [],
+          "LastModifiedDate": "2024-11-25T08:24:59.657Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsHidden": false,
+          "SortOrder": 742,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "PacingStartDate": null,
+          "PacingEndDate": null,
+          "DefaultPath": "/content/enforced/segment-59/",
+          "ModuleId": 100053,
+          "Title": "Title 89",
+          "Modules": [
+            {
+              "IsHidden": false,
+              "SortOrder": 1027,
+              "StartDateTime": null,
+              "EndDateTime": null,
+              "IsLocked": false,
+              "PacingStartDate": null,
+              "PacingEndDate": null,
+              "DefaultPath": "/content/enforced/segment-59/",
+              "ModuleId": 100054,
+              "Title": "Title 84",
+              "Modules": [],
+              "Topics": [
+                {
+                  "IsExempt": false,
+                  "IsHidden": false,
+                  "SortOrder": 1078,
+                  "StartDateTime": null,
+                  "EndDateTime": null,
+                  "IsLocked": false,
+                  "IsBroken": false,
+                  "ActivityId": "https://example.com/activities/segment-61/segment-90",
+                  "CompletionType": 2,
+                  "TopicId": 100055,
+                  "Identifier": "100055",
+                  "TypeIdentifier": "ContentService",
+                  "Title": "Title 91",
+                  "Bookmarked": false,
+                  "Unread": false,
+                  "Url": "uri-92",
+                  "ToolId": null,
+                  "ToolItemId": null,
+                  "ActivityType": 1,
+                  "GradeItemId": null,
+                  "LastModifiedDate": "2023-12-09T02:20:57.530Z",
+                  "Description": {
+                    "Text": "",
+                    "Html": ""
+                  }
+                }
+              ],
+              "LastModifiedDate": "2023-12-09T02:19:05.743Z",
+              "Description": {
+                "Text": "",
+                "Html": ""
+              }
+            }
+          ],
+          "Topics": [
+            {
+              "IsExempt": false,
+              "IsHidden": false,
+              "SortOrder": 751,
+              "StartDateTime": "2024-12-21T16:01:00.000Z",
+              "EndDateTime": null,
+              "IsLocked": false,
+              "IsBroken": false,
+              "ActivityId": "https://example.com/activities/segment-61/segment-93",
+              "CompletionType": 2,
+              "TopicId": 100056,
+              "Identifier": "100056",
+              "TypeIdentifier": "File",
+              "Title": "Title 94",
+              "Bookmarked": false,
+              "Unread": true,
+              "Url": "/content/enforced/segment-59/segment-95.docx",
+              "ToolId": null,
+              "ToolItemId": null,
+              "ActivityType": 1,
+              "GradeItemId": null,
+              "LastModifiedDate": "2024-11-25T12:34:11.620Z",
+              "Description": {
+                "Text": "",
+                "Html": ""
+              }
+            }
+          ],
+          "LastModifiedDate": "2024-11-25T12:38:26.000Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsHidden": false,
+          "SortOrder": 1736,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "PacingStartDate": null,
+          "PacingEndDate": null,
+          "DefaultPath": "/content/enforced/segment-59/",
+          "ModuleId": 100057,
+          "Title": "Title 96",
+          "Modules": [],
+          "Topics": [
+            {
+              "IsExempt": false,
+              "IsHidden": false,
+              "SortOrder": 1791,
+              "StartDateTime": null,
+              "EndDateTime": null,
+              "IsLocked": false,
+              "IsBroken": false,
+              "ActivityId": "https://example.com/activities/segment-61/segment-97",
+              "CompletionType": 2,
+              "TopicId": 100058,
+              "Identifier": "100058",
+              "TypeIdentifier": "Link",
+              "Title": "Title 98",
+              "Bookmarked": false,
+              "Unread": false,
+              "Url": "https://example.com/segment-99",
+              "ToolId": null,
+              "ToolItemId": null,
+              "ActivityType": 2,
+              "GradeItemId": null,
+              "LastModifiedDate": "2022-12-22T17:14:36.740Z",
+              "Description": {
+                "Text": "",
+                "Html": ""
+              }
+            }
+          ],
+          "LastModifiedDate": "2024-11-25T13:04:19.867Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        },
+        {
+          "IsHidden": false,
+          "SortOrder": 2208,
+          "StartDateTime": null,
+          "EndDateTime": null,
+          "IsLocked": false,
+          "PacingStartDate": null,
+          "PacingEndDate": null,
+          "DefaultPath": "/content/enforced/segment-59/",
+          "ModuleId": 100059,
+          "Title": "Title 100",
+          "Modules": [],
+          "Topics": [
+            {
+              "IsExempt": false,
+              "IsHidden": false,
+              "SortOrder": 2481,
+              "StartDateTime": "2025-01-08T10:00:00.000Z",
+              "EndDateTime": null,
+              "IsLocked": false,
+              "IsBroken": false,
+              "ActivityId": "https://example.com/activities/segment-61/segment-101",
+              "CompletionType": 2,
+              "TopicId": 100060,
+              "Identifier": "100060",
+              "TypeIdentifier": "File",
+              "Title": "Title 102",
+              "Bookmarked": false,
+              "Unread": true,
+              "Url": "/content/enforced/segment-59/segment-103.docx",
+              "ToolId": null,
+              "ToolItemId": null,
+              "ActivityType": 1,
+              "GradeItemId": null,
+              "LastModifiedDate": "2024-11-25T13:54:19.410Z",
+              "Description": {
+                "Text": "",
+                "Html": ""
+              }
+            }
+          ],
+          "LastModifiedDate": "2024-11-25T13:55:08.497Z",
+          "Description": {
+            "Text": "",
+            "Html": ""
+          }
+        }
+      ],
+      "Topics": [],
+      "LastModifiedDate": "2021-09-14T20:18:49.063Z",
+      "Description": {
+        "Text": "",
+        "Html": ""
+      }
+    }
+  ]
+}

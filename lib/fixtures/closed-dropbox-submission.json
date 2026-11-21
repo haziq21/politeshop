@@ -1,0 +1,68 @@
+{
+  "class": ["assignment-submission"],
+  "properties": {
+    "submissionNumber": 1,
+    "evaluationStatus": "Evaluated"
+  },
+  "entities": [
+    {
+      "class": ["attachment-list"],
+      "rel": ["https://assignments.api.brightspace.com/rels/attachment-list"],
+      "entities": [
+        {
+          "class": ["attachment"],
+          "rel": ["https://assignments.api.brightspace.com/rels/attachment"],
+          "properties": {
+            "id": "100067",
+            "name": "name 167",
+            "size": 238391,
+            "extension": "pdf",
+            "flagged": false,
+            "read": true,
+            "href": "https://nplms.polite.edu.sg/d2l/segment-47/segment-168/segment-169/segment-170/segment-171.pdf?ou=REDACTED",
+            "fileViewer": "https://example.com?dropboxId=REDACTED&entityId=REDACTED&fileId=REDACTED&submissionId=REDACTED&ou=REDACTED&host=REDACTED&readOnly=REDACTED",
+            "downloadHref": "https://nplms.polite.edu.sg/d2l/le/dropbox/segment-172/100064/segment-173?entityId=REDACTED&fileId=REDACTED&submissionId=REDACTED&displayInBrowser=REDACTED&dropboxId=REDACTED"
+          },
+          "links": [
+            {
+              "rel": ["alternate"],
+              "type": "application/pdf",
+              "href": "https://nplms.polite.edu.sg/d2l/api/le/1.12/100064/dropbox/folders/100065/submissions/100066/segment-174/100067"
+            },
+            {
+              "class": ["annotated"],
+              "rel": ["alternate"],
+              "type": "application/pdf",
+              "href": "https://nplms.polite.edu.sg/d2l/api/le/1.31/100064/dropbox/folders/100065/segment-175/100001/submissions/100066/segment-174/100067/segment-176"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "class": ["date", "submission-date"],
+      "rel": ["https://api.brightspace.com/rels/date"],
+      "properties": {
+        "date": "2024-08-20T12:04:29.893Z"
+      }
+    },
+    {
+      "class": ["relative-uri"],
+      "rel": ["evaluation-link"],
+      "properties": {
+        "path": "/d2l/le/activities/segment-157/segment-177/segment-159?cft=REDACTED&cfi=REDACTED"
+      }
+    }
+  ],
+  "links": [
+    {
+      "class": ["assignment-submission"],
+      "rel": ["self"],
+      "href": "https://tenant-1.assignments.api.brightspace.com/100064/folders/submissions/100066"
+    },
+    {
+      "rel": ["https://api.brightspace.com/rels/user"],
+      "href": "https://tenant-1.users.api.brightspace.com/100001"
+    }
+  ]
+}

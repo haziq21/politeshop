@@ -1,0 +1,41 @@
+[
+  {
+    "CourseOfferingId": "100005",
+    "Semester": {
+      "Identifier": "100006",
+      "Name": "Name 17",
+      "Code": "Code 18"
+    },
+    "Department": {
+      "Identifier": "100007",
+      "Name": "Name 19",
+      "Code": "Code 20"
+    }
+  },
+  {
+    "CourseOfferingId": "100008",
+    "Semester": {
+      "Identifier": "100006",
+      "Name": "Name 17",
+      "Code": "Code 18"
+    },
+    "Department": {
+      "Identifier": "100009",
+      "Name": "Name 21",
+      "Code": "Code 22"
+    }
+  },
+  {
+    "CourseOfferingId": "100010",
+    "Semester": {
+      "Identifier": "100011",
+      "Name": "Name 23",
+      "Code": "Code 24"
+    },
+    "Department": {
+      "Identifier": "100012",
+      "Name": "Name 25",
+      "Code": "Code 26"
+    }
+  }
+]
