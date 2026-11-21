@@ -6,15 +6,24 @@ import { playwright } from "vite-plus/test/browser-playwright";
 export default defineConfig({
   plugins: [tailwindcss(), svelte()],
   test: {
-    include: ["app/src/**/*.test.ts"],
-    setupFiles: ["app/src/vitest-setup.ts"],
-    browser: {
-      enabled: true,
-      headless: true,
-      provider: playwright(),
-      viewport: { width: 1280, height: 720 },
-      instances: [{ browser: "chromium" }],
-    },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "app",
+          include: ["app/src/**/*.test.ts"],
+          setupFiles: ["app/src/vitest-setup.ts"],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright(),
+            viewport: { width: 1280, height: 720 },
+            instances: [{ browser: "chromium" }],
+          },
+        },
+      },
+      { test: { name: "lib", include: ["lib/**/*.test.ts"], environment: "node", restoreMocks: true } },
+    ],
   },
   lint: {
     options: { typeAware: true, typeCheck: true },
