@@ -301,15 +301,10 @@ export class POLITELib {
         topicId: activity.TopicId,
       });
 
-      const fileActivityEnt = activityEnt.getChild({
-        class: ["activity", "file-activity"],
-      });
-
-      const fileEnt = fileActivityEnt.getChild({ class: ["file"] });
-
-      const previewURL = fileEnt.findLink({
-        class: ["pdf", "d2l-converted-doc"],
-      })?.href;
+      // Classes are a set that grows with the entity's state (e.g. ["file", "processing"]), so match one
+      const fileActivityEnt = activityEnt.getChild({ class: "file-activity" });
+      const fileEnt = fileActivityEnt.getChild({ class: "file" });
+      const previewURL = fileEnt.findLink({ class: "d2l-converted-doc" })?.href;
       const previewURLExpiry = previewURL ? getURLExpiry(previewURL) : undefined;
 
       return {
@@ -435,9 +430,7 @@ export class POLITELib {
       dropboxId,
       moduleId,
     });
-    const submissionLinks = ent.getChild({
-      class: ["assignment-submission-list"],
-    }).links;
+    const submissionLinks = ent.getChild({ class: "assignment-submission-list" }).links;
     if (!submissionLinks) return [];
 
     return Promise.all(
@@ -524,7 +517,7 @@ export class POLITELib {
 
     const thumbnailProps = z
       .object({ src: z.string(), expires: z.coerce.number().optional() })
-      .parse(ent.findChild({ class: ["thumbnail"] })?.properties);
+      .parse(ent.findChild({ class: "thumbnail" })?.properties);
 
     const { src: url } = thumbnailProps;
     // The Content Service exposes the expiry as a Unix timestamp in `expires`.
