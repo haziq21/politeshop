@@ -34,6 +34,7 @@ export class POLITELib {
   readonly polite: POLITE;
 
   #brightspaceInstance: Brightspace | null = null;
+  #fetch: typeof fetch | undefined;
 
   /**
    * Initialize the underlying {@link POLITE} client. If `d2lFetchToken` is
@@ -52,16 +53,20 @@ export class POLITELib {
      * it will be fetched automatically the first time it is needed.
      */
     d2lFetchToken?: string;
+    fetch?: typeof fetch;
   }) {
+    this.#fetch = config.fetch;
     this.polite = new POLITE({
       d2lSessionVal: config.d2lSessionVal,
       d2lSecureSessionVal: config.d2lSecureSessionVal,
       domain: config.domain,
+      fetch: config.fetch,
     });
 
     if (config.d2lFetchToken) {
       this.#brightspaceInstance = new Brightspace({
         d2lFetchToken: config.d2lFetchToken,
+        fetch: config.fetch,
       });
     }
   }
@@ -84,6 +89,7 @@ export class POLITELib {
     return this.polite.getNewFetchToken().then(({ access_token }) => {
       this.#brightspaceInstance = new Brightspace({
         d2lFetchToken: access_token,
+        fetch: this.#fetch,
       });
       return this.#brightspaceInstance;
     });

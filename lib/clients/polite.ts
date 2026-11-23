@@ -17,6 +17,7 @@ export class POLITE {
   #d2lSessionVal: string;
   #d2lSecureSessionVal: string;
   #domain: string;
+  #fetchImpl: typeof fetch;
   #abortController = new AbortController();
 
   constructor(config: {
@@ -26,7 +27,9 @@ export class POLITE {
     d2lSecureSessionVal: string;
     /** Subdomain of the POLITEMall site (e.g. `"nplms"`). */
     domain: string;
+    fetch?: typeof fetch;
   }) {
+    this.#fetchImpl = config.fetch ?? ((input, init) => fetch(input, init));
     this.#domain = config.domain;
     this.#d2lSessionVal = config.d2lSessionVal;
     this.#d2lSecureSessionVal = config.d2lSecureSessionVal;
@@ -243,7 +246,7 @@ export class POLITE {
     const headers = new Headers(init?.headers);
     headers.set("Cookie", `d2lSessionVal=${this.#d2lSessionVal}; d2lSecureSessionVal=${this.#d2lSecureSessionVal}`);
 
-    return fetch(defaultToBaseURL(input, this.baseURL), {
+    return this.#fetchImpl(defaultToBaseURL(input, this.baseURL), {
       ...init,
       headers,
       signal: this.#abortController.signal,
