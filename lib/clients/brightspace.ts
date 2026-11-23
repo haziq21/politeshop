@@ -16,13 +16,16 @@ export class Brightspace {
   tokenExpiry: Temporal.Instant;
 
   #d2lFetchToken: string;
+  #fetch: typeof fetch;
   #abortController = new AbortController();
 
   constructor(config: {
     /** Short-lived JWT for Brightspace API authentication. */
     d2lFetchToken: string;
+    fetch?: typeof fetch;
   }) {
     this.#d2lFetchToken = config.d2lFetchToken;
+    this.#fetch = config.fetch ?? ((input, init) => fetch(input, init));
 
     const { sub, exp, tenantid } = z
       .object({
@@ -131,7 +134,7 @@ export class Brightspace {
   async #fetchSiren(pathOrURL: string, api?: string): Promise<SirenEntity> {
     const url = api ? new URL(pathOrURL, `https://${this.tenantId}.${api}.api.brightspace.com`) : new URL(pathOrURL);
 
-    const res = await fetch(url, {
+    const res = await this.#fetch(url, {
       headers: { Authorization: `Bearer ${this.#d2lFetchToken}` },
       signal: this.#abortController.signal,
     });
