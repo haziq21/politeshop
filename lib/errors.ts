@@ -1,9 +1,9 @@
-export class UnexpectedResponseError extends Error {
-  response?: Response;
+export class HTTPError extends Error {
+  status: number;
 
-  constructor(message: string, options?: ErrorOptions & { response?: Response }) {
-    super(message, options);
-    this.name = "UnexpectedResponseError";
-    this.response = options?.response;
+  constructor(status: number, url: string) {
+    super(`Received ${status} for ${url}`);
+    this.name = "HTTPError";
+    this.status = status;
   }
 }

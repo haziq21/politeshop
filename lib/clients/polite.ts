@@ -1,8 +1,5 @@
-import { z } from "zod";
-
-import { UnexpectedResponseError } from "../errors";
 import * as schema from "../schema/polite";
-import { defaultToBaseURL } from "../utils/url";
+import { createFetch } from "../utils/fetch";
 
 // TODO: /d2l/api/le/manageCourses/courses-searches/490586/BySemester
 
@@ -14,11 +11,8 @@ import { defaultToBaseURL } from "../utils/url";
  * being returned, so callers receive fully-typed data.
  */
 export class POLITE {
-  #d2lSessionVal: string;
-  #d2lSecureSessionVal: string;
   #domain: string;
-  #fetchImpl: typeof fetch;
-  #abortController = new AbortController();
+  #fetch: typeof fetch;
 
   constructor(config: {
     /** `d2lSessionVal` cookie value. */
@@ -27,12 +21,16 @@ export class POLITE {
     d2lSecureSessionVal: string;
     /** Subdomain of the POLITEMall site (e.g. `"nplms"`). */
     domain: string;
+    signal?: AbortSignal;
     fetch?: typeof fetch;
   }) {
-    this.#fetchImpl = config.fetch ?? ((input, init) => fetch(input, init));
     this.#domain = config.domain;
-    this.#d2lSessionVal = config.d2lSessionVal;
-    this.#d2lSecureSessionVal = config.d2lSecureSessionVal;
+    this.#fetch = createFetch({
+      baseURL: this.baseURL,
+      headers: { Cookie: `d2lSessionVal=${config.d2lSessionVal}; d2lSecureSessionVal=${config.d2lSecureSessionVal}` },
+      signal: config.signal,
+      fetch: config.fetch,
+    });
   }
 
   get baseURL(): string {
@@ -49,19 +47,19 @@ export class POLITE {
    */
   async getNewFetchToken(): Promise<schema.BrightspaceToken> {
     // Fetch the homepage HTML to extract the XSRF token from it
-    const homepage = await this.#fetchText("/d2l/home");
+    const homepage = await (await this.#fetch("/d2l/home")).text();
     const xsrfToken = homepage.match(/\.setItem\(['"]XSRF.Token['"],\s*['"](.+?)['"]\)/)?.[1];
 
     if (!xsrfToken) {
-      throw new UnexpectedResponseError("No XSRF token found in homepage");
+      throw new Error("No XSRF token found in homepage");
     }
 
-    return this.#fetchJSON("/d2l/lp/auth/oauth2/token", {
+    const res = await this.#fetch("/d2l/lp/auth/oauth2/token", {
       method: "POST",
       headers: { "X-Csrf-Token": xsrfToken },
       body: new URLSearchParams({ scope: "*:*:*" }),
-      schema: schema.brightspaceToken,
     });
+    return schema.brightspaceToken.parse(await res.json());
   }
 
   // ── Users ───────────────────────────────────────────────────────────────────
@@ -72,9 +70,8 @@ export class POLITE {
    * Returns basic information about the currently authenticated user.
    */
   async whoAmI(): Promise<schema.WhoAmIUser> {
-    return this.#fetchJSON("/d2l/api/lp/1.0/users/whoami", {
-      schema: schema.whoAmIUser,
-    });
+    const res = await this.#fetch("/d2l/api/lp/1.0/users/whoami");
+    return schema.whoAmIUser.parse(await res.json());
   }
 
   // ── Organization ────────────────────────────────────────────────────────────
@@ -85,9 +82,8 @@ export class POLITE {
    * Returns information about the organisation (institution).
    */
   async getOrganizationInfo(): Promise<schema.Organization> {
-    return this.#fetchJSON("/d2l/api/lp/1.46/organization/info", {
-      schema: schema.organization,
-    });
+    const res = await this.#fetch("/d2l/api/lp/1.46/organization/info");
+    return schema.organization.parse(await res.json());
   }
 
   // ── Enrollments ─────────────────────────────────────────────────────────────
@@ -102,9 +98,8 @@ export class POLITE {
     schema.PagedResultSet<schema.MyOrgUnitInfo>
   > {
     const query = bookmark ? `?bookmark=${encodeURIComponent(bookmark)}` : "";
-    return this.#fetchJSON(`/d2l/api/lp/1.46/enrollments/myenrollments/${query}`, {
-      schema: schema.pagedResultSet(schema.myOrgUnitInfo),
-    });
+    const res = await this.#fetch(`/d2l/api/lp/1.46/enrollments/myenrollments/${query}`);
+    return schema.pagedResultSet(schema.myOrgUnitInfo).parse(await res.json());
   }
 
   /**
@@ -114,10 +109,10 @@ export class POLITE {
    * org units at a time.
    */
   async getParentOrgUnits({ orgUnitIdsCSV }: { orgUnitIdsCSV: string }): Promise<schema.CourseParent[]> {
-    return this.#fetchJSON(
+    const res = await this.#fetch(
       `/d2l/api/lp/1.46/courses/parentorgunits?orgUnitIdsCSV=${encodeURIComponent(orgUnitIdsCSV)}`,
-      { schema: schema.courseParent.array() },
     );
+    return schema.courseParent.array().parse(await res.json());
   }
 
   // ── Content ─────────────────────────────────────────────────────────────────
@@ -129,9 +124,8 @@ export class POLITE {
    * (Modules) and topics (Activities).
    */
   async getModuleTOC({ moduleId }: { moduleId: string }): Promise<schema.TableOfContents> {
-    return this.#fetchJSON(`/d2l/api/le/1.75/${moduleId}/content/toc`, {
-      schema: schema.tableOfContents,
-    });
+    const res = await this.#fetch(`/d2l/api/le/1.75/${moduleId}/content/toc`);
+    return schema.tableOfContents.parse(await res.json());
   }
 
   /**
@@ -141,7 +135,7 @@ export class POLITE {
    * `this.baseURL`.
    */
   async getContentHTML({ urlOrPath }: { urlOrPath: string }): Promise<string> {
-    return this.#fetchText(urlOrPath);
+    return (await this.#fetch(urlOrPath)).text();
   }
 
   /**
@@ -160,9 +154,8 @@ export class POLITE {
    * Returns all submission dropbox folders in a module.
    */
   async getDropboxFolders({ moduleId }: { moduleId: string }): Promise<schema.DropboxFolder[]> {
-    return this.#fetchJSON(`/d2l/api/le/1.75/${moduleId}/dropbox/folders/`, {
-      schema: schema.dropboxFolder.array(),
-    });
+    const res = await this.#fetch(`/d2l/api/le/1.75/${moduleId}/dropbox/folders/`);
+    return schema.dropboxFolder.array().parse(await res.json());
   }
 
   /**
@@ -182,9 +175,11 @@ export class POLITE {
     moduleId: string;
     dropboxId: string;
   }): Promise<schema.EntityDropbox[]> {
-    return this.#fetchJSON(`/d2l/api/le/1.75/${moduleId}/dropbox/folders/${dropboxId}/submissions/`, {
-      schema: schema.entityDropbox.array().max(1),
-    });
+    const res = await this.#fetch(`/d2l/api/le/1.75/${moduleId}/dropbox/folders/${dropboxId}/submissions/`);
+    return schema.entityDropbox
+      .array()
+      .max(1)
+      .parse(await res.json());
   }
 
   // ── Quizzes ──────────────────────────────────────────────────────────────────
@@ -197,59 +192,7 @@ export class POLITE {
    * (or `null` if there are no more pages).
    */
   async getQuizzesPage({ urlOrPath }: { urlOrPath: string }): Promise<schema.ObjectListPage<schema.QuizReadData>> {
-    return this.#fetchJSON(urlOrPath, {
-      schema: schema.objectListPage(schema.quizReadData),
-    });
-  }
-
-  // ── Lifecycle ────────────────────────────────────────────────────────────────
-
-  /** Abort all in-flight requests made by this client. */
-  abort(): void {
-    this.#abortController.abort();
-  }
-
-  // ── Private helpers ──────────────────────────────────────────────────────────
-
-  async #fetchJSON(input: string | URL, init?: RequestInit): Promise<any>;
-  async #fetchJSON<T extends z.ZodTypeAny>(input: string | URL, init: RequestInit & { schema: T }): Promise<z.infer<T>>;
-  async #fetchJSON<T extends z.ZodTypeAny>(input: string | URL, init?: RequestInit & { schema?: T }): Promise<any> {
-    const res = await this.#fetch(input, init);
-
-    if (!res.ok) {
-      throw new UnexpectedResponseError(`Received ${res.status} for ${defaultToBaseURL(input, this.baseURL)}`, {
-        response: res,
-      });
-    }
-
-    const data = await res.json();
-    if (init?.schema) {
-      return init.schema.parse(data);
-    }
-    return data;
-  }
-
-  async #fetchText(urlOrPath: string): Promise<string> {
     const res = await this.#fetch(urlOrPath);
-    if (!res.ok) {
-      throw new Error(`POLITE API error ${res.status} at ${urlOrPath}`);
-    }
-    return res.text();
-  }
-
-  /**
-   * {@link fetch} wrapper that:
-   * - Defaults to {@link baseURL} as the base URL.
-   * - Adds authentication cookies.
-   */
-  async #fetch(input: string | URL, init?: RequestInit): Promise<Response> {
-    const headers = new Headers(init?.headers);
-    headers.set("Cookie", `d2lSessionVal=${this.#d2lSessionVal}; d2lSecureSessionVal=${this.#d2lSecureSessionVal}`);
-
-    return this.#fetchImpl(defaultToBaseURL(input, this.baseURL), {
-      ...init,
-      headers,
-      signal: this.#abortController.signal,
-    });
+    return schema.objectListPage(schema.quizReadData).parse(await res.json());
   }
 }
