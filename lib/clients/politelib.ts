@@ -16,7 +16,7 @@ import type {
 import { SirenEntity } from "../schema/siren";
 import { instant } from "../schema/temporal";
 import { chunk } from "../utils/array";
-import { defaultToBaseURL, getURLExpiry, lastPathComponent } from "../utils/url";
+import { getURLExpiry, lastPathComponent } from "../utils/url";
 import { Brightspace } from "./brightspace";
 import { POLITE } from "./polite";
 
@@ -34,7 +34,7 @@ export class POLITELib {
   readonly polite: POLITE;
 
   #brightspaceInstance: Brightspace | null = null;
-  #fetch: typeof fetch | undefined;
+  #transport: { signal?: AbortSignal; fetch?: typeof fetch };
 
   /**
    * Initialize the underlying {@link POLITE} client. If `d2lFetchToken` is
@@ -53,20 +53,22 @@ export class POLITELib {
      * it will be fetched automatically the first time it is needed.
      */
     d2lFetchToken?: string;
+    /** Aborts all requests made through this client, including the Brightspace client's. */
+    signal?: AbortSignal;
     fetch?: typeof fetch;
   }) {
-    this.#fetch = config.fetch;
+    this.#transport = { signal: config.signal, fetch: config.fetch };
     this.polite = new POLITE({
       d2lSessionVal: config.d2lSessionVal,
       d2lSecureSessionVal: config.d2lSecureSessionVal,
       domain: config.domain,
-      fetch: config.fetch,
+      ...this.#transport,
     });
 
     if (config.d2lFetchToken) {
       this.#brightspaceInstance = new Brightspace({
         d2lFetchToken: config.d2lFetchToken,
-        fetch: config.fetch,
+        ...this.#transport,
       });
     }
   }
@@ -89,7 +91,7 @@ export class POLITELib {
     return this.polite.getNewFetchToken().then(({ access_token }) => {
       this.#brightspaceInstance = new Brightspace({
         d2lFetchToken: access_token,
-        fetch: this.#fetch,
+        ...this.#transport,
       });
       return this.#brightspaceInstance;
     });
@@ -315,7 +317,7 @@ export class POLITELib {
       return {
         ...base,
         type: "doc_embed",
-        sourceURL: defaultToBaseURL(activity.Url, this.polite.baseURL).href,
+        sourceURL: new URL(activity.Url, this.polite.baseURL).href,
         previewURL,
         previewURLExpiry,
       };
@@ -494,14 +496,6 @@ export class POLITELib {
     } while (nextURL);
 
     return quizzes;
-  }
-
-  // ── Lifecycle ─────────────────────────────────────────────────────────────────
-
-  /** Abort all in-flight requests on both the POLITE and Brightspace clients. */
-  abort(): void {
-    this.polite.abort();
-    this.#brightspaceInstance?.abort();
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────────

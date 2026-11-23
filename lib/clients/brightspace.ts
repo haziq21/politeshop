@@ -2,6 +2,10 @@ import { decodeJwt } from "jose";
 import z from "zod";
 
 import { sirenEntity, type SirenEntity } from "../schema/siren";
+import { createFetch } from "../utils/fetch";
+
+/** Fetches a path or URL from one Brightspace API, and returns the Siren entity it responds with. */
+type SirenFetch = (url: string) => Promise<SirenEntity>;
 
 /**
  * Client for `*.api.brightspace.com`.
@@ -15,28 +19,42 @@ export class Brightspace {
   /** The expiration date of the current `d2lFetchToken`. */
   tokenExpiry: Temporal.Instant;
 
-  #d2lFetchToken: string;
-  #fetch: typeof fetch;
-  #abortController = new AbortController();
+  #sequences: SirenFetch;
+  #activities: SirenFetch;
+  #contentService: SirenFetch;
+  #assignments: SirenFetch;
 
   constructor(config: {
     /** Short-lived JWT for Brightspace API authentication. */
     d2lFetchToken: string;
+    signal?: AbortSignal;
     fetch?: typeof fetch;
   }) {
-    this.#d2lFetchToken = config.d2lFetchToken;
-    this.#fetch = config.fetch ?? ((input, init) => fetch(input, init));
-
+    // The token is unverified and both claims end up in request URLs, so only accept values that can't change the host or path
     const { sub, exp, tenantid } = z
       .object({
-        tenantid: z.string(),
-        sub: z.string(),
+        tenantid: z.string().uuid(),
+        sub: z.string().regex(/^\d+$/),
         exp: z.number().transform((seconds) => Temporal.Instant.fromEpochMilliseconds(seconds * 1000)),
       })
-      .parse(decodeJwt(this.#d2lFetchToken));
+      .parse(decodeJwt(config.d2lFetchToken));
     this.userId = sub;
     this.tokenExpiry = exp;
     this.tenantId = tenantid;
+
+    const sirenFetch = (api: string): SirenFetch => {
+      const apiFetch = createFetch({
+        baseURL: `https://${tenantid}.${api}.api.brightspace.com`,
+        headers: { Authorization: `Bearer ${config.d2lFetchToken}` },
+        signal: config.signal,
+        fetch: config.fetch,
+      });
+      return async (url) => sirenEntity.parse(await (await apiFetch(url)).json());
+    };
+    this.#sequences = sirenFetch("sequences");
+    this.#activities = sirenFetch("activities");
+    this.#contentService = sirenFetch("content-service");
+    this.#assignments = sirenFetch("assignments");
   }
 
   // ── Sequences API (sequences.api.brightspace.com) ────────────────────────────
@@ -48,7 +66,7 @@ export class Brightspace {
    * Used for document-embed activities to discover the preview PDF URL.
    */
   async getActivity({ moduleId, topicId }: { moduleId: string; topicId: string | number }): Promise<SirenEntity> {
-    return this.#fetchSiren(`/${moduleId}/activity/${topicId}?filterOnDatesAndDepth=0`, "sequences");
+    return this.#sequences(`/${moduleId}/activity/${topicId}?filterOnDatesAndDepth=0`);
   }
 
   // ── Activities API (activities.api.brightspace.com) ──────────────────────────
@@ -71,21 +89,18 @@ export class Brightspace {
     dropboxId: string;
     moduleId: string;
   }): Promise<SirenEntity> {
-    return this.#fetchSiren(
-      `/old/activities/${orgId}_2000_${dropboxId}/usages/${moduleId}/users/${this.userId}`,
-      "activities",
-    );
+    return this.#activities(`/old/activities/${orgId}_2000_${dropboxId}/usages/${moduleId}/users/${this.userId}`);
   }
 
   /**
    * Fetch a submission entity from an **absolute** Brightspace URL.
    *
    * The href values surfaced by {@link getClosedDropboxSubmissions} point to
-   * the `assignments.api.brightspace.com` subdomain (or similar). Pass them
-   * here directly without modification.
+   * the tenant's `assignments.api.brightspace.com` host. Pass them here
+   * directly without modification.
    */
   async getSubmissionDetails({ href }: { href: string }): Promise<SirenEntity> {
-    return this.#fetchSiren(href);
+    return this.#assignments(href);
   }
 
   // ── Content Service API (content-service.api.brightspace.com) ────────────────
@@ -98,7 +113,7 @@ export class Brightspace {
    * is a time-limited thumbnail image URL.
    */
   async getTopicThumbnail({ moduleId, activityId }: { moduleId: string; activityId: string }): Promise<SirenEntity> {
-    return this.#fetchSiren(`/topics/${moduleId}/${activityId}`, "content-service");
+    return this.#contentService(`/topics/${moduleId}/${activityId}`);
   }
 
   /**
@@ -109,43 +124,6 @@ export class Brightspace {
    * video file itself.
    */
   async getTopicMedia({ moduleId, activityId }: { moduleId: string; activityId: string }): Promise<SirenEntity> {
-    return this.#fetchSiren(`/topics/${moduleId}/${activityId}/media`, "content-service");
-  }
-
-  // ── Lifecycle ─────────────────────────────────────────────────────────────────
-
-  /** Abort all in-flight requests made by this client. */
-  abort(): void {
-    this.#abortController.abort();
-  }
-
-  // ── Private helpers ───────────────────────────────────────────────────────────
-
-  /**
-   * Fetch and parse a Siren entity.
-   *
-   * When `api` is provided the URL is constructed as
-   * `https://{tenantId}.{api}.api.brightspace.com{path}`.
-   * When `api` is omitted `pathOrURL` must be an absolute URL
-   * (e.g. a href extracted from a previously-fetched Siren entity).
-   */
-  async #fetchSiren(path: string, api: string): Promise<SirenEntity>;
-  async #fetchSiren(absoluteURL: string): Promise<SirenEntity>;
-  async #fetchSiren(pathOrURL: string, api?: string): Promise<SirenEntity> {
-    const url = api ? new URL(pathOrURL, `https://${this.tenantId}.${api}.api.brightspace.com`) : new URL(pathOrURL);
-
-    const res = await this.#fetch(url, {
-      headers: { Authorization: `Bearer ${this.#d2lFetchToken}` },
-      signal: this.#abortController.signal,
-    });
-
-    if (!res.ok) {
-      const body = res.headers.get("content-type")?.includes("json")
-        ? JSON.stringify(await res.json())
-        : await res.text();
-      throw new Error(`Brightspace API error ${res.status} at ${url}: ${body}`);
-    }
-
-    return sirenEntity.parse(await res.json());
+    return this.#contentService(`/topics/${moduleId}/${activityId}/media`);
   }
 }

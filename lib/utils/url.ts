@@ -39,15 +39,3 @@ export function getURLExpiry(url: string): Temporal.Instant | undefined {
 
   return undefined;
 }
-
-/**
- * If `url` is a string with no base URL, this returns `url` with
- * the given `baseURL`. Otherwise, this returns `url` as-is.
- */
-export function defaultToBaseURL(url: string | URL, baseURL: string | URL): URL {
-  try {
-    return new URL(url);
-  } catch {
-    return new URL(url, baseURL);
-  }
-}

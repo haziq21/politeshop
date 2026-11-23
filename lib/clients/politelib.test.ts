@@ -3,22 +3,25 @@ import { expect, test, vi } from "vite-plus/test";
 
 import { POLITELib } from "./politelib";
 
-/** A `fetch` that answers by request path, so a test lists only the endpoints it expects. */
+/** A `fetch` that answers by request path (and query, when listed), so a test lists only the endpoints it expects. */
 function serve(responses: Record<string, unknown>): typeof fetch {
   return async (input) => {
     const url = input as URL;
-    const answer = responses[url.pathname];
+    const answer = responses[url.pathname + url.search] ?? responses[url.pathname];
     if (answer === undefined) throw new Error(`Unexpected request to ${url.href}`);
     if (answer instanceof Response) return answer;
     return typeof answer === "string" ? new Response(answer) : Response.json(answer);
   };
 }
 
-const validToken = new UnsecuredJWT({ tenantid: "tenant-1" })
-  .setSubject("user-1")
+const validToken = new UnsecuredJWT({ tenantid: "11111111-1111-4111-8111-111111111111" })
+  .setSubject("12345")
   .setExpirationTime(Math.floor(Date.now() / 1000) + 3600)
   .encode();
-const expiredToken = new UnsecuredJWT({ tenantid: "tenant-1" }).setSubject("user-1").setExpirationTime(1).encode();
+const expiredToken = new UnsecuredJWT({ tenantid: "11111111-1111-4111-8111-111111111111" })
+  .setSubject("12345")
+  .setExpirationTime(1)
+  .encode();
 
 const credentials = { d2lSessionVal: "session", d2lSecureSessionVal: "secure", domain: "nplms" };
 const richText = { Text: "", Html: "" };
@@ -104,23 +107,19 @@ test("getModules skips non-course enrollments, follows pagination and defaults a
   const lib = new POLITELib({
     ...credentials,
     d2lFetchToken: validToken,
-    fetch: vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(
-        Response.json({
-          PagingInfo: { Bookmark: "page-2", HasMoreItems: true },
-          Items: [
-            { OrgUnit: { ...course, Id: 1, Name: "Module 1", Code: "M1" } },
-            { OrgUnit: { ...course, Id: 99, Name: "Department", Code: "D", Type: { Id: 1, Code: "", Name: "" } } },
-          ],
-        }),
-      )
-      .mockResolvedValueOnce(
-        Response.json({
-          PagingInfo: { Bookmark: "", HasMoreItems: false },
-          Items: [{ OrgUnit: { ...course, Id: 2, Name: "Module 2", Code: null } }],
-        }),
-      ),
+    fetch: serve({
+      "/d2l/api/lp/1.46/enrollments/myenrollments/": {
+        PagingInfo: { Bookmark: "page-2", HasMoreItems: true },
+        Items: [
+          { OrgUnit: { ...course, Id: 1, Name: "Module 1", Code: "M1" } },
+          { OrgUnit: { ...course, Id: 99, Name: "Department", Code: "D", Type: { Id: 1, Code: "", Name: "" } } },
+        ],
+      },
+      "/d2l/api/lp/1.46/enrollments/myenrollments/?bookmark=page-2": {
+        PagingInfo: { Bookmark: "", HasMoreItems: false },
+        Items: [{ OrgUnit: { ...course, Id: 2, Name: "Module 2", Code: null } }],
+      },
+    }),
   });
 
   expect(await lib.getModules()).toEqual([
@@ -434,12 +433,17 @@ test("getSubmissions falls back to Brightspace for a closed dropbox, which POLIT
     fetch: serve({
       "/d2l/api/le/1.75/m1/dropbox/folders/d1/submissions/": new Response("", { status: 403 }),
       "/d2l/api/lp/1.46/organization/info": { Identifier: "org-1", Name: "Poly", TimeZone: "UTC" },
-      "/old/activities/org-1_2000_d1/usages/m1/users/user-1": {
+      "/old/activities/org-1_2000_d1/usages/m1/users/12345": {
         class: ["root"],
         entities: [
           {
             class: ["assignment-submission-list"],
-            links: [{ rel: ["item"], href: "https://tenant-1.assignments.api.brightspace.com/submissions/77" }],
+            links: [
+              {
+                rel: ["item"],
+                href: "https://11111111-1111-4111-8111-111111111111.assignments.api.brightspace.com/submissions/77",
+              },
+            ],
           },
         ],
       },
@@ -464,23 +468,45 @@ test("getQuizzes follows pages, and accepts a quiz with no start, end or due dat
   const lib = new POLITELib({
     ...credentials,
     d2lFetchToken: validToken,
-    fetch: vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(
-        Response.json({ Next: "/d2l/api/le/1.75/m1/quizzes/?bookmark=2", Objects: [{ ...quiz, Name: "Quiz A" }] }),
-      )
-      .mockResolvedValueOnce(
-        Response.json({
-          Next: null,
-          Objects: [{ ...quiz, QuizId: 2, Name: "Quiz B", StartDate: null, EndDate: null, DueDate: null }],
-        }),
-      ),
+    fetch: serve({
+      "/d2l/api/le/1.75/m1/quizzes/": {
+        Next: "/d2l/api/le/1.75/m1/quizzes/?bookmark=2",
+        Objects: [{ ...quiz, Name: "Quiz A" }],
+      },
+      "/d2l/api/le/1.75/m1/quizzes/?bookmark=2": {
+        Next: null,
+        Objects: [{ ...quiz, QuizId: 2, Name: "Quiz B", StartDate: null, EndDate: null, DueDate: null }],
+      },
+    }),
   });
 
   expect(await lib.getQuizzes({ moduleId: "m1" })).toEqual([
     { id: "1", moduleId: "m1", name: "Quiz A", description: "", dueAt: Temporal.Instant.from("2026-03-21T12:00:00Z") },
     { id: "2", moduleId: "m1", name: "Quiz B", description: "", dueAt: null },
   ]);
+});
+
+test("aborting the signal also stops a Brightspace client created by a token refresh", async () => {
+  const controller = new AbortController();
+  const lib = new POLITELib({
+    ...credentials,
+    signal: controller.signal,
+    fetch: async (input, init) => {
+      const url = input as URL;
+      if (url.pathname === "/d2l/home") return new Response(`<script>localStorage.setItem('XSRF.Token','x');</script>`);
+      if (url.pathname === "/d2l/lp/auth/oauth2/token")
+        return Response.json({ access_token: validToken, expires_at: 0 });
+      return new Promise((_resolve, reject) =>
+        init!.signal!.addEventListener("abort", () => reject(init!.signal!.reason)),
+      );
+    },
+  });
+  const brightspace = await lib.brightspace;
+
+  const request = brightspace.getTopicMedia({ moduleId: "m1", activityId: "a1" });
+  controller.abort();
+
+  await expect(request).rejects.toThrow("aborted");
 });
 
 // ── Brightspace token ─────────────────────────────────────────────────────────

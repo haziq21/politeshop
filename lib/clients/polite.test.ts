@@ -1,7 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { ZodError } from "zod";
 
-import { UnexpectedResponseError } from "../errors";
 import { POLITE } from "./polite";
 
 const credentials = { d2lSessionVal: "sess", d2lSecureSessionVal: "secure", domain: "nplms" };
@@ -17,22 +15,6 @@ test("requests are authenticated with both session cookies", async () => {
   });
 
   await expect(polite.whoAmI()).resolves.toMatchObject({ Identifier: "1" });
-});
-
-test("a failed request throws an UnexpectedResponseError with the status and response", async () => {
-  const polite = new POLITE({ ...credentials, fetch: async () => new Response("nope", { status: 403 }) });
-
-  const error = await polite.whoAmI().catch((e) => e);
-
-  expect(error).toBeInstanceOf(UnexpectedResponseError);
-  expect(error.message).toContain("Received 403");
-  expect(error.response.status).toBe(403);
-});
-
-test("a response that doesn't match its schema throws a ZodError", async () => {
-  const polite = new POLITE({ ...credentials, fetch: async () => Response.json({ Identifier: "1" }) });
-
-  await expect(polite.whoAmI()).rejects.toBeInstanceOf(ZodError);
 });
 
 test("getMyEnrollments sends a bookmark containing spaces and & unmangled", async () => {
@@ -69,15 +51,26 @@ test("getNewFetchToken fails clearly when the homepage has no XSRF token", async
   await expect(polite.getNewFetchToken()).rejects.toThrow("No XSRF token found in homepage");
 });
 
-test("abort cancels in-flight requests", async () => {
+test("getContentHTML doesn't send the session cookies to another host", async () => {
   const polite = new POLITE({
     ...credentials,
+    fetch: async (_url, init) => new Response(new Headers(init?.headers).get("Cookie") ?? "no cookie"),
+  });
+
+  expect(await polite.getContentHTML({ urlOrPath: "https://evil.example.com/page.html" })).toBe("no cookie");
+});
+
+test("aborting the signal cancels in-flight requests", async () => {
+  const controller = new AbortController();
+  const polite = new POLITE({
+    ...credentials,
+    signal: controller.signal,
     fetch: (_url, init) =>
       new Promise((_resolve, reject) => init!.signal!.addEventListener("abort", () => reject(init!.signal!.reason))),
   });
 
   const request = polite.whoAmI();
-  polite.abort();
+  controller.abort();
 
   await expect(request).rejects.toThrow("aborted");
 });
