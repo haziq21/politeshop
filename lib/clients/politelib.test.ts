@@ -442,7 +442,7 @@ test("getSubmissions falls back to Brightspace for a closed dropbox, which POLIT
 
 // ── Quizzes ───────────────────────────────────────────────────────────────────
 
-test("getQuizzes follows pages", async () => {
+test("getQuizzes follows pages, and accepts a quiz with no start, end or due date", async () => {
   const lib = new POLITELib({
     ...credentials,
     d2lFetchToken: validToken,
@@ -454,7 +454,7 @@ test("getQuizzes follows pages", async () => {
       .mockResolvedValueOnce(
         Response.json({
           Next: null,
-          Objects: [{ ...quiz, QuizId: 2, Name: "Quiz B", DueDate: null }],
+          Objects: [{ ...quiz, QuizId: 2, Name: "Quiz B", StartDate: null, EndDate: null, DueDate: null }],
         }),
       ),
   });
