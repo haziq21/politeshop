@@ -462,6 +462,16 @@ test("getSubmissions falls back to Brightspace for a closed dropbox, which POLIT
   ]);
 });
 
+test("getSubmissions doesn't fall back to Brightspace when POLITE fails for any other reason", async () => {
+  const lib = new POLITELib({
+    ...credentials,
+    d2lFetchToken: validToken,
+    fetch: serve({ "/d2l/api/le/1.75/m1/dropbox/folders/d1/submissions/": new Response("", { status: 500 }) }),
+  });
+
+  await expect(lib.getSubmissions({ moduleId: "m1", dropboxId: "d1" })).rejects.toThrow("Received 500");
+});
+
 // ── Quizzes ───────────────────────────────────────────────────────────────────
 
 test("getQuizzes follows pages, and accepts a quiz with no start, end or due date", async () => {

@@ -13,6 +13,7 @@ import type {
   Submission,
 } from "../types";
 
+import { HTTPError } from "../errors";
 import { SirenEntity } from "../schema/siren";
 import { instant } from "../schema/temporal";
 import { chunk } from "../utils/array";
@@ -427,9 +428,11 @@ export class POLITELib {
         submittedAt: sub.SubmissionDate,
         comment: sub.Comment.Html,
       }));
-    } catch {}
+    } catch (error) {
+      if (!(error instanceof HTTPError && error.status === 403)) throw error;
+    }
 
-    // If POLITE API fails, try Brightspace API instead
+    // POLITE refuses a closed dropbox with a 403, so try the Brightspace API instead
 
     const bs = await this.brightspace;
     const ent = await bs.getClosedDropboxSubmissions({
