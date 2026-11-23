@@ -281,6 +281,24 @@ test("getModuleActivities gives a converted document a preview URL and its expir
   });
 });
 
+test("getModuleActivities keeps a document that is still being converted, without a preview", async () => {
+  const lib = new POLITELib({
+    ...credentials,
+    d2lFetchToken: validToken,
+    fetch: serve({
+      "/d2l/api/le/1.75/m1/content/toc": weekToc([fileTopic]),
+      "/m1/activity/100": {
+        class: ["activity"],
+        entities: [{ class: ["activity", "file-activity"], entities: [{ class: ["file", "processing"] }] }],
+      },
+    }),
+  });
+
+  const [, doc] = await lib.getModuleActivities({ moduleId: "m1" });
+
+  expect(doc).toMatchObject({ type: "doc_embed", previewURL: undefined, previewURLExpiry: undefined });
+});
+
 test("getModuleActivities gives a video its media and thumbnail URLs with their expiry", async () => {
   const lib = new POLITELib({
     ...credentials,
