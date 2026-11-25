@@ -3,8 +3,6 @@ import type { POLITELib } from "@politeshop/lib";
 import { OPENROUTER_API_KEY } from "$app/env/private";
 import { OpenRouterProvider, renameModules } from "@politeshop/ai";
 
-import type { Module } from "#lib/server/db/index.ts";
-
 import * as queries from "#lib/server/db/queries.ts";
 import { logger } from "#lib/utils.ts";
 
@@ -26,20 +24,25 @@ export async function syncUser(
   return user;
 }
 
-/** Returns the modules whose names are missing or outdated. */
 export async function syncModulesAndSemesters(pl: POLITELib, { userId }: { userId: string }) {
   const { modules, semesters } = await pl.getModulesAndSemesters();
   await queries.upsertSemesters(semesters);
-  return queries.upsertAndAssociateModules(
-    userId,
+  await queries.upsertUglyModules(
     modules.map((m) => ({
       ...m,
       imageIconURL: pl.getInstitutionImageURL({ institutionId: m.id, width: 60, height: 60 }),
     })),
   );
+  await queries.setUserModules(
+    userId,
+    modules.map((m) => m.id),
+  );
+  return { modules, semesters };
 }
 
-export async function syncModuleNames(modules: Module[], { userId }: { userId: string }) {
+/** Gives the modules with missing or outdated "nice" text a nicer name and code. */
+export async function syncModuleNames({ moduleIds }: { moduleIds: string[] }) {
+  const modules = await queries.getUglyModules(moduleIds);
   if (modules.length === 0) return;
 
   logger.info(`Renaming ${modules.length} modules...`);
@@ -52,9 +55,8 @@ export async function syncModuleNames(modules: Module[], { userId }: { userId: s
     provider,
     modules.map((m) => ({ name: m.name, code: m.code })),
   );
-  await queries.upsertAndAssociateModules(
-    userId,
-    modules.map((m, i) => ({ ...m, niceCode: names[i]!.niceCode, niceName: names[i]!.niceName })),
+  await queries.setModuleNiceText(
+    modules.map((m, i) => ({ id: m.id, niceName: names[i]!.niceName, niceCode: names[i]!.niceCode })),
   );
 }
 
@@ -107,7 +109,7 @@ export async function syncModuleActivities(
       ),
   ]);
   await queries.upsertActivities(activities);
-  await queries.setUserActivityAccess(
+  await queries.setUserActivities(
     userId,
     moduleId,
     activities.map((a) => a.id),

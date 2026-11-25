@@ -141,66 +141,67 @@ export async function getModules(userId: string): Promise<Module[]> {
     .where(eq(userModule.userId, userId));
 }
 
-/**
- * Upsert the modules as modules the user is enrolled in. If a given module in `mods` doesn't
- * specify a `niceName` or `niceCode`, the existing `niceName` and `niceCode` in the database
- * will be retained. Returns the upserted modules with outdated or missing "nice text".
- */
-export async function upsertAndAssociateModules(userId: string, mods: Module[]): Promise<Module[]> {
-  const sq = db.$with("sq").as(
-    db
-      .insert(module)
-      .values(mods)
-      .onConflictDoUpdate({
-        target: module.id,
-        set: {
-          name: excluded(module.name),
-          code: excluded(module.code),
-          semesterId: excluded(module.semesterId),
-          imageIconURL: excluded(module.imageIconURL),
-
-          // Retain the niceName and niceCode if they're already set
-          niceName: sql`
-          case
-            when ${excluded(module.niceName)} is not null then ${excluded(module.niceName)}
-            else ${module.niceName}
-          end`,
-          niceCode: sql`
-          case
-            when ${excluded(module.niceCode)} is not null then ${excluded(module.niceCode)}
-            else ${module.niceCode}
-          end`,
-
-          textUpdatedAt: sql`
+/** Upsert the modules, leaving their "nice" name and code as they are. */
+export async function upsertUglyModules(mods: Omit<Module, "niceName" | "niceCode">[]) {
+  await db
+    .insert(module)
+    .values(mods)
+    .onConflictDoUpdate({
+      target: module.id,
+      set: {
+        name: excluded(module.name),
+        code: excluded(module.code),
+        semesterId: excluded(module.semesterId),
+        imageIconURL: excluded(module.imageIconURL),
+        textUpdatedAt: sql`
           case
             when ${module.name} is distinct from ${excluded(module.name)}
               or ${module.code} is distinct from ${excluded(module.code)}
               then now()
             else ${module.textUpdatedAt}
           end`,
-          niceTextUpdatedAt: sql`
-          case
-            when ${module.niceName} is distinct from ${excluded(module.niceName)}
-              or ${module.niceCode} is distinct from ${excluded(module.niceCode)}
-              then now()
-            else ${module.niceTextUpdatedAt}
-          end`,
-        },
-      })
-      .returning(),
+      },
+    });
+}
+
+/** Get the specified modules whose "nice" name or code is missing or older than their name or code. */
+export async function getUglyModules(moduleIds: string[]) {
+  return db
+    .select({ id: module.id, name: module.name, code: module.code })
+    .from(module)
+    .where(
+      and(
+        inArray(module.id, moduleIds),
+        or(gt(module.textUpdatedAt, module.niceTextUpdatedAt), isNull(module.niceName), isNull(module.niceCode)),
+      ),
+    );
+}
+
+/** Set the modules' "nice" name and code. */
+export async function setModuleNiceText(mods: { id: string; niceName: string; niceCode: string | null }[]) {
+  if (mods.length === 0) return;
+
+  const rows = sql.join(
+    mods.map((m) => sql`(${m.id}, ${m.niceName}, ${m.niceCode})`),
+    sql`, `,
   );
-  const uglyModules = await db
-    .with(sq)
-    .select()
-    .from(sq)
-    .where(or(gt(sq.textUpdatedAt, sq.niceTextUpdatedAt), isNull(sq.niceName), isNull(sq.niceCode)));
+  await db.execute(sql`
+    update ${module}
+    set nice_name = v.nice_name, nice_code = v.nice_code, nice_text_updated_at = now()
+    from (values ${rows}) as v(id, nice_name, nice_code)
+    where ${module.id} = v.id`);
+}
 
-  await db
-    .insert(userModule)
-    .values(mods.map((m) => ({ userId, moduleId: m.id })))
-    .onConflictDoNothing();
-
-  return uglyModules;
+/** Set the modules the user is enrolled in, removing any other module from the user. */
+export async function setUserModules(userId: string, moduleIds: string[]) {
+  await Promise.all([
+    moduleIds.length > 0 &&
+      db
+        .insert(userModule)
+        .values(moduleIds.map((moduleId) => ({ userId, moduleId })))
+        .onConflictDoNothing(),
+    db.delete(userModule).where(and(eq(userModule.userId, userId), notInArray(userModule.moduleId, moduleIds))),
+  ]);
 }
 
 /** Get the module's activities that the user has access to, folders included, without their type-specific details. */
@@ -440,26 +441,26 @@ export async function currentOrNextSemesterBreak(userId: string): Promise<
 }
 
 /** Give the user access to exactly `activityIds` among the module's activities. Their access to other modules is unchanged. */
-export async function setUserActivityAccess(userId: string, moduleId: string, activityIds: string[]) {
-  if (activityIds.length) {
-    await db
-      .insert(userActivityAccess)
-      .values(activityIds.map((activityId) => ({ userId, activityId })))
-      .onConflictDoNothing();
-  }
-
-  await db
-    .delete(userActivityAccess)
-    .where(
-      and(
-        eq(userActivityAccess.userId, userId),
-        inArray(
-          userActivityAccess.activityId,
-          db.select({ id: baseActivity.id }).from(baseActivity).where(eq(baseActivity.moduleId, moduleId)),
+export async function setUserActivities(userId: string, moduleId: string, activityIds: string[]) {
+  await Promise.all([
+    activityIds.length > 0 &&
+      db
+        .insert(userActivityAccess)
+        .values(activityIds.map((activityId) => ({ userId, activityId })))
+        .onConflictDoNothing(),
+    db
+      .delete(userActivityAccess)
+      .where(
+        and(
+          eq(userActivityAccess.userId, userId),
+          inArray(
+            userActivityAccess.activityId,
+            db.select({ id: baseActivity.id }).from(baseActivity).where(eq(baseActivity.moduleId, moduleId)),
+          ),
+          notInArray(userActivityAccess.activityId, activityIds),
         ),
-        notInArray(userActivityAccess.activityId, activityIds),
       ),
-    );
+  ]);
 }
 
 /** Get the submission dropboxes and quizzes with due dates across every module the user is enrolled in. */

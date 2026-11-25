@@ -16,17 +16,19 @@ export const sync = query(async () => {
   const user = (await queries.getUserFromSessionHash(sessionHash))!;
   const userId = user.id;
 
-  const [, , uglyModules] = await Promise.all([
+  const [, , { modules: enrolledModules }] = await Promise.all([
     syncOrganization(pl),
     syncUser(pl, { sessionHash, organizationId: user.organizationId }),
     syncModulesAndSemesters(pl, { userId }),
   ]);
-  await syncModuleNames(uglyModules, { userId });
 
+  const [, results] = await Promise.all([
+    syncModuleNames({ moduleIds: enrolledModules.map((m) => m.id) }),
+    Promise.allSettled(
+      enrolledModules.map((m) => syncAssessments(pl, { userId, organizationId: user.organizationId, moduleId: m.id })),
+    ),
+  ]);
   const modules = await queries.getModules(userId);
-  const results = await Promise.allSettled(
-    modules.map((m) => syncAssessments(pl, { userId, organizationId: user.organizationId, moduleId: m.id })),
-  );
   for (const r of results) {
     if (r.status === "rejected") logger.warn({ err: r.reason }, "Failed to sync a module's due dates");
   }
